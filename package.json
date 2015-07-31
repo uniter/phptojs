@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "name": "phptojs",
+  "description": "PHP-to-JavaScript transpiler",
+  "keywords": [
+    "php",
+    "transpiler"
+  ],
+  "homepage": "https://github.com/uniter/phptojs",
+  "author": "Dan Phillimore <dan@ovms.co> (http://ovms.co)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uniter/phptojs"
+  },
+  "bugs": {
+    "email": "dan@ovms.co",
+    "url": "http://github.com/uniter/phptojs/issues"
+  },
+  "main": "index",
+  "scripts": {
+    "jshint": "jshint .",
+    "mocha": "mocha --recursive test/",
+    "test": "npm run jshint && npm run mocha"
+  },
+  "dependencies": {
+    "lodash": "^3.10.0",
+    "phpcommon": "^1.1.0",
+    "transpiler": "^1.0.0"
+  },
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "jshint": "^2.8.0",
+    "mocha": "^2.2.5",
+    "nowdoc": "^1.0.0",
+    "sinon-chai": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=0.6"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/uniter/phptojs/raw/master/MIT-LICENSE.txt"
+    }
+  ]
+}
