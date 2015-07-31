@@ -10,6 +10,7 @@
 'use strict';
 
 var _ = require('lodash'),
+    SYNC = 'sync',
     binaryOperatorToMethod = {
         '+': 'add',
         '-': 'subtract',
@@ -673,12 +674,20 @@ module.exports = {
         'N_PRINT_EXPRESSION': function (node, interpret) {
             return '(stdout.write(' + interpret(node.operand, {getValue: true}) + '.coerceToString().getNative()), tools.valueFactory.createInteger(1))';
         },
-        'N_PROGRAM': function (node, interpret) {
+        'N_PROGRAM': function (node, interpret, options) {
             var body = '',
                 context = {
                     labelRepository: new LabelRepository()
                 },
-                labels;
+                labels,
+                name = 'phpruntime';
+
+            options = options || {};
+
+            // Optional synchronous mode
+            if (options[SYNC]) {
+                name += '/sync';
+            }
 
             body += processBlock(hoistDeclarations(node.statements), interpret, context);
 
@@ -688,10 +697,13 @@ module.exports = {
                 body = 'var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;' + body;
             }
 
-            body = 'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = globalScope, currentClass = null;' + body;
+            body = 'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' + body;
 
             // Program returns null rather than undefined if nothing is returned
             body += 'return tools.valueFactory.createNull();';
+
+            // Wrap program in function for passing to runtime
+            body = 'require(\'' + name + '\')(function (stdin, stdout, stderr, tools, namespace) {' + body + '});';
 
             return body;
         },
