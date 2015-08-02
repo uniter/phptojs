@@ -39,7 +39,7 @@ describe('Transpiler "include" expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').run(function (stdin, stdout, stderr, tools, namespace) {' +
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
             'scope.getVariable("map").setValue(tools.include(tools.valueFactory.createString("abc.php").getNative()));' +
             'return tools.valueFactory.createNull();' +
