@@ -707,7 +707,7 @@ module.exports = {
             body = 'function (stdin, stdout, stderr, tools, namespace) {' + body + '}';
 
             if (options[BARE] !== true) {
-                body = 'require(\'' + name + '\')(' + body + ');';
+                body = 'require(\'' + name + '\').run(' + body + ');';
             }
 
             return body;
