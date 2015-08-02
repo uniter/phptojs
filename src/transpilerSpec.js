@@ -10,6 +10,7 @@
 'use strict';
 
 var _ = require('lodash'),
+    BARE = 'bare',
     SYNC = 'sync',
     binaryOperatorToMethod = {
         '+': 'add',
@@ -703,7 +704,11 @@ module.exports = {
             body += 'return tools.valueFactory.createNull();';
 
             // Wrap program in function for passing to runtime
-            body = 'require(\'' + name + '\')(function (stdin, stdout, stderr, tools, namespace) {' + body + '});';
+            body = 'function (stdin, stdout, stderr, tools, namespace) {' + body + '}';
+
+            if (options[BARE] !== true) {
+                body = 'require(\'' + name + '\')(' + body + ');';
+            }
 
             return body;
         },

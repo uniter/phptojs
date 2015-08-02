@@ -54,4 +54,25 @@ describe('Transpiler "return" statement test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile a return statement with an operand of 6 in bare mode', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_INTEGER',
+                    number: '6'
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'return tools.valueFactory.createInteger(6);' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
 });
