@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "lodash": "^3.10.0",
-    "phpcommon": "^1.1.0",
+    "phpcommon": "~1.1",
     "transpiler": "^1.0.0"
   },
   "devDependencies": {
