@@ -11,6 +11,7 @@
 
 var _ = require('lodash'),
     BARE = 'bare',
+    RUNTIME_PATH = 'runtimePath',
     SYNC = 'sync',
     binaryOperatorToMethod = {
         '+': 'add',
@@ -681,9 +682,13 @@ module.exports = {
                     labelRepository: new LabelRepository()
                 },
                 labels,
-                name = 'phpruntime';
+                name;
 
-            options = options || {};
+            options = _.extend({
+                'runtimePath': 'phpruntime'
+            }, options);
+
+            name = options[RUNTIME_PATH];
 
             // Optional synchronous mode
             if (options[SYNC]) {
