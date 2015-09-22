@@ -223,6 +223,14 @@ module.exports = {
             }
 
             if (indexValues.length > 0) {
+                if (context.assignment) {
+                    _.each(indexValues.slice(0, -1), function () {
+                        arrayVariableCode = 'tools.implyArray(' + arrayVariableCode;
+                    });
+
+                    return arrayVariableCode + '.getElementByKey(' + indexValues.join(')).getElementByKey(') + ')' + suffix;
+                }
+
                 return arrayVariableCode + '.getElementByKey(' + indexValues.join(').getValue().getElementByKey(') + ')' + suffix;
             }
 
