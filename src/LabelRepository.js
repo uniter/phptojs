@@ -9,7 +9,7 @@
 
 'use strict';
 
-var _ = require('lodash'),
+var _ = require('microdash'),
     util = require('util'),
     EventEmitter = require('events').EventEmitter;
 

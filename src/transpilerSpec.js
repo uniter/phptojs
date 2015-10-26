@@ -9,7 +9,7 @@
 
 'use strict';
 
-var _ = require('lodash'),
+var _ = require('microdash'),
     BARE = 'bare',
     RUNTIME_PATH = 'runtimePath',
     SYNC = 'sync',
