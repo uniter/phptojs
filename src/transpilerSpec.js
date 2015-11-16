@@ -601,6 +601,9 @@ module.exports = {
 
             return 'tools.createList([' + elementsCodes.join(',') + '])';
         },
+        'N_MAGIC_CLASS_CONSTANT': function () {
+            return 'tools.getClass(currentClass)';
+        },
         'N_MAGIC_DIR_CONSTANT': function () {
             return 'tools.getPathDirectory()';
         },
