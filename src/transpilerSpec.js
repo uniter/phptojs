@@ -112,11 +112,8 @@ function interpretFunction(argNodes, bindingNodes, statementNode, interpret) {
     // Prepend parts in correct order
     body = argumentAssignments + bindingAssignments + body;
 
-    // Add scope handling logic
-    body = 'var scope = tools.pushCall(this, currentClass).getScope(); try { ' + body + ' } finally { tools.popCall(); }';
-
     // Build function expression
-    body = 'function (' + args.join(', ') + ') {' + body + '}';
+    body = 'function (' + args.join(', ') + ') {var scope = this;' + body + '}';
 
     if (bindingNodes && bindingNodes.length > 0) {
         body = '(function (parentScope) { return ' + body + '; }(scope))';
@@ -602,13 +599,16 @@ module.exports = {
             return 'tools.createList([' + elementsCodes.join(',') + '])';
         },
         'N_MAGIC_CLASS_CONSTANT': function () {
-            return 'tools.getClass(currentClass)';
+            return 'scope.getClassName()';
         },
         'N_MAGIC_DIR_CONSTANT': function () {
             return 'tools.getPathDirectory()';
         },
         'N_MAGIC_FILE_CONSTANT': function () {
             return 'tools.getPath()';
+        },
+        'N_MAGIC_FUNCTION_CONSTANT': function () {
+            return 'scope.getFunctionName()';
         },
         'N_MAGIC_LINE_CONSTANT': function (node) {
             return 'tools.valueFactory.createInteger(' + node.offset.line + ')';

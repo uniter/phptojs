@@ -30,10 +30,7 @@ describe('Transpiler function statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
-            'namespace.defineFunction("gogo", function () {' +
-            'var scope = tools.pushCall(this, currentClass).getScope(); ' +
-            'try {  } finally { tools.popCall(); }' +
-            '});' +
+            'namespace.defineFunction("gogo", function () {var scope = this;});' +
             'return tools.valueFactory.createNull();' +
             '});'
         );
