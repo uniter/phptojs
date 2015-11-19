@@ -613,6 +613,12 @@ module.exports = {
         'N_MAGIC_LINE_CONSTANT': function (node) {
             return 'tools.valueFactory.createInteger(' + node.offset.line + ')';
         },
+        'N_MAGIC_METHOD_CONSTANT': function () {
+            return 'scope.getMethodName()';
+        },
+        'N_MAGIC_NAMESPACE_CONSTANT': function () {
+            return 'namespaceScope.getNamespaceName()';
+        },
         'N_METHOD_CALL': function (node, interpret) {
             var code = '';
 
