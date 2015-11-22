@@ -826,9 +826,9 @@ module.exports = {
         'N_TERNARY': function (node, interpret) {
             var expression = '(' + interpret(node.condition) + ')';
 
-            _.each(node.options, function (option) {
-                expression = '(' + expression + '.coerceToBoolean().getNative() ? ' + interpret(option.consequent) + ' : ' + interpret(option.alternate) + ')';
-            });
+            expression = '(' + expression + '.coerceToBoolean().getNative() ? ' +
+                interpret(node.consequent) + ' : ' +
+                interpret(node.alternate) + ')';
 
             return expression;
         },
