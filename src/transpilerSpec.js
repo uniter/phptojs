@@ -242,11 +242,17 @@ module.exports = {
 
             return 'tools.valueFactory.createArray([' + elementValues.join(', ') + '])';
         },
+        'N_BINARY_CAST': function (node, interpret) {
+            return interpret(node.value, {getValue: true}) + '.coerceToString()';
+        },
         'N_BINARY_LITERAL': function (node) {
             return 'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')';
         },
         'N_BOOLEAN': function (node) {
             return 'tools.valueFactory.createBoolean(' + node.bool + ')';
+        },
+        'N_BOOLEAN_CAST': function (node, interpret) {
+            return interpret(node.value, {getValue: true}) + '.coerceToBoolean()';
         },
         'N_BREAK_STATEMENT': function (node, interpret, context) {
             return 'break switch_' + (context.switchCase.depth - (node.levels.number - 1)) + ';';
@@ -329,6 +335,9 @@ module.exports = {
             var code = interpret(node.body);
 
             return 'do {' + code + '} while (' + interpret(node.condition) + '.coerceToBoolean().getNative());';
+        },
+        'N_DOUBLE_CAST': function (node, interpret) {
+            return interpret(node.value, {getValue: true}) + '.coerceToFloat()';
         },
         'N_ECHO_STATEMENT': function (node, interpret) {
             return 'stdout.write(' + interpret(node.expression) + '.coerceToString().getNative());';
@@ -532,6 +541,9 @@ module.exports = {
         'N_INTEGER': function (node) {
             return 'tools.valueFactory.createInteger(' + node.number + ')';
         },
+        'N_INTEGER_CAST': function (node, interpret) {
+            return interpret(node.value, {getValue: true}) + '.coerceToInteger()';
+        },
         'N_INTERFACE_METHOD_DEFINITION': function (node, interpret) {
             return {
                 name: interpret(node.func),
@@ -669,6 +681,9 @@ module.exports = {
         'N_NULL': function () {
             return 'tools.valueFactory.createNull()';
         },
+        'N_OBJECT_CAST': function (node, interpret) {
+            return interpret(node.value, {getValue: true}) + '.coerceToObject()';
+        },
         'N_OBJECT_PROPERTY': function (node, interpret, context) {
             var objectVariableCode,
                 propertyCode = '',
@@ -795,6 +810,9 @@ module.exports = {
 
             return 'namespaceScope.getConstant(' + JSON.stringify(node.string) + ')';
         },
+        'N_STRING_CAST': function (node, interpret) {
+            return interpret(node.value, {getValue: true}) + '.coerceToString()';
+        },
         'N_STRING_EXPRESSION': function (node, interpret) {
             var codes = [];
 
@@ -843,6 +861,10 @@ module.exports = {
                 operand = interpret(node.operand, {getValue: operator !== '++' && operator !== '--'});
 
             return operand + '.' + unaryOperatorToMethod[node.prefix ? 'prefix' : 'suffix'][operator] + '()';
+        },
+        'N_UNSET_CAST': function (node, interpret) {
+            // Unset cast coerces all values to NULL
+            return '(' + interpret(node.value, {getValue: true}) + ', tools.valueFactory.createNull())';
         },
         'N_USE_STATEMENT': function (node) {
             var code = '';
