@@ -242,6 +242,9 @@ module.exports = {
 
             return 'tools.valueFactory.createArray([' + elementValues.join(', ') + '])';
         },
+        'N_BINARY_LITERAL': function (node) {
+            return 'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')';
+        },
         'N_BOOLEAN': function (node) {
             return 'tools.valueFactory.createBoolean(' + node.bool + ')';
         },
