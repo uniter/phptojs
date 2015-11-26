@@ -56,4 +56,45 @@ describe('Transpiler ternary expression test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a shorthand ternary', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_TERNARY',
+                    condition: {
+                        name: 'N_EXPRESSION',
+                        left: {
+                            name: 'N_VARIABLE',
+                            variable: 'myVar'
+                        },
+                        right: [{
+                            operator: '==',
+                            operand: {
+                                name: 'N_INTEGER',
+                                number: '21'
+                            }
+                        }]
+                    },
+                    consequent: null,
+                    alternate: {
+                        name: 'N_INTEGER',
+                        number: '23'
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            '((tools.ternaryCondition = (scope.getVariable("myVar").getValue().isEqualTo(tools.valueFactory.createInteger(21))).coerceToBoolean().getNative()) ? ' +
+            'tools.ternaryCondition : ' +
+            'tools.valueFactory.createInteger(23));' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
 });

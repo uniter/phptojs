@@ -845,10 +845,20 @@ module.exports = {
             return 'switch_' + switchCase.depth + ': {' + code + '}';
         },
         'N_TERNARY': function (node, interpret) {
-            var expression = '(' + interpret(node.condition) + ')';
+            var condition = '(' + interpret(node.condition) + ').coerceToBoolean().getNative()',
+                consequent,
+                expression;
 
-            expression = '(' + expression + '.coerceToBoolean().getNative() ? ' +
-                interpret(node.consequent) + ' : ' +
+            if (node.consequent) {
+                consequent = interpret(node.consequent);
+            } else {
+                // Handle shorthand ternary
+                condition = '(tools.ternaryCondition = ' + condition + ')';
+                consequent = 'tools.ternaryCondition';
+            }
+
+            expression = '(' + condition + ' ? ' +
+                consequent + ' : ' +
                 interpret(node.alternate) + ')';
 
             return expression;
