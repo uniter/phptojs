@@ -845,7 +845,7 @@ module.exports = {
             return 'switch_' + switchCase.depth + ': {' + code + '}';
         },
         'N_TERNARY': function (node, interpret) {
-            var condition = '(' + interpret(node.condition) + ').coerceToBoolean().getNative()',
+            var condition = interpret(node.condition),
                 consequent,
                 expression;
 
@@ -857,7 +857,7 @@ module.exports = {
                 consequent = 'tools.ternaryCondition';
             }
 
-            expression = '(' + condition + ' ? ' +
+            expression = '(' + condition + '.coerceToBoolean().getNative() ? ' +
                 consequent + ' : ' +
                 interpret(node.alternate) + ')';
 
