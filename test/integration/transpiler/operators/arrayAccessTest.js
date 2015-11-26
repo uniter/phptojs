@@ -127,4 +127,39 @@ describe('Transpiler array access operator test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile a push', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_ARRAY_INDEX',
+                        array: {
+                            name: 'N_VARIABLE',
+                            variable: 'myArray'
+                        },
+                        indices: true
+                    },
+                    right: [{
+                        operator: '=',
+                        operand: {
+                            name: 'N_INTEGER',
+                            number: '21'
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'tools.implyArray(scope.getVariable("myArray")).getPushElement().setValue(tools.valueFactory.createInteger(21));' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });

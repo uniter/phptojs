@@ -231,7 +231,7 @@ module.exports = {
                 return arrayVariableCode + '.getElementByKey(' + indexValues.join(').getValue().getElementByKey(') + ')' + suffix;
             }
 
-            return arrayVariableCode + '.getElementByKey(tools.valueFactory.createInteger(' + arrayVariableCode + '.getLength()))' + suffix;
+            return arrayVariableCode + '.getPushElement()' + suffix;
         },
         'N_ARRAY_LITERAL': function (node, interpret) {
             var elementValues = [];
