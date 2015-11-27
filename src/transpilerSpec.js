@@ -590,9 +590,9 @@ module.exports = {
                 issets.push(interpret(variable, {getValue: false}) + '.isSet()');
             });
 
-            return '(function (scope) {scope.suppressErrors();' +
+            return '(function (scope) {scope.suppressOwnErrors();' +
                 'var result = tools.valueFactory.createBoolean(' + issets.join(' && ') + ');' +
-                'scope.unsuppressErrors(); return result;}(scope))';
+                'scope.unsuppressOwnErrors(); return result;}(scope))';
         },
         'N_KEY_VALUE_PAIR': function (node, interpret) {
             return 'tools.createKeyValuePair(' + interpret(node.key) + ', ' + interpret(node.value) + ')';
