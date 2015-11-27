@@ -825,6 +825,11 @@ module.exports = {
         'N_STRING_LITERAL': function (node) {
             return 'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')';
         },
+        'N_SUPPRESSED_EXPRESSION': function (node, interpret) {
+            return '(function (scope) {scope.suppressErrors();' +
+                'var result = ' + interpret(node.expression) + ';' +
+                'scope.unsuppressErrors(); return result;}(scope))';
+        },
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
             var code = '',
                 expressionCode = interpret(node.expression),
