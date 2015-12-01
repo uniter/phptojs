@@ -348,7 +348,7 @@ module.exports = {
             }
 
             if (hasOwn.call(node, 'message')) {
-                return '(stdout.write(' + interpret(node.message) + '), tools.exit())';
+                return '(stdout.write(' + interpret(node.message) + '.getNative()), tools.exit())';
             }
 
             return 'tools.exit()';

@@ -75,7 +75,7 @@ describe('Transpiler exit(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
-            '(stdout.write(tools.valueFactory.createString("My failure message")), tools.exit());' +
+            '(stdout.write(tools.valueFactory.createString("My failure message").getNative()), tools.exit());' +
             'return tools.valueFactory.createNull();' +
             '});'
         );
