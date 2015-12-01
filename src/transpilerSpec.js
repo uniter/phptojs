@@ -342,6 +342,17 @@ module.exports = {
         'N_ECHO_STATEMENT': function (node, interpret) {
             return 'stdout.write(' + interpret(node.expression) + '.coerceToString().getNative());';
         },
+        'N_EXIT': function (node, interpret) {
+            if (hasOwn.call(node, 'status')) {
+                return 'tools.exit(' + interpret(node.status) + ')';
+            }
+
+            if (hasOwn.call(node, 'message')) {
+                return '(stdout.write(' + interpret(node.message) + '), tools.exit())';
+            }
+
+            return 'tools.exit()';
+        },
         'N_EXPRESSION': function (node, interpret) {
             var isAssignment = /^[+-]?=$/.test(node.right[0].operator),
                 expressionEnd = '',
