@@ -34,6 +34,8 @@ var _ = require('microdash'),
         '&=': 'bitwiseAndWith',
         '|=': 'bitwiseOrWith',
         '^=': 'bitwiseXorWith',
+        '<<=': 'shiftLeftBy',
+        '>>=': 'shiftRightBy',
         '==': 'isEqualTo',
         '!=': 'isNotEqualTo',
         '===': 'isIdenticalTo',
@@ -365,7 +367,7 @@ module.exports = {
             return 'tools.exit()';
         },
         'N_EXPRESSION': function (node, interpret) {
-            var isAssignment = /^[-+*/.%&|^]?=$/.test(node.right[0].operator),
+            var isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
                 expressionEnd = '',
                 expressionStart = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment});
 
