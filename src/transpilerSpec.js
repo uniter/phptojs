@@ -23,6 +23,13 @@ var _ = require('microdash'),
         '>>': 'shiftRightBy',
         '+=': 'incrementBy',
         '-=': 'decrementBy',
+        '*=': 'multiplyBy',
+        '/=': 'divideBy',
+        '.=': 'concatWith',
+        '%=': 'moduloWith',
+        '&=': 'bitwiseAndWith',
+        '|=': 'bitwiseOrWith',
+        '^=': 'bitwiseXorWith',
         '==': 'isEqualTo',
         '!=': 'isNotEqualTo',
         '===': 'isIdenticalTo',
@@ -354,7 +361,7 @@ module.exports = {
             return 'tools.exit()';
         },
         'N_EXPRESSION': function (node, interpret) {
-            var isAssignment = /^[+-]?=$/.test(node.right[0].operator),
+            var isAssignment = /^[-+*/.%&|^]?=$/.test(node.right[0].operator),
                 expressionEnd = '',
                 expressionStart = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment});
 
