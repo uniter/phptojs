@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "microdash": "~1",
-    "phpcommon": "~1.3",
+    "phpcommon": "~1",
     "transpiler": "~1.2"
   },
   "devDependencies": {
