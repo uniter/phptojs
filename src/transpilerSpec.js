@@ -44,7 +44,8 @@ var _ = require('microdash'),
         '=': {
             'false': 'setValue',
             'true': 'setReference'
-        }
+        },
+        'instanceof': 'isAnInstanceOf'
     },
     hasOwn = {}.hasOwnProperty,
     unaryOperatorToMethod = {
