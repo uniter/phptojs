@@ -557,7 +557,7 @@ module.exports = {
             return 'stdout.write(' + JSON.stringify(node.html) + ');';
         },
         'N_INSTANCE_OF': function (node, interpret) {
-            return interpret(node.object) + '.isAnInstanceOf(' + interpret(node['class'], {allowBareword: true}) + ', namespaceScope)';
+            return interpret(node.object, {getValue: true}) + '.isAnInstanceOf(' + interpret(node['class'], {allowBareword: true}) + ', namespaceScope)';
         },
         'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret) {
             return {

@@ -68,4 +68,41 @@ describe('Transpiler instanceof binary operator test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile a function call argument with $var instanceof <bareword>', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myFunc'
+                    },
+                    args: [{
+                        name: 'N_INSTANCE_OF',
+                        object: {
+                            name: 'N_VARIABLE',
+                            variable: 'myObject'
+                        },
+                        class: {
+                            name: 'N_STRING',
+                            string: 'MyClass'
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'return (tools.valueFactory.createBarewordString("myFunc").call([scope.getVariable("myObject").getValue().isAnInstanceOf(' +
+            'tools.valueFactory.createBarewordString("MyClass"), namespaceScope' +
+            ')], namespaceScope) || tools.valueFactory.createNull());' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });
