@@ -44,8 +44,7 @@ var _ = require('microdash'),
         '=': {
             'false': 'setValue',
             'true': 'setReference'
-        },
-        'instanceof': 'isAnInstanceOf'
+        }
     },
     hasOwn = {}.hasOwnProperty,
     unaryOperatorToMethod = {
@@ -556,6 +555,9 @@ module.exports = {
         },
         'N_INLINE_HTML_STATEMENT': function (node) {
             return 'stdout.write(' + JSON.stringify(node.html) + ');';
+        },
+        'N_INSTANCE_OF': function (node, interpret) {
+            return interpret(node.object) + '.isAnInstanceOf(' + interpret(node['class']) + ', namespaceScope)';
         },
         'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret) {
             return {

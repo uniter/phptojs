@@ -19,18 +19,15 @@ describe('Transpiler instanceof binary operator test', function () {
             statements: [{
                 name: 'N_RETURN_STATEMENT',
                 expression: {
-                    name: 'N_EXPRESSION',
-                    left: {
+                    name: 'N_INSTANCE_OF',
+                    object: {
                         name: 'N_VARIABLE',
                         variable: 'myObject'
                     },
-                    right: [{
-                        operator: 'instanceof',
-                        operand: {
-                            name: 'N_VARIABLE',
-                            variable: 'myClass'
-                        }
-                    }]
+                    class: {
+                        name: 'N_VARIABLE',
+                        variable: 'myClass'
+                    }
                 }
             }]
         };
@@ -38,7 +35,7 @@ describe('Transpiler instanceof binary operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
-            'return scope.getVariable("myObject").getValue().isAnInstanceOf(scope.getVariable("myClass").getValue());' +
+            'return scope.getVariable("myObject").getValue().isAnInstanceOf(scope.getVariable("myClass").getValue(), namespaceScope);' +
             'return tools.valueFactory.createNull();' +
             '});'
         );
