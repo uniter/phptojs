@@ -553,6 +553,9 @@ module.exports = {
         'N_INCLUDE_EXPRESSION': function (node, interpret) {
             return 'tools.include(' + interpret(node.path) + '.getNative())';
         },
+        'N_INCLUDE_ONCE_EXPRESSION': function (node, interpret) {
+            return 'tools.includeOnce(' + interpret(node.path) + '.getNative())';
+        },
         'N_INLINE_HTML_STATEMENT': function (node) {
             return 'stdout.write(' + JSON.stringify(node.html) + ');';
         },

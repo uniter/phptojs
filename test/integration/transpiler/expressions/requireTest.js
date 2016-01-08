@@ -10,9 +10,9 @@
 'use strict';
 
 var expect = require('chai').expect,
-    phpToJS = require('../../..');
+    phpToJS = require('../../../..');
 
-describe('Transpiler "include" expression test', function () {
+describe('Transpiler "require" expression test', function () {
     it('should correctly transpile in default (async) mode', function () {
         var ast = {
             name: 'N_PROGRAM',
@@ -27,7 +27,7 @@ describe('Transpiler "include" expression test', function () {
                     right: [{
                         operator: '=',
                         operand: {
-                            name: 'N_INCLUDE_EXPRESSION',
+                            name: 'N_REQUIRE_EXPRESSION',
                             path: {
                                 name: 'N_STRING_LITERAL',
                                 string: 'abc.php'
@@ -41,7 +41,7 @@ describe('Transpiler "include" expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
-            'scope.getVariable("map").setValue(tools.include(tools.valueFactory.createString("abc.php").getNative()));' +
+            'scope.getVariable("map").setValue(tools.require(tools.valueFactory.createString("abc.php").getNative()));' +
             'return tools.valueFactory.createNull();' +
             '});'
         );
