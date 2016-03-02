@@ -228,7 +228,10 @@ module.exports = {
             if (context.assignment) {
                 arrayVariableCode = 'tools.implyArray(' + interpret(node.array, {getValue: false}) + ')';
             } else {
-                suffix = '.getValue()';
+                if (context.getValue !== false) {
+                    suffix = '.getValue()';
+                }
+
                 arrayVariableCode = interpret(node.array, {getValue: true});
             }
 

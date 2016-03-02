@@ -38,4 +38,39 @@ describe('Transpiler isset(...) construct expression test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile a return statement with array element access', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ISSET',
+                    variables: [{
+                        name: 'N_ARRAY_INDEX',
+                        array: {
+                            name: 'N_VARIABLE',
+                            variable: 'myArray'
+                        },
+                        indices: [{
+                            index: {
+                                name: 'N_INTEGER',
+                                number: 21
+                            }
+                        }]
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'return (function (scope) {scope.suppressOwnErrors();var result = tools.valueFactory.createBoolean(' +
+            'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).isSet()' +
+            ');scope.unsuppressOwnErrors(); return result;}(scope));' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });
