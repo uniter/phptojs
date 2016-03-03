@@ -914,6 +914,15 @@ module.exports = {
             // Unset cast coerces all values to NULL
             return '(' + interpret(node.value, {getValue: true}) + ', tools.valueFactory.createNull())';
         },
+        'N_UNSET_STATEMENT': function (node, interpret) {
+            var statements = [];
+
+            _.each(node.variables, function (variableNode) {
+                statements.push(interpret(variableNode, {getValue: false}) + '.unset()');
+            });
+
+            return statements.join('; ') + ';';
+        },
         'N_USE_STATEMENT': function (node) {
             var code = '';
 
