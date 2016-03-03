@@ -725,7 +725,10 @@ module.exports = {
             if (context.assignment) {
                 objectVariableCode = 'tools.implyObject(' + interpret(node.object, {getValue: false}) + ')';
             } else {
-                suffix = '.getValue()';
+                if (context.getValue !== false) {
+                    suffix = '.getValue()';
+                }
+
                 objectVariableCode = interpret(node.object, {getValue: true});
             }
 

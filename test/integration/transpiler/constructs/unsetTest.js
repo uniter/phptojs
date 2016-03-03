@@ -87,4 +87,34 @@ describe('Transpiler unset(...) construct expression test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile an unset with object property access', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_UNSET_STATEMENT',
+                variables: [{
+                    name: 'N_OBJECT_PROPERTY',
+                    object: {
+                        name: 'N_VARIABLE',
+                        variable: 'an_object'
+                    },
+                    properties: [{
+                        property: {
+                            name: 'N_STRING',
+                            string: 'prop'
+                        }
+                    }]
+                }]
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'scope.getVariable("an_object").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("prop")).unset();' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });
