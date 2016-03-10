@@ -265,7 +265,7 @@ module.exports = {
             return 'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')';
         },
         'N_BOOLEAN': function (node) {
-            return 'tools.valueFactory.createBoolean(' + node.bool + ')';
+            return 'tools.valueFactory.createBoolean(' + node.bool.toLowerCase() + ')';
         },
         'N_BOOLEAN_CAST': function (node, interpret) {
             return interpret(node.value, {getValue: true}) + '.coerceToBoolean()';
