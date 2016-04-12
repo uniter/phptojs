@@ -1,0 +1,54 @@
+/*
+ * PHPToJS - PHP-to-JavaScript transpiler
+ * Copyright (c) Dan Phillimore (asmblah)
+ * https://github.com/uniter/phptojs
+ *
+ * Released under the MIT license
+ * https://github.com/uniter/phptojs/raw/master/MIT-LICENSE.txt
+ */
+
+'use strict';
+
+var expect = require('chai').expect,
+    phpToJS = require('../../../../..');
+
+describe('Transpiler object instance property access test', function () {
+    it('should correctly transpile a read of a property of a property', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_OBJECT_PROPERTY',
+                    object: {
+                        name: 'N_OBJECT_PROPERTY',
+                        object: {
+                            name: 'N_VARIABLE',
+                            variable: 'myVar'
+                        },
+                        properties: [{
+                            property: {
+                                name: 'N_STRING',
+                                string: 'firstProp'
+                            }
+                        }]
+                    },
+                    properties: [{
+                        property: {
+                            name: 'N_STRING',
+                            string: 'secondProp'
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'return scope.getVariable("myVar").getInstancePropertyByName(tools.valueFactory.createBarewordString("firstProp")).getInstancePropertyByName(tools.valueFactory.createBarewordString("secondProp")).getValue();' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
+});

@@ -729,7 +729,7 @@ module.exports = {
                     suffix = '.getValue()';
                 }
 
-                objectVariableCode = interpret(node.object, {getValue: true});
+                objectVariableCode = interpret(node.object, {getValue: false});
             }
 
             _.each(node.properties, function (property, index) {
