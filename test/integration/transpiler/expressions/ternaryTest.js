@@ -48,7 +48,7 @@ describe('Transpiler ternary expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             '(scope.getVariable("myVar").getValue().isEqualTo(tools.valueFactory.createInteger(21)).coerceToBoolean().getNative() ? ' +
             'tools.valueFactory.createInteger(22) : ' +
             'tools.valueFactory.createInteger(23));' +
@@ -89,7 +89,7 @@ describe('Transpiler ternary expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             '((tools.ternaryCondition = scope.getVariable("myVar").getValue().isEqualTo(tools.valueFactory.createInteger(21))).coerceToBoolean().getNative() ? ' +
             'tools.ternaryCondition : ' +
             'tools.valueFactory.createInteger(23));' +

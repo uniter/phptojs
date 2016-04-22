@@ -31,7 +31,7 @@ describe('Transpiler scope resolution operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.valueFactory.createBarewordString("MyClass").getConstantByName("MY_CONST", namespaceScope);' +
             'return tools.valueFactory.createNull();' +
             '});'

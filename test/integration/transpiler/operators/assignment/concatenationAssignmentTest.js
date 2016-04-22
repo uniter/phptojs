@@ -37,7 +37,7 @@ describe('Transpiler string concatenation assignment operator ".=" test', functi
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myVar").concatWith(tools.valueFactory.createString("my string here"));' +
             'return tools.valueFactory.createNull();' +
             '});'

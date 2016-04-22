@@ -30,7 +30,7 @@ describe('Transpiler isset(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return (function (scope) {scope.suppressOwnErrors();' +
             'var result = tools.valueFactory.createBoolean(scope.getVariable("a_var").isSet());' +
             'scope.unsuppressOwnErrors(); return result;}(scope));' +
@@ -65,7 +65,7 @@ describe('Transpiler isset(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return (function (scope) {scope.suppressOwnErrors();var result = tools.valueFactory.createBoolean(' +
             'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).isSet()' +
             ');scope.unsuppressOwnErrors(); return result;}(scope));' +

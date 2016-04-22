@@ -554,10 +554,10 @@ module.exports = {
             return code;
         },
         'N_INCLUDE_EXPRESSION': function (node, interpret) {
-            return 'tools.include(' + interpret(node.path) + '.getNative())';
+            return 'tools.include(' + interpret(node.path) + '.getNative(), scope)';
         },
         'N_INCLUDE_ONCE_EXPRESSION': function (node, interpret) {
-            return 'tools.includeOnce(' + interpret(node.path) + '.getNative())';
+            return 'tools.includeOnce(' + interpret(node.path) + '.getNative(), scope)';
         },
         'N_INLINE_HTML_STATEMENT': function (node) {
             return 'stdout.write(' + JSON.stringify(node.html) + ');';
@@ -774,7 +774,7 @@ module.exports = {
                 body = 'var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;' + body;
             }
 
-            body = 'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' + body;
+            body = 'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' + body;
 
             // Program returns null rather than undefined if nothing is returned
             body += 'return tools.valueFactory.createNull();';
@@ -789,10 +789,10 @@ module.exports = {
             return body;
         },
         'N_REQUIRE_EXPRESSION': function (node, interpret) {
-            return 'tools.require(' + interpret(node.path) + '.getNative())';
+            return 'tools.require(' + interpret(node.path) + '.getNative(), scope)';
         },
         'N_REQUIRE_ONCE_EXPRESSION': function (node, interpret) {
-            return 'tools.requireOnce(' + interpret(node.path) + '.getNative())';
+            return 'tools.requireOnce(' + interpret(node.path) + '.getNative(), scope)';
         },
         'N_RETURN_STATEMENT': function (node, interpret) {
             var expression = interpret(node.expression);

@@ -30,7 +30,7 @@ describe('Transpiler __LINE__ magic constant test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.valueFactory.createInteger(1);' +
             'return tools.valueFactory.createNull();' +
             '}'
@@ -66,7 +66,7 @@ describe('Transpiler __LINE__ magic constant test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.globalScope, currentClass = null;' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'namespace.defineFunction("myFunction", function () {var scope = this;' +
             'return tools.valueFactory.createInteger(3);' +
             '});' +
