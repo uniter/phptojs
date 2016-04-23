@@ -499,6 +499,15 @@ module.exports = {
 
             return '(' + interpret(node.func, {getValue: true, allowBareword: true}) + '.call([' + args.join(', ') + '], namespaceScope) || tools.valueFactory.createNull())';
         },
+        'N_GLOBAL_STATEMENT': function (node) {
+            var code = '';
+
+            _.each(node.variables, function (variable) {
+                code += 'scope.importGlobal(' + JSON.stringify(variable.variable) + ');';
+            });
+
+            return code;
+        },
         'N_GOTO_STATEMENT': function (node, interpret, context) {
             var code = '',
                 label = node.label;
