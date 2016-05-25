@@ -38,9 +38,13 @@ var _ = require('microdash'),
         '>>=': 'shiftRightBy',
         '==': 'isEqualTo',
         '!=': 'isNotEqualTo',
+        '<>': 'isNotEqualTo',
         '===': 'isIdenticalTo',
         '!==': 'isNotIdenticalTo',
         '<': 'isLessThan',
+        '<=': 'isLessThanOrEqual',
+        '>': 'isGreaterThan',
+        '>=': 'isGreaterThanOrEqual',
         '=': {
             'false': 'setValue',
             'true': 'setReference'
