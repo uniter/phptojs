@@ -394,10 +394,20 @@ module.exports = {
 
                 rightOperand = interpret(operation.operand, {getValue: getValueIfApplicable});
 
-                if (operation.operator === '&&') {
+                // Handle logical 'and' specially as it can short-circuit
+                if (operation.operator === '&&' || operation.operator === 'and') {
                     expressionStart = 'tools.valueFactory.createBoolean(' +
                         expressionStart +
                         '.coerceToBoolean().getNative() && (' +
+                        rightOperand +
+                        valuePostProcess +
+                        '.coerceToBoolean().getNative()';
+                    expressionEnd += '))';
+                // Handle logical 'or' specially as it can short-circuit
+                } else if (operation.operator === '||' || operation.operator === 'or') {
+                    expressionStart = 'tools.valueFactory.createBoolean(' +
+                        expressionStart +
+                        '.coerceToBoolean().getNative() || (' +
                         rightOperand +
                         valuePostProcess +
                         '.coerceToBoolean().getNative()';
