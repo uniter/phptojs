@@ -412,6 +412,16 @@ module.exports = {
                         valuePostProcess +
                         '.coerceToBoolean().getNative()';
                     expressionEnd += '))';
+                // Xor should be true if LHS is not equal to RHS:
+                // coerce to booleans then compare for inequality
+                } else if (operation.operator === 'xor') {
+                    expressionStart = 'tools.valueFactory.createBoolean(' +
+                        expressionStart +
+                        '.coerceToBoolean().getNative() !== (' +
+                        rightOperand +
+                        valuePostProcess +
+                        '.coerceToBoolean().getNative()';
+                    expressionEnd += '))';
                 } else {
                     method = binaryOperatorToMethod[operation.operator];
 
