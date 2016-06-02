@@ -87,7 +87,11 @@ function interpretFunction(argNodes, bindingNodes, statementNode, interpret) {
     var args = [],
         argumentAssignments = '',
         bindingAssignments = '',
-        body = interpret(statementNode);
+        subContext = {
+            blockContextDepth: -1,
+            labelRepository: new LabelRepository()
+        },
+        body = interpret(statementNode, subContext);
 
     _.each(bindingNodes, function (bindingNode) {
         var methodSuffix = bindingNode.reference ? 'Reference' : 'Value',
@@ -106,7 +110,7 @@ function interpretFunction(argNodes, bindingNodes, statementNode, interpret) {
             valueCode += variable;
 
             if (argNode.value) {
-                valueCode += ' || ' + interpret(argNode.value);
+                valueCode += ' || ' + interpret(argNode.value, subContext);
             }
         } else {
             variable = argNode.variable;
@@ -275,7 +279,13 @@ module.exports = {
             return interpret(node.value, {getValue: true}) + '.coerceToBoolean()';
         },
         'N_BREAK_STATEMENT': function (node, interpret, context) {
-            return 'break switch_' + (context.switchCase.depth - (node.levels.number - 1)) + ';';
+            if (node.levels.number <= 0) {
+                throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
+                    'operator': 'break'
+                });
+            }
+
+            return 'break block_' + (context.blockContextDepth - (node.levels.number - 1)) + ';';
         },
         'N_CASE': function (node, interpret, context) {
             var body = '';
@@ -284,7 +294,7 @@ module.exports = {
                 body += interpret(statement);
             });
 
-            return 'if (switchMatched_' + context.switchCase.depth + ' || switchExpression_' + context.switchCase.depth + '.isEqualTo(' + interpret(node.expression) + ').getNative()) {switchMatched_' + context.switchCase.depth + ' = true; ' + body + '}';
+            return 'if (switchMatched_' + context.blockContextDepth + ' || switchExpression_' + context.blockContextDepth + '.isEqualTo(' + interpret(node.expression) + ').getNative()) {switchMatched_' + context.blockContextDepth + ' = true; ' + body + '}';
         },
         'N_CLASS_CONSTANT': function (node, interpret) {
             return interpret(node.className, {getValue: true, allowBareword: true}) + '.getConstantByName(' + JSON.stringify(node.constant) + ', namespaceScope)';
@@ -340,7 +350,7 @@ module.exports = {
             };
         },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
-            return 'break switch_' + (context.switchCase.depth - (node.levels.number - 1)) + ';';
+            return 'break block_' + (context.blockContextDepth - (node.levels.number - 1)) + ';';
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
             var body = '';
@@ -349,12 +359,16 @@ module.exports = {
                 body += interpret(statement);
             });
 
-            return 'if (!switchMatched_' + context.switchCase.depth + ') {switchMatched_' + context.switchCase.depth + ' = true; ' + body + '}';
+            return 'if (!switchMatched_' + context.blockContextDepth + ') {switchMatched_' + context.blockContextDepth + ' = true; ' + body + '}';
         },
-        'N_DO_WHILE_STATEMENT': function (node, interpret/*, context*/) {
-            var code = interpret(node.body);
+        'N_DO_WHILE_STATEMENT': function (node, interpret, context) {
+            var blockContextDepth = context.blockContextDepth + 1,
+                subContext = {
+                    blockContextDepth: blockContextDepth
+                },
+                code = interpret(node.body, subContext);
 
-            return 'do {' + code + '} while (' + interpret(node.condition) + '.coerceToBoolean().getNative());';
+            return 'do {' + code + '} while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative());';
         },
         'N_DOUBLE_CAST': function (node, interpret) {
             return interpret(node.value, {getValue: true}) + '.coerceToFloat()';
@@ -446,17 +460,21 @@ module.exports = {
         'N_FLOAT': function (node) {
             return 'tools.valueFactory.createFloat(' + node.number + ')';
         },
-        'N_FOR_STATEMENT': function (node, interpret) {
-            var bodyCode = interpret(node.body),
-                conditionCode = interpret(node.condition),
-                initializerCode = interpret(node.initializer),
-                updateCode = interpret(node.update);
+        'N_FOR_STATEMENT': function (node, interpret, context) {
+            var blockContextDepth = context.blockContextDepth + 1,
+                subContext = {
+                    blockContextDepth: blockContextDepth
+                },
+                bodyCode = interpret(node.body, subContext),
+                conditionCode = interpret(node.condition, subContext),
+                initializerCode = interpret(node.initializer, subContext),
+                updateCode = interpret(node.update, subContext);
 
             if (conditionCode) {
                 conditionCode += '.coerceToBoolean().getNative()';
             }
 
-            return 'for (' + initializerCode + ';' + conditionCode + ';' + updateCode + ') {' + bodyCode + '}';
+            return 'block_' + blockContextDepth + ': for (' + initializerCode + ';' + conditionCode + ';' + updateCode + ') {' + bodyCode + '}';
         },
         'N_FOREACH_STATEMENT': function (node, interpret, context) {
             var arrayValue = interpret(node.array),
@@ -465,25 +483,24 @@ module.exports = {
                 key = node.key ? interpret(node.key, {getValue: false}) : null,
                 lengthVariable,
                 pointerVariable,
+                blockContextDepth = context.blockContextDepth + 1,
+                subContext = {
+                    blockContextDepth: blockContextDepth
+                },
                 value = interpret(node.value, {getValue: false});
 
-            if (!context.foreach) {
-                context.foreach = {
-                    depth: 0
-                };
-            } else {
-                context.foreach.depth++;
-            }
-
-            arrayVariable = 'array_' + context.foreach.depth;
+            arrayVariable = 'array_' + blockContextDepth;
 
             // Cache the value being iterated over and reset the internal array pointer before the loop
             code += 'var ' + arrayVariable + ' = ' + arrayValue + '.reset();';
 
-            lengthVariable = 'length_' + context.foreach.depth;
+            lengthVariable = 'length_' + blockContextDepth;
             code += 'var ' + lengthVariable + ' = ' + arrayVariable + '.getLength();';
-            pointerVariable = 'pointer_' + context.foreach.depth;
+            pointerVariable = 'pointer_' + blockContextDepth;
             code += 'var ' + pointerVariable + ' = 0;';
+
+            // Prepend label for `break;` and `continue;` to reference
+            code += 'block_' + blockContextDepth + ': ';
 
             // Loop management
             code += 'while (' + pointerVariable + ' < ' + lengthVariable + ') {';
@@ -499,16 +516,14 @@ module.exports = {
             // Set pointer to next element at start of loop body as per spec
             code += pointerVariable + '++;';
 
-            code += interpret(node.body);
+            code += interpret(node.body, subContext);
 
             code += '}';
 
             return code;
         },
-        'N_FUNCTION_STATEMENT': function (node, interpret, context) {
+        'N_FUNCTION_STATEMENT': function (node, interpret) {
             var func;
-
-            context.labelRepository = new LabelRepository();
 
             func = interpretFunction(node.args, null, node.body, interpret);
 
@@ -783,6 +798,7 @@ module.exports = {
         'N_PROGRAM': function (node, interpret, options) {
             var body = '',
                 context = {
+                    blockContextDepth: -1,
                     labelRepository: new LabelRepository()
                 },
                 labels,
@@ -902,21 +918,19 @@ module.exports = {
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
             var code = '',
                 expressionCode = interpret(node.expression),
-                switchCase = {
-                    depth: context.switchCase ? context.switchCase.depth + 1 : 0
-                },
+                blockContextDepth = context.blockContextDepth + 1,
                 subContext = {
-                    switchCase: switchCase
+                    blockContextDepth: blockContextDepth
                 };
 
-            code += 'var switchExpression_' + switchCase.depth + ' = ' + expressionCode + ',' +
-                ' switchMatched_' + switchCase.depth + ' = false;';
+            code += 'var switchExpression_' + blockContextDepth + ' = ' + expressionCode + ',' +
+                ' switchMatched_' + blockContextDepth + ' = false;';
 
             _.each(node.cases, function (caseNode) {
                 code += interpret(caseNode, subContext);
             });
 
-            return 'switch_' + switchCase.depth + ': {' + code + '}';
+            return 'block_' + blockContextDepth + ': {' + code + '}';
         },
         'N_TERNARY': function (node, interpret) {
             var condition = interpret(node.condition),
@@ -982,17 +996,21 @@ module.exports = {
             return 'tools.referenceFactory.createNull()';
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
-            var code = '';
+            var blockContextDepth = context.blockContextDepth + 1,
+                subContext = {
+                    blockContextDepth: blockContextDepth
+                },
+                code = '';
 
             context.labelRepository.on('found label', function () {
                 throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
             });
 
             _.each(node.statements, function (statement) {
-                code += interpret(statement);
+                code += interpret(statement, subContext);
             });
 
-            return 'while (' + interpret(node.condition) + '.coerceToBoolean().getNative()) {' + code + '}';
+            return 'while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative()) {' + code + '}';
         }
     }
 };
