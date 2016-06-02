@@ -378,7 +378,7 @@ module.exports = {
                 },
                 code = interpret(node.body, subContext);
 
-            return 'do {' + code + '} while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative());';
+            return 'block_' + blockContextDepth + ': do {' + code + '} while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative());';
         },
         'N_DOUBLE_CAST': function (node, interpret) {
             return interpret(node.value, {getValue: true}) + '.coerceToFloat()';
@@ -1020,7 +1020,7 @@ module.exports = {
                 code += interpret(statement, subContext);
             });
 
-            return 'while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative()) {' + code + '}';
+            return 'block_' + blockContextDepth + ': while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative()) {' + code + '}';
         }
     }
 };

@@ -48,7 +48,7 @@ describe('Transpiler "do..while" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'do {' +
+            'block_0: do {' +
             'stdout.write(tools.valueFactory.createInteger(4).coerceToString().getNative());' +
             '} while (' +
             'tools.valueFactory.createInteger(27).isGreaterThan(tools.valueFactory.createInteger(21)).coerceToBoolean().getNative()' +
