@@ -270,4 +270,55 @@ describe('Transpiler "break" statement test', function () {
             phpToJS.transpile(ast);
         }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers');
     });
+
+    it('should throw a runtime fatal error when not inside a looping structure for 1 level', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_BREAK_STATEMENT',
+                levels: {
+                    name: 'N_INTEGER',
+                    number: 1
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'tools.throwCannotBreakOrContinue(1);' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
+    it('should throw a runtime fatal error when code is not enough levels deep', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_WHILE_STATEMENT',
+                condition: {
+                    name: 'N_INTEGER',
+                    number: 21
+                },
+                statements: [{
+                    name: 'N_BREAK_STATEMENT',
+                    levels: {
+                        name: 'N_INTEGER',
+                        number: 2
+                    }
+                }]
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative()) {' +
+            'tools.throwCannotBreakOrContinue(2);' +
+            '}' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });

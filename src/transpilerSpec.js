@@ -279,13 +279,23 @@ module.exports = {
             return interpret(node.value, {getValue: true}) + '.coerceToBoolean()';
         },
         'N_BREAK_STATEMENT': function (node, interpret, context) {
+            var levels = node.levels.number,
+                targetLevel = context.blockContextDepth - (levels - 1);
+
+            // Invalid target levels throw a compile-time fatal error
             if (node.levels.number <= 0) {
                 throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
                     'operator': 'break'
                 });
             }
 
-            return 'break block_' + (context.blockContextDepth - (node.levels.number - 1)) + ';';
+            // When the target level is not available it will actually
+            // throw a fatal error at runtime rather than compile-time
+            if (targetLevel < 0) {
+                return 'tools.throwCannotBreakOrContinue(' + levels + ');';
+            }
+
+            return 'break block_' + targetLevel + ';';
         },
         'N_CASE': function (node, interpret, context) {
             var body = '';
