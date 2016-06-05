@@ -360,7 +360,23 @@ module.exports = {
             };
         },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
-            return 'break block_' + (context.blockContextDepth - (node.levels.number - 1)) + ';';
+            var levels = node.levels.number,
+                targetLevel = context.blockContextDepth - (levels - 1);
+
+            // Invalid target levels throw a compile-time fatal error
+            if (node.levels.number <= 0) {
+                throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
+                    'operator': 'continue'
+                });
+            }
+
+            // When the target level is not available it will actually
+            // throw a fatal error at runtime rather than compile-time
+            if (targetLevel < 0) {
+                return 'tools.throwCannotBreakOrContinue(' + levels + ');';
+            }
+
+            return 'continue block_' + targetLevel + ';';
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
             var body = '';
