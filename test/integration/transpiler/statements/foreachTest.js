@@ -39,12 +39,12 @@ describe('Transpiler "foreach" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var array_0 = scope.getVariable("myArray").getValue().reset();' +
-            'var length_0 = array_0.getLength();' +
-            'var pointer_0 = 0;' +
-            'block_0: while (pointer_0 < length_0) {' +
-            'scope.getVariable("item").setValue(array_0.getElementByIndex(pointer_0).getValue());' +
-            'pointer_0++;' +
+            'var array_1 = scope.getVariable("myArray").getValue().reset();' +
+            'var length_1 = array_1.getLength();' +
+            'var pointer_1 = 0;' +
+            'block_1: while (pointer_1 < length_1) {' +
+            'scope.getVariable("item").setValue(array_1.getElementByIndex(pointer_1).getValue());' +
+            'pointer_1++;' +
             'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
             '}' +
             'return tools.valueFactory.createNull();' +

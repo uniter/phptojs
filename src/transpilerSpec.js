@@ -88,7 +88,7 @@ function interpretFunction(argNodes, bindingNodes, statementNode, interpret) {
         argumentAssignments = '',
         bindingAssignments = '',
         subContext = {
-            blockContextDepth: -1,
+            blockContexts: [],
             labelRepository: new LabelRepository()
         },
         body = interpret(statementNode, subContext);
@@ -280,7 +280,7 @@ module.exports = {
         },
         'N_BREAK_STATEMENT': function (node, interpret, context) {
             var levels = node.levels.number,
-                targetLevel = context.blockContextDepth - (levels - 1);
+                targetLevel = context.blockContexts.length - (levels - 1);
 
             // Invalid target levels throw a compile-time fatal error
             if (node.levels.number <= 0) {
@@ -291,7 +291,7 @@ module.exports = {
 
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
-            if (targetLevel < 0) {
+            if (targetLevel < 1) {
                 return 'tools.throwCannotBreakOrContinue(' + levels + ');';
             }
 
@@ -304,7 +304,7 @@ module.exports = {
                 body += interpret(statement);
             });
 
-            return 'if (switchMatched_' + context.blockContextDepth + ' || switchExpression_' + context.blockContextDepth + '.isEqualTo(' + interpret(node.expression) + ').getNative()) {switchMatched_' + context.blockContextDepth + ' = true; ' + body + '}';
+            return 'if (switchMatched_' + context.blockContexts.length + ' || switchExpression_' + context.blockContexts.length + '.isEqualTo(' + interpret(node.expression) + ').getNative()) {switchMatched_' + context.blockContexts.length + ' = true; ' + body + '}';
         },
         'N_CLASS_CONSTANT': function (node, interpret) {
             return interpret(node.className, {getValue: true, allowBareword: true}) + '.getConstantByName(' + JSON.stringify(node.constant) + ', namespaceScope)';
@@ -361,7 +361,8 @@ module.exports = {
         },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
             var levels = node.levels.number,
-                targetLevel = context.blockContextDepth - (levels - 1);
+                statement,
+                targetLevel = context.blockContexts.length - (levels - 1);
 
             // Invalid target levels throw a compile-time fatal error
             if (node.levels.number <= 0) {
@@ -372,11 +373,13 @@ module.exports = {
 
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
-            if (targetLevel < 0) {
+            if (targetLevel < 1) {
                 return 'tools.throwCannotBreakOrContinue(' + levels + ');';
             }
 
-            return 'continue block_' + targetLevel + ';';
+            statement = context.blockContexts[targetLevel - 1] === 'switch' ? 'break' : 'continue';
+
+            return statement + ' block_' + targetLevel + ';';
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
             var body = '';
@@ -385,16 +388,16 @@ module.exports = {
                 body += interpret(statement);
             });
 
-            return 'if (!switchMatched_' + context.blockContextDepth + ') {switchMatched_' + context.blockContextDepth + ' = true; ' + body + '}';
+            return 'if (!switchMatched_' + context.blockContexts.length + ') {switchMatched_' + context.blockContexts.length + ' = true; ' + body + '}';
         },
         'N_DO_WHILE_STATEMENT': function (node, interpret, context) {
-            var blockContextDepth = context.blockContextDepth + 1,
+            var blockContexts = context.blockContexts.concat(['do-while']),
                 subContext = {
-                    blockContextDepth: blockContextDepth
+                    blockContexts: blockContexts
                 },
                 code = interpret(node.body, subContext);
 
-            return 'block_' + blockContextDepth + ': do {' + code + '} while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative());';
+            return 'block_' + blockContexts.length + ': do {' + code + '} while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative());';
         },
         'N_DOUBLE_CAST': function (node, interpret) {
             return interpret(node.value, {getValue: true}) + '.coerceToFloat()';
@@ -487,9 +490,9 @@ module.exports = {
             return 'tools.valueFactory.createFloat(' + node.number + ')';
         },
         'N_FOR_STATEMENT': function (node, interpret, context) {
-            var blockContextDepth = context.blockContextDepth + 1,
+            var blockContexts = context.blockContexts.concat(['for']),
                 subContext = {
-                    blockContextDepth: blockContextDepth
+                    blockContexts: blockContexts
                 },
                 bodyCode = interpret(node.body, subContext),
                 conditionCode = interpret(node.condition, subContext),
@@ -500,7 +503,7 @@ module.exports = {
                 conditionCode += '.coerceToBoolean().getNative()';
             }
 
-            return 'block_' + blockContextDepth + ': for (' + initializerCode + ';' + conditionCode + ';' + updateCode + ') {' + bodyCode + '}';
+            return 'block_' + blockContexts.length + ': for (' + initializerCode + ';' + conditionCode + ';' + updateCode + ') {' + bodyCode + '}';
         },
         'N_FOREACH_STATEMENT': function (node, interpret, context) {
             var arrayValue = interpret(node.array),
@@ -509,24 +512,24 @@ module.exports = {
                 key = node.key ? interpret(node.key, {getValue: false}) : null,
                 lengthVariable,
                 pointerVariable,
-                blockContextDepth = context.blockContextDepth + 1,
+                blockContexts = context.blockContexts.concat(['foreach']),
                 subContext = {
-                    blockContextDepth: blockContextDepth
+                    blockContexts: blockContexts
                 },
                 value = interpret(node.value, {getValue: false});
 
-            arrayVariable = 'array_' + blockContextDepth;
+            arrayVariable = 'array_' + blockContexts.length;
 
             // Cache the value being iterated over and reset the internal array pointer before the loop
             code += 'var ' + arrayVariable + ' = ' + arrayValue + '.reset();';
 
-            lengthVariable = 'length_' + blockContextDepth;
+            lengthVariable = 'length_' + blockContexts.length;
             code += 'var ' + lengthVariable + ' = ' + arrayVariable + '.getLength();';
-            pointerVariable = 'pointer_' + blockContextDepth;
+            pointerVariable = 'pointer_' + blockContexts.length;
             code += 'var ' + pointerVariable + ' = 0;';
 
             // Prepend label for `break;` and `continue;` to reference
-            code += 'block_' + blockContextDepth + ': ';
+            code += 'block_' + blockContexts.length + ': ';
 
             // Loop management
             code += 'while (' + pointerVariable + ' < ' + lengthVariable + ') {';
@@ -824,7 +827,7 @@ module.exports = {
         'N_PROGRAM': function (node, interpret, options) {
             var body = '',
                 context = {
-                    blockContextDepth: -1,
+                    blockContexts: [],
                     labelRepository: new LabelRepository()
                 },
                 labels,
@@ -944,19 +947,19 @@ module.exports = {
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
             var code = '',
                 expressionCode = interpret(node.expression),
-                blockContextDepth = context.blockContextDepth + 1,
+                blockContexts = context.blockContexts.concat(['switch']),
                 subContext = {
-                    blockContextDepth: blockContextDepth
+                    blockContexts: blockContexts
                 };
 
-            code += 'var switchExpression_' + blockContextDepth + ' = ' + expressionCode + ',' +
-                ' switchMatched_' + blockContextDepth + ' = false;';
+            code += 'var switchExpression_' + blockContexts.length + ' = ' + expressionCode + ',' +
+                ' switchMatched_' + blockContexts.length + ' = false;';
 
             _.each(node.cases, function (caseNode) {
                 code += interpret(caseNode, subContext);
             });
 
-            return 'block_' + blockContextDepth + ': {' + code + '}';
+            return 'block_' + blockContexts.length + ': {' + code + '}';
         },
         'N_TERNARY': function (node, interpret) {
             var condition = interpret(node.condition),
@@ -1022,9 +1025,9 @@ module.exports = {
             return 'tools.referenceFactory.createNull()';
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
-            var blockContextDepth = context.blockContextDepth + 1,
+            var blockContexts = context.blockContexts.concat(['while']),
                 subContext = {
-                    blockContextDepth: blockContextDepth
+                    blockContexts: blockContexts
                 },
                 code = '';
 
@@ -1036,7 +1039,7 @@ module.exports = {
                 code += interpret(statement, subContext);
             });
 
-            return 'block_' + blockContextDepth + ': while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative()) {' + code + '}';
+            return 'block_' + blockContexts.length + ': while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative()) {' + code + '}';
         }
     }
 };

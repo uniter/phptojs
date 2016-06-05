@@ -87,16 +87,16 @@ describe('Transpiler "switch" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_0: {' +
-            'var switchExpression_0 = tools.valueFactory.createInteger(21).add(tools.valueFactory.createInteger(6)), ' +
-            'switchMatched_0 = false;' +
-            'if (switchMatched_0 || switchExpression_0.isEqualTo(tools.valueFactory.createInteger(27)).getNative()) {' +
-            'switchMatched_0 = true; ' +
+            'block_1: {' +
+            'var switchExpression_1 = tools.valueFactory.createInteger(21).add(tools.valueFactory.createInteger(6)), ' +
+            'switchMatched_1 = false;' +
+            'if (switchMatched_1 || switchExpression_1.isEqualTo(tools.valueFactory.createInteger(27)).getNative()) {' +
+            'switchMatched_1 = true; ' +
             'scope.getVariable("a").setValue(tools.valueFactory.createInteger(7));' +
-            'break block_0;' +
+            'break block_1;' +
             '}' +
-            'if (!switchMatched_0) {' +
-            'switchMatched_0 = true; ' +
+            'if (!switchMatched_1) {' +
+            'switchMatched_1 = true; ' +
             'scope.getVariable("a").setValue(tools.valueFactory.createInteger(8));' +
             '}' +
             '}' +

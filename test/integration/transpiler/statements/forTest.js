@@ -80,7 +80,7 @@ describe('Transpiler "for" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_0: for (' +
+            'block_1: for (' +
             'scope.getVariable("i").setValue(tools.valueFactory.createInteger(0));' +
             'scope.getVariable("i").getValue().isLessThan(tools.valueFactory.createInteger(2)).coerceToBoolean().getNative();' +
             'scope.getVariable("i").postIncrement()' +
