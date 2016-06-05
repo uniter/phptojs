@@ -1,5 +1,5 @@
 {
-  "version": "3.19.1",
+  "version": "3.19.2",
   "name": "phptojs",
   "description": "PHP-to-JavaScript transpiler",
   "keywords": [
