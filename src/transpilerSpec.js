@@ -687,10 +687,10 @@ module.exports = {
 
             return '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.interfaceName) + ', ' + code + ', namespaceScope);}());';
         },
-        'N_INTERFACE_STATIC_METHOD_DEFINITION': function (node, interpret) {
+        'N_STATIC_INTERFACE_METHOD_DEFINITION': function (node, interpret) {
             return {
-                name: interpret(node.func),
-                body: '{isStatic: false, abstract: true}'
+                name: interpret(node.method),
+                body: '{isStatic: true, abstract: true}'
             };
         },
         'N_ISSET': function (node, interpret) {
