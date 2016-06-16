@@ -140,10 +140,10 @@ describe('Transpiler try statement test', function () {
             '(tools.valueFactory.createBarewordString("myFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
             '} catch (e) {' +
             'if (!tools.valueFactory.isValue(e)) {throw e;}' +
-            'if (namespaceScope.getConstant("My\\\\Exception\\\\Type").isTheClassOfObject(e)) {' +
+            'if (tools.valueFactory.createBarewordString("My\\\\Exception\\\\Type").isTheClassOfObject(e)) {' +
             'scope.getVariable("ex1").setValue(e);' +
             '(tools.valueFactory.createBarewordString("catchFunc1();").call([], namespaceScope) || tools.valueFactory.createNull());' +
-            '} else if (namespaceScope.getConstant("Another\\\\Exception\\\\Type").isTheClassOfObject(e)) {' +
+            '} else if (tools.valueFactory.createBarewordString("Another\\\\Exception\\\\Type").isTheClassOfObject(e)) {' +
             'scope.getVariable("ex2").setValue(e);' +
             '(tools.valueFactory.createBarewordString("catchFunc1();").call([], namespaceScope) || tools.valueFactory.createNull());' +
             '} else { throw e; }' +
