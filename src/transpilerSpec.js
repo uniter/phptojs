@@ -983,6 +983,40 @@ module.exports = {
         'N_THROW_STATEMENT': function (node, interpret) {
             return 'throw ' + interpret(node.expression) + ';';
         },
+        'N_TRY_STATEMENT': function (node, interpret) {
+            var catchCodes = [],
+                code = '';
+
+            _.each(node.catches, function (catchNode, index) {
+                var catchCode = 'if (' + interpret(catchNode.type) + '.isTheClassOfObject(e)) {' +
+                    interpret(catchNode.variable, {getValue: false}) + '.setValue(e);' +
+                    interpret(catchNode.body) +
+                    '}';
+
+                if (index > 0) {
+                    catchCode = ' else ' + catchCode;
+                }
+
+                catchCodes.push(catchCode);
+            });
+
+            code += catchCodes.join('');
+
+            if (node.catches.length > 0) {
+                code = 'if (!tools.valueFactory.isValue(e)) {throw e;}' + code;
+                code += ' else { throw e; }';
+            } else {
+                code += 'throw e;';
+            }
+
+            code = 'try {' + interpret(node.body) + '} catch (e) {' + code + '}';
+
+            if (node.finalizer) {
+                code += ' finally {' + interpret(node.finalizer) + '}';
+            }
+
+            return code;
+        },
         'N_UNARY_EXPRESSION': function (node, interpret) {
             var operator = node.operator,
                 operand = interpret(node.operand, {getValue: operator !== '++' && operator !== '--'});
