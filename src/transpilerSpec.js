@@ -988,7 +988,7 @@ module.exports = {
                 code = '';
 
             _.each(node.catches, function (catchNode, index) {
-                var catchCode = 'if (' + interpret(catchNode.type, {allowBareword: true}) + '.isTheClassOfObject(e, namespaceScope)) {' +
+                var catchCode = 'if (' + interpret(catchNode.type, {allowBareword: true}) + '.isTheClassOfObject(e, namespaceScope).getNative()) {' +
                     interpret(catchNode.variable, {getValue: false}) + '.setValue(e);' +
                     interpret(catchNode.body) +
                     '}';
