@@ -219,6 +219,18 @@ function processBlock(statements, interpret, context) {
 
 module.exports = {
     nodes: {
+        'N_ABSTRACT_METHOD_DEFINITION': function (node, interpret) {
+            return {
+                name: interpret(node.func),
+                body: '{isStatic: false, abstract: true}'
+            };
+        },
+        'N_ABSTRACT_STATIC_METHOD_DEFINITION': function (node, interpret) {
+            return {
+                name: interpret(node.method),
+                body: '{isStatic: false, abstract: true}'
+            };
+        },
         'N_ARRAY_CAST': function (node, interpret) {
             return interpret(node.value, {getValue: true}) + '.coerceToArray()';
         },
