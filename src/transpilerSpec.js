@@ -94,36 +94,40 @@ function interpretFunction(argNodes, bindingNodes, statementNode, interpret) {
         body = interpret(statementNode, subContext);
 
     _.each(bindingNodes, function (bindingNode) {
-        var methodSuffix = bindingNode.reference ? 'Reference' : 'Value',
-            variableName = bindingNode.variable;
+        var isReference = bindingNode.name === 'N_REFERENCE',
+            methodSuffix = isReference ? 'Reference' : 'Value',
+            variableName = isReference ? bindingNode.operand.variable : bindingNode.variable;
 
         bindingAssignments += 'scope.getVariable("' + variableName + '").set' + methodSuffix + '(parentScope.getVariable("' + variableName + '").get' + methodSuffix + '());';
     });
 
     // Copy passed values for any arguments
     _.each(argNodes, function (argNode, index) {
-        var valueCode = '$',
-            variable;
+        var isReference = argNode.variable.name === 'N_REFERENCE',
+            variableNode = isReference ? argNode.variable.operand : argNode.variable,
+            valueCode = '$',
+            variable = variableNode.variable;
 
-        if (argNode.name === 'N_ARGUMENT') {
-            variable = argNode.variable.variable;
-            valueCode += variable;
+        valueCode += variable;
 
+        if (isReference) {
             if (argNode.value) {
-                valueCode += ' || ' + interpret(argNode.value, subContext);
+                argumentAssignments +=
+                    'if (' + valueCode + ') {' +
+                    'scope.getVariable("' + variable + '").setReference(' + valueCode + '.getReference());' +
+                    '} else {' +
+                    'scope.getVariable("' + variable + '").setValue(' + interpret(argNode.value, subContext) + ');' +
+                    '}';
+            } else {
+                argumentAssignments += 'scope.getVariable("' + variable + '").setReference(' + valueCode + '.getReference());';
             }
         } else {
-            variable = argNode.variable;
-            valueCode += variable;
-
-            if (!argNode.reference) {
+            if (argNode.value) {
+                valueCode += ' ? ' + valueCode + '.getValue() : ' + interpret(argNode.value, subContext);
+            } else {
                 valueCode += '.getValue()';
             }
-        }
 
-        if (argNode.reference) {
-            argumentAssignments += 'scope.getVariable("' + variable + '").setReference(' + valueCode + '.getReference());';
-        } else {
             argumentAssignments += 'scope.getVariable("' + variable + '").setValue(' + valueCode + ');';
         }
 
@@ -428,33 +432,31 @@ module.exports = {
 
             return 'tools.exit()';
         },
-        'N_EXPRESSION': function (node, interpret) {
+        'N_EXPRESSION': function (node, interpret, context) {
             var isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
                 expressionEnd = '',
                 expressionStart = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment});
 
             _.each(node.right, function (operation, index) {
                 var getValueIfApplicable,
-                    isReference = false,
+                    isReference = operation.operand.name === 'N_REFERENCE',
                     method,
-                    rightOperand,
-                    valuePostProcess = '';
-
-                if (isAssignment && operation.operand.reference) {
-                    isReference = true;
-                    valuePostProcess = '.getReference()';
-                }
+                    rightOperand = isReference ?
+                        operation.operand.operand :
+                        operation.operand,
+                    transpiledRightOperand,
+                    valuePostProcess = isReference ? '.getReference()' : '';
 
                 getValueIfApplicable = (!isAssignment || index === node.right.length - 1) && !isReference;
 
-                rightOperand = interpret(operation.operand, {getValue: getValueIfApplicable});
+                transpiledRightOperand = interpret(rightOperand, {getValue: getValueIfApplicable});
 
                 // Handle logical 'and' specially as it can short-circuit
                 if (operation.operator === '&&' || operation.operator === 'and') {
                     expressionStart = 'tools.valueFactory.createBoolean(' +
                         expressionStart +
                         '.coerceToBoolean().getNative() && (' +
-                        rightOperand +
+                        transpiledRightOperand +
                         valuePostProcess +
                         '.coerceToBoolean().getNative()';
                     expressionEnd += '))';
@@ -463,7 +465,7 @@ module.exports = {
                     expressionStart = 'tools.valueFactory.createBoolean(' +
                         expressionStart +
                         '.coerceToBoolean().getNative() || (' +
-                        rightOperand +
+                        transpiledRightOperand +
                         valuePostProcess +
                         '.coerceToBoolean().getNative()';
                     expressionEnd += '))';
@@ -473,7 +475,7 @@ module.exports = {
                     expressionStart = 'tools.valueFactory.createBoolean(' +
                         expressionStart +
                         '.coerceToBoolean().getNative() !== (' +
-                        rightOperand +
+                        transpiledRightOperand +
                         valuePostProcess +
                         '.coerceToBoolean().getNative()';
                     expressionEnd += '))';
@@ -488,8 +490,12 @@ module.exports = {
                         method = method[isReference];
                     }
 
-                    expressionStart += '.' + method + '(' + rightOperand + valuePostProcess;
+                    expressionStart += '.' + method + '(' + transpiledRightOperand + valuePostProcess;
                     expressionEnd += ')';
+                }
+
+                if (isReference && context.getValue) {
+                    expressionEnd += '.getValue()';
                 }
             });
 
@@ -528,7 +534,9 @@ module.exports = {
                 subContext = {
                     blockContexts: blockContexts
                 },
-                value = interpret(node.value, {getValue: false});
+                valueIsReference = node.value.name === 'N_REFERENCE',
+                nodeValue = valueIsReference ? node.value.operand : node.value,
+                value = interpret(nodeValue, {getValue: false});
 
             arrayVariable = 'array_' + blockContexts.length;
 
@@ -552,7 +560,7 @@ module.exports = {
             }
 
             // Iterator value variable
-            code += value + '.set' + (node.value.reference ? 'Reference' : 'Value') + '(' + arrayVariable + '.getElementByIndex(' + pointerVariable + ')' + (node.value.reference ? '' : '.getValue()') + ');';
+            code += value + '.set' + (valueIsReference ? 'Reference' : 'Value') + '(' + arrayVariable + '.getElementByIndex(' + pointerVariable + ')' + (valueIsReference ? '.getReference()' : '.getValue()') + ');';
 
             // Set pointer to next element at start of loop body as per spec
             code += pointerVariable + '++;';
@@ -877,6 +885,9 @@ module.exports = {
             }
 
             return body;
+        },
+        'N_REFERENCE': function (node, interpret) {
+            return interpret(node.operand, {getValue: false}) + '.getReference()';
         },
         'N_REQUIRE_EXPRESSION': function (node, interpret) {
             return 'tools.require(' + interpret(node.path) + '.getNative(), scope)';
