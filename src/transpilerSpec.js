@@ -335,7 +335,7 @@ module.exports = {
                 interfaces = JSON.stringify(node.implement || []);
 
             _.each(node.members, function (member) {
-                var data = interpret(member, {inClass: true});
+                var data = interpret(member);
 
                 if (member.name === 'N_INSTANCE_PROPERTY_DEFINITION') {
                     propertyCodes.push('"' + data.name + '": ' + data.value);
@@ -687,7 +687,7 @@ module.exports = {
                 superClass = node.extend ? 'namespaceScope.getClass(' + JSON.stringify(node.extend) + ')' : 'null';
 
             _.each(node.members, function (member) {
-                var data = interpret(member, {inClass: true});
+                var data = interpret(member);
 
                 if (member.name === 'N_INSTANCE_PROPERTY_DEFINITION' || member.name === 'N_STATIC_PROPERTY_DEFINITION') {
                     throw new PHPFatalError(PHPFatalError.INTERFACE_PROPERTY_NOT_ALLOWED);
@@ -900,12 +900,8 @@ module.exports = {
 
             return 'return ' + (expression ? expression : 'tools.valueFactory.createNull()') + ';';
         },
-        'N_SELF': function (node, interpret, context) {
-            if (context.inClass) {
-                return 'tools.valueFactory.createString(currentClass.getUnprefixedName())';
-            }
-
-            return 'tools.throwNoActiveClassScope()';
+        'N_SELF': function () {
+            return 'scope.getClassNameOrThrow()';
         },
         'N_STATIC_METHOD_CALL': function (node, interpret) {
             var args = [];
