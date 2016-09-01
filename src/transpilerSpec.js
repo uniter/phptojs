@@ -372,7 +372,7 @@ module.exports = {
         'N_CONSTANT_DEFINITION': function (node, interpret) {
             return {
                 name: node.constant,
-                value: 'function () { return ' + (node.value ? interpret(node.value) : 'null') + '; }'
+                value: 'function () { return ' + interpret(node.value, {isConstant: true}) + '; }'
             };
         },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
@@ -900,7 +900,11 @@ module.exports = {
 
             return 'return ' + (expression ? expression : 'tools.valueFactory.createNull()') + ';';
         },
-        'N_SELF': function () {
+        'N_SELF': function (node, interpret, context) {
+            if (context.isConstant) {
+                return 'tools.valueFactory.createString(currentClass.getName())';
+            }
+
             return 'scope.getClassNameOrThrow()';
         },
         'N_STATIC_METHOD_CALL': function (node, interpret) {
