@@ -644,7 +644,7 @@ module.exports = {
 
             consequentCode = '{' + consequentPrefix + consequentCode + '}';
 
-            alternateCode = node.alternateStatement ? ' else ' + interpret(node.alternateStatement) : '';
+            alternateCode = node.alternateStatement ? ' else {' + interpret(node.alternateStatement) + '}' : '';
 
             code += 'if (' + conditionCode + ') ' + consequentCode + alternateCode;
 
