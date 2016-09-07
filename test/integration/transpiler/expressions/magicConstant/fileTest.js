@@ -39,7 +39,10 @@ describe('Transpiler __FILE__ magic constant test', function () {
             statements: [
                 {
                     'name': 'N_FUNCTION_STATEMENT',
-                    'func': 'myFunction',
+                    'func': {
+                        'name': 'N_STRING',
+                        'string': 'myFunction'
+                    },
                     'args': [],
                     'body': {
                         'name': 'N_COMPOUND_STATEMENT',

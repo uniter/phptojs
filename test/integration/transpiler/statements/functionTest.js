@@ -18,7 +18,10 @@ describe('Transpiler function statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_FUNCTION_STATEMENT',
-                func: 'gogo',
+                func: {
+                    name: 'N_STRING',
+                    string: 'gogo'
+                },
                 args: [],
                 body: {
                     name: 'N_COMPOUND_STATEMENT',

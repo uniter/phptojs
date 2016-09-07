@@ -11,7 +11,12 @@
 
 var _ = require('microdash'),
     BARE = 'bare',
+    PATH = 'path',
+    PREFIX = 'prefix',
     RUNTIME_PATH = 'runtimePath',
+    SOURCE_CONTENT = 'sourceContent',
+    SOURCE_MAP = 'sourceMap',
+    SUFFIX = 'suffix',
     SYNC = 'sync',
     binaryOperatorToMethod = {
         '+': 'add',
@@ -51,6 +56,8 @@ var _ = require('microdash'),
         }
     },
     hasOwn = {}.hasOwnProperty,
+    sourceMap = require('source-map'),
+    sourceMapToComment = require('source-map-to-comment'),
     unaryOperatorToMethod = {
         prefix: {
             '+': 'toPositive',
@@ -66,7 +73,8 @@ var _ = require('microdash'),
         }
     },
     LabelRepository = require('./LabelRepository'),
-    PHPFatalError = require('phpcommon').PHPFatalError;
+    PHPFatalError = require('phpcommon').PHPFatalError,
+    SourceNode = sourceMap.SourceNode;
 
 function hoistDeclarations(statements) {
     var declarations = [],
@@ -83,79 +91,115 @@ function hoistDeclarations(statements) {
     return declarations.concat(nonDeclarations);
 }
 
-function interpretFunction(argNodes, bindingNodes, statementNode, interpret) {
+function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, interpret, context) {
     var args = [],
-        argumentAssignments = '',
-        bindingAssignments = '',
+        argumentAssignmentChunks = [],
+        bindingAssignmentChunks = [],
         subContext = {
             blockContexts: [],
             labelRepository: new LabelRepository()
         },
-        body = interpret(statementNode, subContext);
+        body = context.createSourceNode(interpret(statementNode, subContext), statementNode);
+
+    bindingAssignmentChunks.push('var $this = tools.createDebugVar(scope, "this");');
 
     _.each(bindingNodes, function (bindingNode) {
         var isReference = bindingNode.name === 'N_REFERENCE',
             methodSuffix = isReference ? 'Reference' : 'Value',
             variableName = isReference ? bindingNode.operand.variable : bindingNode.variable;
 
-        bindingAssignments += 'scope.getVariable("' + variableName + '").set' + methodSuffix + '(parentScope.getVariable("' + variableName + '").get' + methodSuffix + '());';
+        bindingAssignmentChunks.push(
+            'scope.getVariable("' +
+            variableName +
+            '").set' + methodSuffix +
+            '(parentScope.getVariable("' + variableName +
+            '").get' + methodSuffix + '());'
+        );
+
+        if (context.buildingSourceMap) {
+            bindingAssignmentChunks.push(
+                'var ',
+                context.createSourceNode(
+                    ['$' + variableName],
+                    isReference ? bindingNode.operand : bindingNode,
+                    '$' + variableName
+                ),
+                ' = tools.createDebugVar(scope, "' + variableName + '");'
+            );
+        }
     });
 
     // Copy passed values for any arguments
     _.each(argNodes, function (argNode, index) {
         var isReference = argNode.variable.name === 'N_REFERENCE',
             variableNode = isReference ? argNode.variable.operand : argNode.variable,
-            valueCode = '$',
+            valueCodeChunks = ['$'],
             variable = variableNode.variable;
 
-        valueCode += variable;
+        valueCodeChunks.push(variable);
 
         if (isReference) {
             if (argNode.value) {
-                argumentAssignments +=
-                    'if (' + valueCode + ') {' +
-                    'scope.getVariable("' + variable + '").setReference(' + valueCode + '.getReference());' +
+                argumentAssignmentChunks.push(
+                    'if (', valueCodeChunks.slice(), ') {' +
+                    'scope.getVariable("' + variable + '").setReference(', valueCodeChunks.slice(), '.getReference());' +
                     '} else {' +
-                    'scope.getVariable("' + variable + '").setValue(' + interpret(argNode.value, subContext) + ');' +
-                    '}';
+                    'scope.getVariable("' + variable + '").setValue(', interpret(argNode.value, subContext), ');' +
+                    '}'
+                );
             } else {
-                argumentAssignments += 'scope.getVariable("' + variable + '").setReference(' + valueCode + '.getReference());';
+                argumentAssignmentChunks.push(
+                    'scope.getVariable("' + variable + '").setReference(', valueCodeChunks.slice(), '.getReference());'
+                );
             }
         } else {
             if (argNode.value) {
-                valueCode += ' ? ' + valueCode + '.getValue() : ' + interpret(argNode.value, subContext);
+                valueCodeChunks.push(' ? ', valueCodeChunks.slice(), '.getValue() : ', interpret(argNode.value, subContext));
             } else {
-                valueCode += '.getValue()';
+                valueCodeChunks.push('.getValue()');
             }
 
-            argumentAssignments += 'scope.getVariable("' + variable + '").setValue(' + valueCode + ');';
+            argumentAssignmentChunks.push('scope.getVariable("' + variable + '").setValue(', valueCodeChunks.slice(), ');');
         }
 
         args[index] = '$' + variable;
+
+        if (context.buildingSourceMap) {
+            argumentAssignmentChunks.push(
+                'var $' + variable + ' = tools.createDebugVar(scope, "' + variable + '");'
+            );
+        }
     });
 
     // Prepend parts in correct order
-    body = argumentAssignments + bindingAssignments + body;
+    body = [argumentAssignmentChunks, bindingAssignmentChunks].concat(body);
 
     // Build function expression
-    body = 'function (' + args.join(', ') + ') {var scope = this;' + body + '}';
+    body = [
+        'function ',
+        nameNode ? context.createSourceNode([nameNode.string], nameNode, nameNode.name) : '',
+        '(' + args.join(', ') + ') {',
+        'var scope = this;',
+        body,
+        '}'
+    ];
 
     if (bindingNodes && bindingNodes.length > 0) {
-        body = '(function (parentScope) { return ' + body + '; }(scope))';
+        body = ['(function (parentScope) { return '].concat(body, '; }(scope))');
     }
 
     return body;
 }
 
 function processBlock(statements, interpret, context) {
-    var code = '',
+    var codeChunks = [],
         labelRepository = context.labelRepository,
         statementDatas = [];
 
     _.each(statements, function (statement) {
         var labels = {},
             gotos = {},
-            statementCode;
+            statementCodeChunks;
 
         function onPendingLabel(label) {
             gotos[label] = true;
@@ -168,12 +212,12 @@ function processBlock(statements, interpret, context) {
         labelRepository.on('pending label', onPendingLabel);
         labelRepository.on('found label', onFoundLabel);
 
-        statementCode = interpret(statement, context);
+        statementCodeChunks = interpret(statement, context);
         labelRepository.off('pending label', onPendingLabel);
         labelRepository.off('found label', onFoundLabel);
 
         statementDatas.push({
-            code: statementCode,
+            codeChunks: statementCodeChunks,
             gotos: gotos,
             labels: labels,
             prefix: '',
@@ -215,84 +259,120 @@ function processBlock(statements, interpret, context) {
     });
 
     _.each(statementDatas, function (statementData) {
-        code += statementData.prefix + statementData.code + statementData.suffix;
+        codeChunks.push(statementData.prefix, statementData.codeChunks, statementData.suffix);
     });
 
-    return code;
+    return codeChunks;
 }
 
 module.exports = {
     nodes: {
-        'N_ABSTRACT_METHOD_DEFINITION': function (node, interpret) {
+        'N_ABSTRACT_METHOD_DEFINITION': function (node) {
             return {
-                name: interpret(node.func),
+                name: node.func.string,
                 body: '{isStatic: false, abstract: true}'
             };
         },
-        'N_ABSTRACT_STATIC_METHOD_DEFINITION': function (node, interpret) {
+        'N_ABSTRACT_STATIC_METHOD_DEFINITION': function (node) {
             return {
-                name: interpret(node.method),
+                name: node.method.string,
                 body: '{isStatic: false, abstract: true}'
             };
         },
-        'N_ARRAY_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToArray()';
+        'N_ARRAY_CAST': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.value, {getValue: true}).concat('.coerceToArray()'),
+                node
+            );
         },
         'N_ARRAY_INDEX': function (node, interpret, context) {
-            var arrayVariableCode,
-                indexValues = [],
+            var arrayVariableChunks = [],
+                indexValueChunks = [],
                 suffix = '';
 
             if (node.indices !== true) {
-                _.each(node.indices, function (index) {
-                    indexValues.push(interpret(index.index, {assignment: false, getValue: true}));
+                _.each(node.indices, function (index, indexIndex) {
+                    if (context.assignment && indexIndex < node.indices.length - 1) {
+                        arrayVariableChunks.unshift('tools.implyArray(');
+                    }
+
+                    if (indexIndex > 0) {
+                        indexValueChunks.push(
+                            context.assignment ?
+                                ')).getElementByKey(' :
+                                ').getValue().getElementByKey('
+                        );
+                    }
+
+                    indexValueChunks.push(interpret(index.index, {assignment: false, getValue: true}));
                 });
             }
 
             if (context.assignment) {
-                arrayVariableCode = 'tools.implyArray(' + interpret(node.array, {getValue: false}) + ')';
+                arrayVariableChunks.push('tools.implyArray(');
+                [].push.apply(arrayVariableChunks, interpret(node.array, {getValue: false}));
+                arrayVariableChunks.push(')');
             } else {
                 if (context.getValue !== false) {
                     suffix = '.getValue()';
                 }
 
-                arrayVariableCode = interpret(node.array, {getValue: true});
+                [].push.apply(arrayVariableChunks, interpret(node.array, {getValue: true}));
             }
 
-            if (indexValues.length > 0) {
+            if (indexValueChunks.length > 0) {
                 if (context.assignment) {
-                    _.each(indexValues.slice(0, -1), function () {
-                        arrayVariableCode = 'tools.implyArray(' + arrayVariableCode;
-                    });
+                    // _.each(indexValueChunks.slice(0, -1), function () {
+                    //     arrayVariableChunks.unshift('tools.implyArray(');
+                    // });
 
-                    return arrayVariableCode + '.getElementByKey(' + indexValues.join(')).getElementByKey(') + ')' + suffix;
+                    return context.createSourceNode(
+                        arrayVariableChunks.concat('.getElementByKey(', indexValueChunks, ')' + suffix),
+                        node
+                    );
                 }
 
-                return arrayVariableCode + '.getElementByKey(' + indexValues.join(').getValue().getElementByKey(') + ')' + suffix;
+                return context.createSourceNode(
+                    arrayVariableChunks.concat('.getElementByKey(', indexValueChunks, ')' + suffix),
+                    node
+                );
             }
 
-            return arrayVariableCode + '.getPushElement()' + suffix;
+            return context.createSourceNode(arrayVariableChunks.concat('.getPushElement()' + suffix), node);
         },
-        'N_ARRAY_LITERAL': function (node, interpret) {
-            var elementValues = [];
+        'N_ARRAY_LITERAL': function (node, interpret, context) {
+            var elementValueChunks = [];
 
-            _.each(node.elements, function (element) {
-                elementValues.push(interpret(element));
+            _.each(node.elements, function (element, index) {
+                if (index > 0) {
+                    elementValueChunks.push(', ');
+                }
+
+                elementValueChunks.push(interpret(element));
             });
 
-            return 'tools.valueFactory.createArray([' + elementValues.join(', ') + '])';
+            return context.createSourceNode(['tools.valueFactory.createArray(['].concat(elementValueChunks, '])'), node);
         },
-        'N_BINARY_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToString()';
+        'N_BINARY_CAST': function (node, interpret, context) {
+            return context.createSourceNode(interpret(node.value, {getValue: true}).concat('.coerceToString()'), node);
         },
-        'N_BINARY_LITERAL': function (node) {
-            return 'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')';
+        'N_BINARY_LITERAL': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.valueFactory.createString('].concat(JSON.stringify(node.string), ')'),
+                node
+            );
         },
-        'N_BOOLEAN': function (node) {
-            return 'tools.valueFactory.createBoolean(' + node.bool.toLowerCase() + ')';
+        'N_BOOLEAN': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.valueFactory.createBoolean('].concat(node.bool.toLowerCase(), ')'),
+                node
+            );
         },
-        'N_BOOLEAN_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToBoolean()';
+        'N_BOOLEAN_CAST': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.value, {getValue: true}).concat('.coerceToBoolean()'),
+                node
+            );
         },
         'N_BREAK_STATEMENT': function (node, interpret, context) {
             var levels = node.levels.number,
@@ -308,29 +388,45 @@ module.exports = {
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return 'tools.throwCannotBreakOrContinue(' + levels + ');';
+                return context.createSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
             }
 
-            return 'break block_' + targetLevel + ';';
+            return context.createSourceNode(['break block_' + targetLevel + ';'], node);
         },
         'N_CASE': function (node, interpret, context) {
-            var body = '';
+            var bodyChunks = [];
 
             _.each(node.body, function (statement) {
-                body += interpret(statement);
+                bodyChunks.push(interpret(statement));
             });
 
-            return 'if (switchMatched_' + context.blockContexts.length + ' || switchExpression_' + context.blockContexts.length + '.isEqualTo(' + interpret(node.expression) + ').getNative()) {switchMatched_' + context.blockContexts.length + ' = true; ' + body + '}';
+            return context.createSourceNode(
+                [
+                    'if (switchMatched_' + context.blockContexts.length +
+                    ' || switchExpression_' + context.blockContexts.length + '.isEqualTo('
+                ].concat(
+                    interpret(node.expression),
+                    ').getNative()) {switchMatched_' + context.blockContexts.length + ' = true; ',
+                    bodyChunks,
+                    '}'
+                ),
+                node
+            );
         },
-        'N_CLASS_CONSTANT': function (node, interpret) {
-            return interpret(node.className, {getValue: true, allowBareword: true}) + '.getConstantByName(' + JSON.stringify(node.constant) + ', namespaceScope)';
+        'N_CLASS_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.className, {getValue: true, allowBareword: true}).concat(
+                    '.getConstantByName(' + JSON.stringify(node.constant) + ', namespaceScope)'
+                ),
+                node
+            );
         },
-        'N_CLASS_STATEMENT': function (node, interpret) {
-            var code,
-                constantCodes = [],
-                methodCodes = [],
-                propertyCodes = [],
-                staticPropertyCodes = [],
+        'N_CLASS_STATEMENT': function (node, interpret, context) {
+            var codeChunks,
+                constantCodeChunks = [],
+                methodCodeChunks = [],
+                propertyCodeChunks = [],
+                staticPropertyCodeChunks = [],
                 superClass = node.extend ? 'namespaceScope.getClass(' + JSON.stringify(node.extend) + ')' : 'null',
                 interfaces = JSON.stringify(node.implement || []);
 
@@ -338,41 +434,81 @@ module.exports = {
                 var data = interpret(member);
 
                 if (member.name === 'N_INSTANCE_PROPERTY_DEFINITION') {
-                    propertyCodes.push('"' + data.name + '": ' + data.value);
+                    if (propertyCodeChunks.length > 0) {
+                        propertyCodeChunks.push(', ');
+                    }
+
+                    propertyCodeChunks.push('"' + data.name + '": ', data.value);
                 } else if (member.name === 'N_STATIC_PROPERTY_DEFINITION') {
-                    staticPropertyCodes.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ' + data.value + '}');
+                    if (staticPropertyCodeChunks.length > 0) {
+                        staticPropertyCodeChunks.push(', ');
+                    }
+
+                    staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value + '}');
                 } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
-                    methodCodes.push('"' + data.name + '": ' + data.body);
+                    if (methodCodeChunks.length > 0) {
+                        methodCodeChunks.push(', ');
+                    }
+
+                    methodCodeChunks.push('"' + data.name + '": ', data.body);
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
-                    constantCodes.push('"' + data.name + '": ' + data.value);
+                    if (constantCodeChunks.length > 0) {
+                        constantCodeChunks.push(', ');
+                    }
+
+                    constantCodeChunks.push('"' + data.name + '": ', data.value);
                 }
             });
 
-            code = '{superClass: ' + superClass + ', interfaces: ' + interfaces + ', staticProperties: {' + staticPropertyCodes.join(', ') + '}, properties: {' + propertyCodes.join(', ') + '}, methods: {' + methodCodes.join(', ') + '}, constants: {' + constantCodes.join(', ') + '}}';
+            codeChunks = [
+                '{superClass: ' + superClass +
+                ', interfaces: ' + interfaces +
+                ', staticProperties: {'
+            ].concat(
+                staticPropertyCodeChunks,
+                '}, properties: {', propertyCodeChunks,
+                '}, methods: {', methodCodeChunks,
+                '}, constants: {', constantCodeChunks, '}}'
+            );
 
-            return '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.className) + ', ' + code + ', namespaceScope);}());';
+            return context.createSourceNode(
+                [
+                    '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.className) + ', '
+                ].concat(codeChunks, ', namespaceScope);}());'),
+                node
+            );
         },
-        'N_CLOSURE': function (node, interpret) {
-            var func = interpretFunction(node.args, node.bindings, node.body, interpret);
+        'N_CLOSURE': function (node, interpret, context) {
+            var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context);
 
-            return 'tools.createClosure(' + func + ', scope)';
+            return context.createSourceNode(
+                ['tools.createClosure('].concat(func, ', scope)'),
+                node
+            );
         },
-        'N_COMMA_EXPRESSION': function (node, interpret) {
-            var expressionCodes = [];
+        'N_COMMA_EXPRESSION': function (node, interpret, context) {
+            var expressionCodeChunks = [];
 
-            _.each(node.expressions, function (expression) {
-                expressionCodes.push(interpret(expression));
+            _.each(node.expressions, function (expression, index) {
+                if (index > 0) {
+                    expressionCodeChunks.push(', ');
+                }
+
+                expressionCodeChunks.push(interpret(expression));
             });
 
-            return expressionCodes.join(',');
+            return context.createSourceNode(expressionCodeChunks, node);
         },
         'N_COMPOUND_STATEMENT': function (node, interpret, context) {
-            return processBlock(node.statements, interpret, context);
+            return context.createSourceNode(processBlock(node.statements, interpret, context), node);
         },
-        'N_CONSTANT_DEFINITION': function (node, interpret) {
+        'N_CONSTANT_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.constant,
-                value: 'function () { return ' + interpret(node.value, {isConstant: true}) + '; }'
+                value: context.createSourceNode(
+                    ['function () { return '].concat(interpret(node.value, {isConstant: true}), '; }'),
+                    node
+                )
             };
         },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
@@ -390,51 +526,82 @@ module.exports = {
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return 'tools.throwCannotBreakOrContinue(' + levels + ');';
+                return context.createSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
             }
 
             statement = context.blockContexts[targetLevel - 1] === 'switch' ? 'break' : 'continue';
 
-            return statement + ' block_' + targetLevel + ';';
+            return context.createSourceNode([statement + ' block_' + targetLevel + ';'], node);
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
-            var body = '';
+            var bodyChunks = [];
 
             _.each(node.body, function (statement) {
-                body += interpret(statement);
+                bodyChunks.push(interpret(statement));
             });
 
-            return 'if (!switchMatched_' + context.blockContexts.length + ') {switchMatched_' + context.blockContexts.length + ' = true; ' + body + '}';
+            return context.createSourceNode(
+                ['if (!switchMatched_' + context.blockContexts.length +
+                ') {switchMatched_' + context.blockContexts.length + ' = true; '
+                ].concat(bodyChunks, '}'),
+                node
+            );
         },
         'N_DO_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['do-while']),
                 subContext = {
                     blockContexts: blockContexts
                 },
-                code = interpret(node.body, subContext);
+                codeChunks = interpret(node.body, subContext);
 
-            return 'block_' + blockContexts.length + ': do {' + code + '} while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative());';
+            return context.createSourceNode(
+                ['block_' + blockContexts.length + ': do {'].concat(
+                    codeChunks,
+                    '} while (',
+                    interpret(node.condition, subContext),
+                    '.coerceToBoolean().getNative());'
+                ),
+                node
+            );
         },
-        'N_DOUBLE_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToFloat()';
+        'N_DOUBLE_CAST': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.value, {getValue: true}).concat('.coerceToFloat()'),
+                node
+            );
         },
-        'N_ECHO_STATEMENT': function (node, interpret) {
-            return 'stdout.write(' + interpret(node.expression) + '.coerceToString().getNative());';
+        'N_ECHO_STATEMENT': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['stdout.write(', interpret(node.expression), '.coerceToString().getNative());'],
+                node
+            );
         },
-        'N_EXIT': function (node, interpret) {
+        'N_EXIT': function (node, interpret, context) {
             if (hasOwn.call(node, 'status')) {
-                return 'tools.exit(' + interpret(node.status) + ')';
+                return context.createSourceNode(
+                    ['tools.exit('].concat(
+                        interpret(node.status),
+                        ')'
+                    ),
+                    node
+                );
             }
 
             if (hasOwn.call(node, 'message')) {
-                return '(stdout.write(' + interpret(node.message) + '.getNative()), tools.exit())';
+                return context.createSourceNode(
+                    ['(stdout.write('].concat(
+                        interpret(node.message),
+                        '.getNative()), tools.exit())'
+                    ),
+                    node
+                );
             }
 
-            return 'tools.exit()';
+            return context.createSourceNode(['tools.exit()'], node);
         },
         'N_EXPRESSION': function (node, interpret, context) {
             var isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
-                expressionEnd = '',
+                expressionEnd = [],
                 expressionStart = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment});
 
             _.each(node.right, function (operation, index) {
@@ -453,32 +620,35 @@ module.exports = {
 
                 // Handle logical 'and' specially as it can short-circuit
                 if (operation.operator === '&&' || operation.operator === 'and') {
-                    expressionStart = 'tools.valueFactory.createBoolean(' +
-                        expressionStart +
-                        '.coerceToBoolean().getNative() && (' +
-                        transpiledRightOperand +
+                    expressionStart = ['tools.valueFactory.createBoolean('].concat(
+                        expressionStart,
+                        '.coerceToBoolean().getNative() && (',
+                        transpiledRightOperand,
                         valuePostProcess +
-                        '.coerceToBoolean().getNative()';
-                    expressionEnd += '))';
+                        '.coerceToBoolean().getNative()'
+                    );
+                    expressionEnd.push('))');
                 // Handle logical 'or' specially as it can short-circuit
                 } else if (operation.operator === '||' || operation.operator === 'or') {
-                    expressionStart = 'tools.valueFactory.createBoolean(' +
-                        expressionStart +
-                        '.coerceToBoolean().getNative() || (' +
-                        transpiledRightOperand +
+                    expressionStart = ['tools.valueFactory.createBoolean('].concat(
+                        expressionStart,
+                        '.coerceToBoolean().getNative() || (',
+                        transpiledRightOperand,
                         valuePostProcess +
-                        '.coerceToBoolean().getNative()';
-                    expressionEnd += '))';
+                        '.coerceToBoolean().getNative()'
+                    );
+                    expressionEnd.push('))');
                 // Xor should be true if LHS is not equal to RHS:
                 // coerce to booleans then compare for inequality
                 } else if (operation.operator === 'xor') {
-                    expressionStart = 'tools.valueFactory.createBoolean(' +
-                        expressionStart +
-                        '.coerceToBoolean().getNative() !== (' +
-                        transpiledRightOperand +
+                    expressionStart = ['tools.valueFactory.createBoolean('].concat(
+                        expressionStart,
+                        '.coerceToBoolean().getNative() !== (',
+                        transpiledRightOperand,
                         valuePostProcess +
-                        '.coerceToBoolean().getNative()';
-                    expressionEnd += '))';
+                        '.coerceToBoolean().getNative()'
+                    );
+                    expressionEnd.push('))');
                 } else {
                     method = binaryOperatorToMethod[operation.operator];
 
@@ -490,43 +660,55 @@ module.exports = {
                         method = method[isReference];
                     }
 
-                    expressionStart += '.' + method + '(' + transpiledRightOperand + valuePostProcess;
-                    expressionEnd += ')';
+                    expressionStart.push('.' + method + '(', transpiledRightOperand, valuePostProcess);
+                    expressionEnd.push(')');
                 }
 
                 if (isReference && context.getValue) {
-                    expressionEnd += '.getValue()';
+                    expressionEnd.push('.getValue()');
                 }
             });
 
-            return expressionStart + expressionEnd;
+            return context.createSourceNode(expressionStart.concat(expressionEnd), node);
         },
-        'N_EXPRESSION_STATEMENT': function (node, interpret) {
-            return interpret(node.expression) + ';';
+        'N_EXPRESSION_STATEMENT': function (node, interpret, context) {
+            return context.createSourceNode(interpret(node.expression).concat(';'), node);
         },
-        'N_FLOAT': function (node) {
-            return 'tools.valueFactory.createFloat(' + node.number + ')';
+        'N_FLOAT': function (node, interpret, context) {
+            return context.createSourceNode(['tools.valueFactory.createFloat(' + node.number + ')'], node);
         },
         'N_FOR_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['for']),
                 subContext = {
                     blockContexts: blockContexts
                 },
-                bodyCode = interpret(node.body, subContext),
-                conditionCode = interpret(node.condition, subContext),
-                initializerCode = interpret(node.initializer, subContext),
-                updateCode = interpret(node.update, subContext);
+                bodyCodeChunks = interpret(node.body, subContext),
+                conditionCodeChunks = interpret(node.condition, subContext),
+                initializerCodeChunks = interpret(node.initializer, subContext),
+                updateCodeChunks = interpret(node.update, subContext);
 
-            if (conditionCode) {
-                conditionCode += '.coerceToBoolean().getNative()';
+            if (conditionCodeChunks) {
+                conditionCodeChunks.push('.coerceToBoolean().getNative()');
             }
 
-            return 'block_' + blockContexts.length + ': for (' + initializerCode + ';' + conditionCode + ';' + updateCode + ') {' + bodyCode + '}';
+            return context.createSourceNode(
+                ['block_' + blockContexts.length + ': for ('].concat(
+                    initializerCodeChunks,
+                    ';',
+                    conditionCodeChunks || [],
+                    ';',
+                    updateCodeChunks,
+                    ') {',
+                    bodyCodeChunks,
+                    '}'
+                ),
+                node
+            );
         },
         'N_FOREACH_STATEMENT': function (node, interpret, context) {
             var arrayValue = interpret(node.array),
                 arrayVariable,
-                code = '',
+                codeChunks = [],
                 key = node.key ? interpret(node.key, {getValue: false}) : null,
                 lengthVariable,
                 pointerVariable,
@@ -541,60 +723,75 @@ module.exports = {
             arrayVariable = 'array_' + blockContexts.length;
 
             // Cache the value being iterated over and reset the internal array pointer before the loop
-            code += 'var ' + arrayVariable + ' = ' + arrayValue + '.reset();';
+            codeChunks.push('var ' + arrayVariable + ' = ', arrayValue, '.reset();');
 
             lengthVariable = 'length_' + blockContexts.length;
-            code += 'var ' + lengthVariable + ' = ' + arrayVariable + '.getLength();';
+            codeChunks.push('var ' + lengthVariable + ' = ' + arrayVariable + '.getLength();');
             pointerVariable = 'pointer_' + blockContexts.length;
-            code += 'var ' + pointerVariable + ' = 0;';
+            codeChunks.push('var ' + pointerVariable + ' = 0;');
 
             // Prepend label for `break;` and `continue;` to reference
-            code += 'block_' + blockContexts.length + ': ';
+            codeChunks.push('block_' + blockContexts.length + ': ');
 
             // Loop management
-            code += 'while (' + pointerVariable + ' < ' + lengthVariable + ') {';
+            codeChunks.push('while (' + pointerVariable + ' < ' + lengthVariable + ') {');
 
             if (key) {
                 // Iterator key variable (if specified)
-                code += key + '.setValue(' + arrayVariable + '.getKeyByIndex(' + pointerVariable + '));';
+                codeChunks.push(key, '.setValue(' + arrayVariable + '.getKeyByIndex(' + pointerVariable + '));');
             }
 
             // Iterator value variable
-            code += value + '.set' + (valueIsReference ? 'Reference' : 'Value') + '(' + arrayVariable + '.getElementByIndex(' + pointerVariable + ')' + (valueIsReference ? '.getReference()' : '.getValue()') + ');';
+            codeChunks.push(value, '.set' + (valueIsReference ? 'Reference' : 'Value') + '(' + arrayVariable + '.getElementByIndex(' + pointerVariable + ')' + (valueIsReference ? '.getReference()' : '.getValue()') + ');');
 
             // Set pointer to next element at start of loop body as per spec
-            code += pointerVariable + '++;';
+            codeChunks.push(pointerVariable + '++;');
 
-            code += interpret(node.body, subContext);
+            codeChunks = codeChunks.concat(interpret(node.body, subContext));
 
-            code += '}';
+            codeChunks.push('}');
 
-            return code;
+            return context.createSourceNode(codeChunks, node);
         },
-        'N_FUNCTION_STATEMENT': function (node, interpret) {
+        'N_FUNCTION_STATEMENT': function (node, interpret, context) {
             var func;
 
-            func = interpretFunction(node.args, null, node.body, interpret);
+            func = interpretFunction(node.func, node.args, null, node.body, interpret, context);
 
-            return 'namespace.defineFunction(' + JSON.stringify(node.func) + ', ' + func + ');';
+            return context.createSourceNode(
+                ['namespace.defineFunction(' + JSON.stringify(node.func.string) + ', '].concat(func, ');'),
+                node
+            );
         },
-        'N_FUNCTION_CALL': function (node, interpret) {
-            var args = [];
+        'N_FUNCTION_CALL': function (node, interpret, context) {
+            var argChunks = [];
 
-            _.each(node.args, function (arg) {
-                args.push(interpret(arg, {getValue: false}));
+            _.each(node.args, function (arg, index) {
+                if (index > 0) {
+                    argChunks.push(', ');
+                }
+
+                argChunks.push(interpret(arg, {getValue: false}));
             });
 
-            return '(' + interpret(node.func, {getValue: true, allowBareword: true}) + '.call([' + args.join(', ') + '], namespaceScope) || tools.valueFactory.createNull())';
+            return context.createSourceNode(
+                ['('].concat(
+                    interpret(node.func, {getValue: true, allowBareword: true}),
+                    '.call([',
+                    argChunks,
+                    '], namespaceScope) || tools.valueFactory.createNull())'
+                ),
+                node
+            );
         },
-        'N_GLOBAL_STATEMENT': function (node) {
+        'N_GLOBAL_STATEMENT': function (node, interpret, context) {
             var code = '';
 
             _.each(node.variables, function (variable) {
                 code += 'scope.importGlobal(' + JSON.stringify(variable.variable) + ');';
             });
 
-            return code;
+            return context.createSourceNode([code], node);
         },
         'N_GOTO_STATEMENT': function (node, interpret, context) {
             var code = '',
@@ -610,16 +807,15 @@ module.exports = {
                 code += ' break ' + label + ';';
             }
 
-            return code;
+            return context.createSourceNode([code], node);
         },
         'N_IF_STATEMENT': function (node, interpret, context) {
             // Consequent statements are executed if the condition is truthy,
             // Alternate statements are executed if the condition is falsy
-            var alternateCode,
-                code = '',
-                conditionCode = interpret(node.condition) + '.coerceToBoolean().getNative()',
-                consequentCode,
-                consequentPrefix = '',
+            var alternateCodeChunks,
+                codeChunks,
+                conditionCodeChunks = interpret(node.condition).concat('.coerceToBoolean().getNative()'),
+                consequentCodeChunks,
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
 
@@ -634,56 +830,77 @@ module.exports = {
             labelRepository.on('pending label', onPendingLabel);
             labelRepository.on('found label', onFoundLabel);
 
-            consequentCode = interpret(node.consequentStatement);
+            consequentCodeChunks = interpret(node.consequentStatement);
             labelRepository.off('pending label', onPendingLabel);
             labelRepository.off('found label', onFoundLabel);
 
             _.each(Object.keys(gotosJumpingIn), function (label) {
-                conditionCode = 'goingToLabel_' + label + ' || (' + conditionCode + ')';
+                conditionCodeChunks = ['goingToLabel_' + label + ' || ('].concat(conditionCodeChunks, ')');
             });
 
-            consequentCode = '{' + consequentPrefix + consequentCode + '}';
+            consequentCodeChunks = ['{'].concat(consequentCodeChunks, '}');
 
-            alternateCode = node.alternateStatement ? ' else {' + interpret(node.alternateStatement) + '}' : '';
+            alternateCodeChunks = node.alternateStatement ?
+                [' else {'].concat(interpret(node.alternateStatement), '}') :
+                [];
 
-            code += 'if (' + conditionCode + ') ' + consequentCode + alternateCode;
+            codeChunks = ['if ('].concat(conditionCodeChunks, ') ', consequentCodeChunks, alternateCodeChunks);
 
-            return code;
+            return context.createSourceNode(codeChunks, node);
         },
-        'N_INCLUDE_EXPRESSION': function (node, interpret) {
-            return 'tools.include(' + interpret(node.path) + '.getNative(), scope)';
+        'N_INCLUDE_EXPRESSION': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.include('].concat(interpret(node.path), '.getNative(), scope)'),
+                node
+            );
         },
-        'N_INCLUDE_ONCE_EXPRESSION': function (node, interpret) {
-            return 'tools.includeOnce(' + interpret(node.path) + '.getNative(), scope)';
+        'N_INCLUDE_ONCE_EXPRESSION': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.includeOnce('].concat(interpret(node.path), '.getNative(), scope)'),
+                node
+            );
         },
-        'N_INLINE_HTML_STATEMENT': function (node) {
-            return 'stdout.write(' + JSON.stringify(node.html) + ');';
+        'N_INLINE_HTML_STATEMENT': function (node, interpret, context) {
+            return context.createSourceNode(
+                'stdout.write(' + JSON.stringify(node.html) + ');',
+                node
+            );
         },
-        'N_INSTANCE_OF': function (node, interpret) {
-            return interpret(node.object, {getValue: true}) + '.isAnInstanceOf(' + interpret(node['class'], {allowBareword: true}) + ', namespaceScope)';
+        'N_INSTANCE_OF': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.object, {getValue: true}).concat([
+                    '.isAnInstanceOf(',
+                    interpret(node['class'], {allowBareword: true}),
+                    ', namespaceScope)'
+                ]),
+                node
+            );
         },
-        'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret) {
+        'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
-                value: node.value ? interpret(node.value) : 'null'
+                value: context.createSourceNode(node.value ? interpret(node.value) : ['null'], node)
             };
         },
-        'N_INTEGER': function (node) {
-            return 'tools.valueFactory.createInteger(' + node.number + ')';
+        'N_INTEGER': function (node, interpret, context) {
+            return context.createSourceNode('tools.valueFactory.createInteger(' + node.number + ')', node);
         },
-        'N_INTEGER_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToInteger()';
+        'N_INTEGER_CAST': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.value, {getValue: true}).concat('.coerceToInteger()'),
+                node
+            );
         },
-        'N_INTERFACE_METHOD_DEFINITION': function (node, interpret) {
+        'N_INTERFACE_METHOD_DEFINITION': function (node) {
             return {
-                name: interpret(node.func),
+                name: node.func.string,
                 body: '{isStatic: false, abstract: true}'
             };
         },
-        'N_INTERFACE_STATEMENT': function (node, interpret) {
-            var code,
-                constantCodes = [],
-                methodCodes = [],
+        'N_INTERFACE_STATEMENT': function (node, interpret, context) {
+            var codeChunks,
+                constantCodeChunks = [],
+                methodCodeChunks = [],
                 superClass = node.extend ? 'namespaceScope.getClass(' + JSON.stringify(node.extend) + ')' : 'null';
 
             _.each(node.members, function (member) {
@@ -694,297 +911,530 @@ module.exports = {
                 } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
                     throw new PHPFatalError(PHPFatalError.INTERFACE_METHOD_BODY_NOT_ALLOWED, {
                         className: node.interfaceName,
-                        methodName: member.func || member.method
+                        methodName: member.func ? member.func.string : member.method.string
                     });
                 } else if (member.name === 'N_INTERFACE_METHOD_DEFINITION' || member.name === 'N_STATIC_INTERFACE_METHOD_DEFINITION') {
-                    methodCodes.push('"' + data.name + '": ' + data.body);
+                    if (methodCodeChunks.length > 0) {
+                        methodCodeChunks.push(', ');
+                    }
+
+                    methodCodeChunks.push(context.createSourceNode(['"' + data.name + '": '].concat(data.body), member));
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
-                    constantCodes.push('"' + data.name + '": ' + data.value);
+                    if (constantCodeChunks.length > 0) {
+                        constantCodeChunks.push(', ');
+                    }
+
+                    constantCodeChunks.push(context.createSourceNode(['"' + data.name + '": '].concat(data.value), member));
                 }
             });
 
-            code = '{superClass: ' + superClass + ', staticProperties: {}, properties: {}, methods: {' + methodCodes.join(', ') + '}, constants: {' + constantCodes.join(', ') + '}}';
+            codeChunks = [
+                '{superClass: ' + superClass + ', staticProperties: {}, properties: {}, methods: {'
+            ].concat(
+                methodCodeChunks,
+                '}, constants: {',
+                constantCodeChunks,
+                '}}'
+            );
 
-            return '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.interfaceName) + ', ' + code + ', namespaceScope);}());';
+            return context.createSourceNode(
+                [
+                    '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.interfaceName) + ', '
+                ].concat(
+                    codeChunks,
+                    ', namespaceScope);}());'
+                ),
+                node
+            );
         },
-        'N_STATIC_INTERFACE_METHOD_DEFINITION': function (node, interpret) {
+        'N_STATIC_INTERFACE_METHOD_DEFINITION': function (node) {
             return {
-                name: interpret(node.method),
+                name: node.method.string,
                 body: '{isStatic: true, abstract: true}'
             };
         },
-        'N_ISSET': function (node, interpret) {
-            var issets = [];
+        'N_ISSET': function (node, interpret, context) {
+            var issetChunks = [];
 
-            _.each(node.variables, function (variable) {
-                issets.push(interpret(variable, {getValue: false}) + '.isSet()');
+            _.each(node.variables, function (variable, index) {
+                if (index > 0) {
+                    issetChunks.push(' && ');
+                }
+
+                issetChunks.push(interpret(variable, {getValue: false}), '.isSet()');
             });
 
-            return '(function (scope) {scope.suppressOwnErrors();' +
-                'var result = tools.valueFactory.createBoolean(' + issets.join(' && ') + ');' +
-                'scope.unsuppressOwnErrors(); return result;}(scope))';
+            return context.createSourceNode(
+                [
+                    '(function (scope) {scope.suppressOwnErrors();' +
+                    'var result = tools.valueFactory.createBoolean('
+                ].concat(
+                    issetChunks,
+                    ');' +
+                    'scope.unsuppressOwnErrors(); return result;}(scope))'
+                ),
+                node
+            );
         },
-        'N_KEY_VALUE_PAIR': function (node, interpret) {
-            return 'tools.createKeyValuePair(' + interpret(node.key) + ', ' + interpret(node.value) + ')';
+        'N_KEY_VALUE_PAIR': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.createKeyValuePair('].concat(interpret(node.key), ', ', interpret(node.value), ')'),
+                node
+            );
         },
         'N_LABEL_STATEMENT': function (node, interpret, context) {
             var label = node.label;
 
             context.labelRepository.found(label);
 
-            return '';
+            return [''];
         },
-        'N_LIST': function (node, interpret) {
-            var elementsCodes = [];
+        'N_LIST': function (node, interpret, context) {
+            var elementsCodeChunks = [];
 
-            _.each(node.elements, function (element) {
-                elementsCodes.push(interpret(element, {getValue: false}));
+            _.each(node.elements, function (element, index) {
+                if (index > 0) {
+                    elementsCodeChunks.push(',');
+                }
+
+                elementsCodeChunks.push(interpret(element, {getValue: false}));
             });
 
-            return 'tools.createList([' + elementsCodes.join(',') + '])';
+            return context.createSourceNode(
+                ['tools.createList(['].concat(elementsCodeChunks, '])'),
+                node
+            );
         },
-        'N_MAGIC_CLASS_CONSTANT': function () {
-            return 'scope.getClassName()';
+        'N_MAGIC_CLASS_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(['scope.getClassName()'], node);
         },
-        'N_MAGIC_DIR_CONSTANT': function () {
-            return 'tools.getPathDirectory()';
+        'N_MAGIC_DIR_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(['tools.getPathDirectory()'], node);
         },
-        'N_MAGIC_FILE_CONSTANT': function () {
-            return 'tools.getPath()';
+        'N_MAGIC_FILE_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(['tools.getPath()'], node);
         },
-        'N_MAGIC_FUNCTION_CONSTANT': function () {
-            return 'scope.getFunctionName()';
+        'N_MAGIC_FUNCTION_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(['scope.getFunctionName()'], node);
         },
-        'N_MAGIC_LINE_CONSTANT': function (node) {
-            return 'tools.valueFactory.createInteger(' + node.offset.line + ')';
+        'N_MAGIC_LINE_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.valueFactory.createInteger(' + node.offset.line + ')'],
+                node
+            );
         },
-        'N_MAGIC_METHOD_CONSTANT': function () {
-            return 'scope.getMethodName()';
+        'N_MAGIC_METHOD_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(['scope.getMethodName()'], node);
         },
-        'N_MAGIC_NAMESPACE_CONSTANT': function () {
-            return 'namespaceScope.getNamespaceName()';
+        'N_MAGIC_NAMESPACE_CONSTANT': function (node, interpret, context) {
+            return context.createSourceNode(['namespaceScope.getNamespaceName()'], node);
         },
-        'N_METHOD_CALL': function (node, interpret) {
-            var code = '';
+        'N_METHOD_CALL': function (node, interpret, context) {
+            var codeChunks = [];
 
             _.each(node.calls, function (call) {
-                var args = [];
+                var argChunks = [];
 
-                _.each(call.args, function (arg) {
-                    args.push(interpret(arg));
+                _.each(call.args, function (arg, index) {
+                    if (index > 0) {
+                        argChunks.push(', ');
+                    }
+
+                    argChunks.push(interpret(arg));
                 });
 
-                code += '.callMethod(' + interpret(call.func, {allowBareword: true}) + '.getNative(), [' + args.join(', ') + '])';
+                codeChunks.push('.callMethod(');
+                [].push.apply(codeChunks, interpret(call.func, {allowBareword: true}));
+                codeChunks.push('.getNative(), [');
+                [].push.apply(codeChunks, argChunks);
+                codeChunks.push('])');
             });
 
-            return interpret(node.object, {getValue: true}) + code;
+            return context.createSourceNode(
+                interpret(node.object, {getValue: true}).concat(codeChunks),
+                node
+            );
         },
-        'N_METHOD_DEFINITION': function (node, interpret) {
+        'N_METHOD_DEFINITION': function (node, interpret, context) {
             return {
-                name: interpret(node.func),
-                body: '{isStatic: false, method: ' + interpretFunction(node.args, null, node.body, interpret) + '}'
+                name: node.func.string,
+                body: context.createSourceNode(
+                    ['{isStatic: false, method: '].concat(
+                        interpretFunction(node.func, node.args, null, node.body, interpret, context),
+                        '}'
+                    ),
+                    node
+                )
             };
         },
-        'N_NAMESPACE_STATEMENT': function (node, interpret) {
-            var body = '';
+        'N_NAMESPACE_STATEMENT': function (node, interpret, context) {
+            var bodyChunks = [];
 
             _.each(hoistDeclarations(node.statements), function (statement) {
-                body += interpret(statement);
+                [].push.apply(bodyChunks, interpret(statement));
             });
 
             if (node.namespace === '') {
                 // Global namespace
-                return body;
+                return context.createSourceNode(bodyChunks, node);
             }
 
-            return 'if (namespaceResult = (function (globalNamespace) {var namespace = globalNamespace.getDescendant(' + JSON.stringify(node.namespace) + '), namespaceScope = tools.createNamespaceScope(namespace);' + body + '}(namespace))) { return namespaceResult; }';
+            return context.createSourceNode(
+                [
+                    'if (namespaceResult = (function (globalNamespace) {var namespace = globalNamespace.getDescendant(' +
+                    JSON.stringify(node.namespace) +
+                    '), namespaceScope = tools.createNamespaceScope(namespace);',
+                    bodyChunks,
+                    '}(namespace))) { return namespaceResult; }'
+                ],
+                node
+            );
         },
-        'N_NEW_EXPRESSION': function (node, interpret) {
-            var args = [];
+        'N_NEW_EXPRESSION': function (node, interpret, context) {
+            var argChunks = [];
 
-            _.each(node.args, function (arg) {
-                args.push(interpret(arg));
+            _.each(node.args, function (arg, index) {
+                if (index > 0) {
+                    argChunks.push(', ');
+                }
+
+                argChunks.push(interpret(arg));
             });
 
-            return 'tools.createInstance(namespaceScope, ' + interpret(node.className, {allowBareword: true}) + ', [' + args.join(', ') + '])';
+            return context.createSourceNode(
+                ['tools.createInstance(namespaceScope, '].concat(
+                    interpret(node.className, {allowBareword: true}),
+                    ', [',
+                    argChunks,
+                    '])'
+                ),
+                node
+            );
         },
-        'N_NULL': function () {
-            return 'tools.valueFactory.createNull()';
+        'N_NULL': function (node, interpret, context) {
+            return context.createSourceNode(['tools.valueFactory.createNull()'], node);
         },
-        'N_OBJECT_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToObject()';
+        'N_OBJECT_CAST': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.value, {getValue: true}).concat('.coerceToObject()'),
+                node
+            );
         },
         'N_OBJECT_PROPERTY': function (node, interpret, context) {
-            var objectVariableCode,
-                propertyCode = '',
+            var objectVariableCodeChunks,
+                propertyCodeChunks = [],
                 suffix = '';
 
             if (context.assignment) {
-                objectVariableCode = 'tools.implyObject(' + interpret(node.object, {getValue: false}) + ')';
+                objectVariableCodeChunks = [
+                    'tools.implyObject(',
+                    interpret(node.object, {getValue: false}),
+                    ')'
+                ];
             } else {
                 if (context.getValue !== false) {
                     suffix = '.getValue()';
                 }
 
-                objectVariableCode = interpret(node.object, {getValue: false});
+                objectVariableCodeChunks = interpret(node.object, {getValue: false});
             }
 
             _.each(node.properties, function (property, index) {
                 var nameValue = interpret(property.property, {assignment: false, getValue: false, allowBareword: true});
 
-                propertyCode += '.getInstancePropertyByName(' + nameValue + ')';
+                propertyCodeChunks.push('.getInstancePropertyByName(', nameValue, ')');
 
                 if (index < node.properties.length - 1) {
-                    propertyCode += '.getValue()';
+                    propertyCodeChunks.push('.getValue()');
                 }
             });
 
-            return objectVariableCode + propertyCode + suffix;
+            return context.createSourceNode(
+                [objectVariableCodeChunks, propertyCodeChunks, suffix],
+                node
+            );
         },
-        'N_PRINT_EXPRESSION': function (node, interpret) {
-            return '(stdout.write(' + interpret(node.operand, {getValue: true}) + '.coerceToString().getNative()), tools.valueFactory.createInteger(1))';
+        'N_PRINT_EXPRESSION': function (node, interpret, context) {
+            return context.createSourceNode(
+                [
+                    '(stdout.write(',
+                    interpret(node.operand, {getValue: true}),
+                    '.coerceToString().getNative()), tools.valueFactory.createInteger(1))'
+                ],
+                node
+            );
         },
         'N_PROGRAM': function (node, interpret, options) {
-            var body = '',
+            var bareMode,
+                body = [],
+                compiledBody,
+                compiledSourceMap,
+                filePath = options ? options[PATH] : null,
                 context = {
                     blockContexts: [],
+                    buildingSourceMap: !!node.offset,
+                    // Define optimized SourceNode factory, depending on mode
+                    createSourceNode: node.offset ? function (chunks, node, name) {
+                        // Lines are 1-based, but columns are 0-based
+                        return [new SourceNode(node.offset.line, node.offset.column - 1, filePath, chunks, name)];
+                    } : function (chunks) {
+                        return [new SourceNode(null, null, filePath, chunks)];
+                    },
                     labelRepository: new LabelRepository()
                 },
                 labels,
-                name;
+                name,
+                sourceMap,
+                sourceMapOptions;
 
             options = _.extend({
                 'runtimePath': 'phpruntime'
             }, options);
 
             name = options[RUNTIME_PATH];
+            bareMode = options[BARE] === true;
+            sourceMapOptions = options[SOURCE_MAP] ?
+                (options[SOURCE_MAP] === true ? {} : options[SOURCE_MAP]) :
+                null;
 
             // Optional synchronous mode
             if (options[SYNC]) {
                 name += '/sync';
             }
 
-            body += processBlock(hoistDeclarations(node.statements), interpret, context);
+            body.push(processBlock(hoistDeclarations(node.statements), interpret, context));
 
             labels = context.labelRepository.getLabels();
 
             if (labels.length > 0) {
-                body = 'var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;' + body;
+                body.unshift('var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;');
             }
 
-            body = 'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' + body;
+            body.unshift('var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;');
 
             // Program returns null rather than undefined if nothing is returned
-            body += 'return tools.valueFactory.createNull();';
+            body.push('return tools.valueFactory.createNull();');
 
             // Wrap program in function for passing to runtime
-            body = 'function (stdin, stdout, stderr, tools, namespace) {' + body + '}';
+            body = ['function (stdin, stdout, stderr, tools, namespace) {'].concat(body, '}');
 
-            if (options[BARE] !== true) {
-                body = 'require(\'' + name + '\').compile(' + body + ');';
+            if (!bareMode) {
+                body = ['require(\'' + name + '\').compile('].concat(body, ')');
             }
 
-            return body;
+            // Allow some predefined code to be prepended to the output,
+            // but included in source map calculations
+            if (options[PREFIX]) {
+                body.unshift(options[PREFIX]);
+            }
+
+            // Allow some predefined code to be appended to the output,
+            // but included in source map calculations
+            if (options[SUFFIX]) {
+                body.push(options[SUFFIX]);
+            }
+
+            // Don't provide a line or column number for the program node itself
+            sourceMap = new SourceNode(null, null, filePath, body);
+
+            if (sourceMapOptions) {
+                if (sourceMapOptions[SOURCE_CONTENT]) {
+                    sourceMap.setSourceContent(filePath, sourceMapOptions[SOURCE_CONTENT]);
+                }
+
+                compiledSourceMap = sourceMap.toStringWithSourceMap();
+                compiledBody = compiledSourceMap.code;
+            } else {
+                compiledBody = sourceMap.toString();
+            }
+
+            if (sourceMapOptions) {
+                compiledBody += '\n\n' + sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
+            }
+
+            if (!bareMode) {
+                compiledBody += ';';
+            }
+
+            return compiledBody;
         },
-        'N_REFERENCE': function (node, interpret) {
-            return interpret(node.operand, {getValue: false}) + '.getReference()';
+        'N_REFERENCE': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.operand, {getValue: false}).concat('.getReference()'),
+                node
+            );
         },
-        'N_REQUIRE_EXPRESSION': function (node, interpret) {
-            return 'tools.require(' + interpret(node.path) + '.getNative(), scope)';
+        'N_REQUIRE_EXPRESSION': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.require('].concat(interpret(node.path), '.getNative(), scope)'),
+                node
+            );
         },
-        'N_REQUIRE_ONCE_EXPRESSION': function (node, interpret) {
-            return 'tools.requireOnce(' + interpret(node.path) + '.getNative(), scope)';
+        'N_REQUIRE_ONCE_EXPRESSION': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['tools.requireOnce('].concat(interpret(node.path), '.getNative(), scope)'),
+                node
+            );
         },
-        'N_RETURN_STATEMENT': function (node, interpret) {
+        'N_RETURN_STATEMENT': function (node, interpret, context) {
             var expression = interpret(node.expression);
 
-            return 'return ' + (expression ? expression : 'tools.valueFactory.createNull()') + ';';
+            return context.createSourceNode(
+                ['return '].concat(expression ? expression : 'tools.valueFactory.createNull()', ';'),
+                node
+            );
         },
         'N_SELF': function (node, interpret, context) {
             if (context.isConstant) {
-                return 'tools.valueFactory.createString(currentClass.getName())';
+                return context.createSourceNode(
+                    'tools.valueFactory.createString(currentClass.getName())',
+                    node
+                );
             }
 
-            return 'scope.getClassNameOrThrow()';
+            return context.createSourceNode('scope.getClassNameOrThrow()', node);
         },
-        'N_STATIC_METHOD_CALL': function (node, interpret) {
-            var args = [];
+        'N_STATIC_METHOD_CALL': function (node, interpret, context) {
+            var argChunks = [];
 
-            _.each(node.args, function (arg) {
-                args.push(interpret(arg));
+            _.each(node.args, function (arg, index) {
+                if (index > 0) {
+                    argChunks.push(', ');
+                }
+
+                argChunks.push(interpret(arg));
             });
 
-            return interpret(node.className, {allowBareword: true}) + '.callStaticMethod(' + interpret(node.method, {allowBareword: true}) + ', [' + args.join(', ') + '], namespaceScope)';
+            return context.createSourceNode(
+                [
+                    interpret(node.className, {allowBareword: true}),
+                    '.callStaticMethod(',
+                    interpret(node.method, {allowBareword: true}),
+                    ', [',
+                    argChunks,
+                    '], namespaceScope)'
+                ],
+                node
+            );
         },
-        'N_STATIC_METHOD_DEFINITION': function (node, interpret) {
+        'N_STATIC_METHOD_DEFINITION': function (node, interpret, context) {
             return {
-                name: interpret(node.method),
-                body: '{isStatic: true, method: ' + interpretFunction(node.args, null, node.body, interpret) + '}'
+                name: node.method.string,
+                body: context.createSourceNode(
+                    ['{isStatic: true, method: '].concat(
+                        interpretFunction(node.method, node.args, null, node.body, interpret, context),
+                        '}'
+                    ),
+                    node
+                )
             };
         },
         'N_STATIC_PROPERTY': function (node, interpret, context) {
             var classVariableCode = interpret(node.className, {getValue: true, allowBareword: true}),
-                propertyCode = '.getStaticPropertyByName(' + interpret(node.property, {assignment: false, getValue: true, allowBareword: true}) + ', namespaceScope)',
+                propertyCodeChunks = ['.getStaticPropertyByName('].concat(
+                    interpret(node.property, {assignment: false, getValue: true, allowBareword: true}),
+                    ', namespaceScope)'
+                ),
                 suffix = '';
 
             if (!context.assignment) {
                 suffix = '.getValue()';
             }
 
-            return classVariableCode + propertyCode + suffix;
+            return context.createSourceNode(
+                classVariableCode.concat(propertyCodeChunks, suffix),
+                node
+            );
         },
-        'N_STATIC_PROPERTY_DEFINITION': function (node, interpret) {
+        'N_STATIC_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
                 visibility: JSON.stringify(node.visibility),
-                value: node.value ? interpret(node.value) : 'tools.valueFactory.createNull()'
+                value: context.createSourceNode(
+                    node.value ? interpret(node.value) : ['tools.valueFactory.createNull()'],
+                    node
+                )
             };
         },
         'N_STRING': function (node, interpret, context) {
             if (context.allowBareword) {
-                return 'tools.valueFactory.createBarewordString(' + JSON.stringify(node.string) + ')';
+                return context.createSourceNode(
+                    'tools.valueFactory.createBarewordString(' + JSON.stringify(node.string) + ')',
+                    node
+                );
             }
 
-            return 'namespaceScope.getConstant(' + JSON.stringify(node.string) + ')';
+            return context.createSourceNode(
+                'namespaceScope.getConstant(' + JSON.stringify(node.string) + ')',
+                node
+            );
         },
-        'N_STRING_CAST': function (node, interpret) {
-            return interpret(node.value, {getValue: true}) + '.coerceToString()';
+        'N_STRING_CAST': function (node, interpret, context) {
+            return context.createSourceNode(
+                interpret(node.value, {getValue: true}).concat('.coerceToString()'),
+                node
+            );
         },
-        'N_STRING_EXPRESSION': function (node, interpret) {
-            var codes = [];
+        'N_STRING_EXPRESSION': function (node, interpret, context) {
+            var codeChunks = [];
 
-            _.each(node.parts, function (part) {
-                codes.push(interpret(part) + '.coerceToString().getNative()');
+            _.each(node.parts, function (part, index) {
+                if (index > 0) {
+                    codeChunks.push(' + ');
+                }
+
+                codeChunks.push(interpret(part), '.coerceToString().getNative()');
             });
 
-            return 'tools.valueFactory.createString(' + codes.join(' + ') + ')';
+            return context.createSourceNode(
+                ['tools.valueFactory.createString('].concat(codeChunks, ')'),
+                node
+            );
         },
-        'N_STRING_LITERAL': function (node) {
-            return 'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')';
+        'N_STRING_LITERAL': function (node, interpret, context) {
+            return context.createSourceNode(
+                'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')',
+                node
+            );
         },
-        'N_SUPPRESSED_EXPRESSION': function (node, interpret) {
-            return '(function (scope) {scope.suppressErrors();' +
-                'var result = ' + interpret(node.expression) + ';' +
-                'scope.unsuppressErrors(); return result;}(scope))';
+        'N_SUPPRESSED_EXPRESSION': function (node, interpret, context) {
+            return context.createSourceNode(
+                [
+                    '(function (scope) {scope.suppressErrors();' +
+                    'var result = '
+                ].concat(
+                    interpret(node.expression),
+                    ';' +
+                    'scope.unsuppressErrors(); return result;}(scope))'
+                ),
+                node
+            );
         },
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
-            var code = '',
+            var codeChunks = [],
                 expressionCode = interpret(node.expression),
                 blockContexts = context.blockContexts.concat(['switch']),
                 subContext = {
                     blockContexts: blockContexts
                 };
 
-            code += 'var switchExpression_' + blockContexts.length + ' = ' + expressionCode + ',' +
-                ' switchMatched_' + blockContexts.length + ' = false;';
+            codeChunks.push(
+                'var switchExpression_' + blockContexts.length + ' = ',
+                expressionCode,
+                ',' +
+                ' switchMatched_' + blockContexts.length + ' = false;'
+            );
 
             _.each(node.cases, function (caseNode) {
-                code += interpret(caseNode, subContext);
+                codeChunks.push(interpret(caseNode, subContext));
             });
 
-            return 'block_' + blockContexts.length + ': {' + code + '}';
+            return context.createSourceNode(
+                ['block_' + blockContexts.length + ': {', codeChunks, '}'],
+                node
+            );
         },
-        'N_TERNARY': function (node, interpret) {
+        'N_TERNARY': function (node, interpret, context) {
             var condition = interpret(node.condition),
                 consequent,
                 expression;
@@ -993,73 +1443,97 @@ module.exports = {
                 consequent = interpret(node.consequent);
             } else {
                 // Handle shorthand ternary
-                condition = '(tools.ternaryCondition = ' + condition + ')';
+                condition = ['(tools.ternaryCondition = ', condition, ')'];
                 consequent = 'tools.ternaryCondition';
             }
 
-            expression = '(' + condition + '.coerceToBoolean().getNative() ? ' +
-                consequent + ' : ' +
-                interpret(node.alternate) + ')';
+            expression = [
+                '(',
+                condition,
+                '.coerceToBoolean().getNative() ? ',
+                consequent,
+                ' : ',
+                interpret(node.alternate),
+                ')'
+            ];
 
-            return expression;
+            return context.createSourceNode(expression, node);
         },
-        'N_THROW_STATEMENT': function (node, interpret) {
-            return 'throw ' + interpret(node.expression) + ';';
+        'N_THROW_STATEMENT': function (node, interpret, context) {
+            return context.createSourceNode(
+                ['throw ', interpret(node.expression), ';'],
+                node
+            );
         },
-        'N_TRY_STATEMENT': function (node, interpret) {
-            var catchCodes = [],
-                code = '';
+        'N_TRY_STATEMENT': function (node, interpret, context) {
+            var catchCodesChunks = [],
+                codeChunks = [];
 
             _.each(node.catches, function (catchNode, index) {
-                var catchCode = 'if (' + interpret(catchNode.type, {allowBareword: true}) + '.isTheClassOfObject(e, namespaceScope).getNative()) {' +
-                    interpret(catchNode.variable, {getValue: false}) + '.setValue(e);' +
-                    interpret(catchNode.body) +
-                    '}';
+                var catchCodeChunks = [
+                    'if (', interpret(catchNode.type, {allowBareword: true}), '.isTheClassOfObject(e, namespaceScope).getNative()) {',
+                    interpret(catchNode.variable, {getValue: false}), '.setValue(e);',
+                    interpret(catchNode.body),
+                    '}'
+                ];
 
                 if (index > 0) {
-                    catchCode = ' else ' + catchCode;
+                    catchCodeChunks.unshift(' else ');
                 }
 
-                catchCodes.push(catchCode);
+                catchCodesChunks.push(catchCodeChunks);
             });
 
-            code += catchCodes.join('');
+            [].push.apply(codeChunks, catchCodesChunks);
 
             if (node.catches.length > 0) {
-                code = 'if (!tools.valueFactory.isValue(e)) {throw e;}' + code;
-                code += ' else { throw e; }';
+                codeChunks.unshift('if (!tools.valueFactory.isValue(e)) {throw e;}');
+                codeChunks.push(' else { throw e; }');
             } else {
-                code += 'throw e;';
+                codeChunks.push('throw e;');
             }
 
-            code = 'try {' + interpret(node.body) + '} catch (e) {' + code + '}';
+            codeChunks.unshift('try {', interpret(node.body), '} catch (e) {');
+            codeChunks.push('}');
 
             if (node.finalizer) {
-                code += ' finally {' + interpret(node.finalizer) + '}';
+                codeChunks.push(' finally {', interpret(node.finalizer), '}');
             }
 
-            return code;
+            return context.createSourceNode(codeChunks, node);
         },
-        'N_UNARY_EXPRESSION': function (node, interpret) {
+        'N_UNARY_EXPRESSION': function (node, interpret, context) {
             var operator = node.operator,
                 operand = interpret(node.operand, {getValue: operator !== '++' && operator !== '--'});
 
-            return operand + '.' + unaryOperatorToMethod[node.prefix ? 'prefix' : 'suffix'][operator] + '()';
+            return context.createSourceNode(
+                [operand, '.' + unaryOperatorToMethod[node.prefix ? 'prefix' : 'suffix'][operator] + '()'],
+                node
+            );
         },
-        'N_UNSET_CAST': function (node, interpret) {
+        'N_UNSET_CAST': function (node, interpret, context) {
             // Unset cast coerces all values to NULL
-            return '(' + interpret(node.value, {getValue: true}) + ', tools.valueFactory.createNull())';
+            return context.createSourceNode(
+                ['(', interpret(node.value, {getValue: true}), ', tools.valueFactory.createNull())'],
+                node
+            );
         },
-        'N_UNSET_STATEMENT': function (node, interpret) {
-            var statements = [];
+        'N_UNSET_STATEMENT': function (node, interpret, context) {
+            var statementChunks = [];
 
-            _.each(node.variables, function (variableNode) {
-                statements.push(interpret(variableNode, {getValue: false}) + '.unset()');
+            _.each(node.variables, function (variableNode, index) {
+                if (index > 0) {
+                    statementChunks.push('; ');
+                }
+
+                statementChunks.push(interpret(variableNode, {getValue: false}), '.unset()');
             });
 
-            return statements.join('; ') + ';';
+            statementChunks.push(';');
+
+            return context.createSourceNode(statementChunks, node);
         },
-        'N_USE_STATEMENT': function (node) {
+        'N_USE_STATEMENT': function (node, interpret, context) {
             var code = '';
 
             _.each(node.uses, function (use) {
@@ -1070,33 +1544,53 @@ module.exports = {
                 }
             });
 
-            return code;
+            return context.createSourceNode(code, node);
         },
         'N_VARIABLE': function (node, interpret, context) {
-            return 'scope.getVariable("' + node.variable + '")' + (context.getValue !== false ? '.getValue()' : '');
+            return context.createSourceNode(
+                ['scope.getVariable("' + node.variable + '")' + (context.getValue !== false ? '.getValue()' : '')],
+                node,
+                '$' + node.variable
+            );
         },
         'N_VARIABLE_EXPRESSION': function (node, interpret, context) {
-            return 'scope.getVariable(' + interpret(node.expression) + '.getNative())' + (context.getValue !== false ? '.getValue()' : '');
+            return context.createSourceNode(
+                [
+                    'scope.getVariable(',
+                    interpret(node.expression),
+                    '.getNative())' + (context.getValue !== false ? '.getValue()' : '')
+                ],
+                node
+            );
         },
-        'N_VOID': function () {
-            return 'tools.referenceFactory.createNull()';
+        'N_VOID': function (node, interpret, context) {
+            return context.createSourceNode('tools.referenceFactory.createNull()', node);
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['while']),
                 subContext = {
                     blockContexts: blockContexts
                 },
-                code = '';
+                codeChunks = [];
 
             context.labelRepository.on('found label', function () {
                 throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
             });
 
             _.each(node.statements, function (statement) {
-                code += interpret(statement, subContext);
+                codeChunks.push(interpret(statement, subContext));
             });
 
-            return 'block_' + blockContexts.length + ': while (' + interpret(node.condition, subContext) + '.coerceToBoolean().getNative()) {' + code + '}';
+            return context.createSourceNode(
+                [
+                    'block_' + blockContexts.length + ': while (',
+                    interpret(node.condition, subContext),
+                    '.coerceToBoolean().getNative()) {',
+                    codeChunks,
+                    '}'
+                ],
+                node
+            );
         }
     }
 };

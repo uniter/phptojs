@@ -44,7 +44,10 @@ describe('Transpiler __NAMESPACE__ magic constant test', function () {
                         {
                             name: 'N_METHOD_DEFINITION',
                             visibility: 'public',
-                            func: 'getClass',
+                            func: {
+                                name: 'N_STRING',
+                                string: 'getClass'
+                            },
                             args: [],
                             body: {
                                 name: 'N_COMPOUND_STATEMENT',
