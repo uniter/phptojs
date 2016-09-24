@@ -687,7 +687,7 @@ module.exports = {
                 initializerCodeChunks = interpret(node.initializer, subContext),
                 updateCodeChunks = interpret(node.update, subContext);
 
-            if (conditionCodeChunks) {
+            if (conditionCodeChunks.length > 0) {
                 conditionCodeChunks.push('.coerceToBoolean().getNative()');
             }
 
@@ -1175,9 +1175,20 @@ module.exports = {
                     buildingSourceMap: !!node.offset,
                     // Define optimized SourceNode factory, depending on mode
                     createSourceNode: node.offset ? function (chunks, node, name) {
+                        if (chunks.length === 0) {
+                            // Allow detecting empty comma expressions etc. by returning an empty array
+                            // rather than an array containing an empty SourceNode
+                            return [];
+                        }
+
                         // Lines are 1-based, but columns are 0-based
                         return [new SourceNode(node.offset.line, node.offset.column - 1, filePath, chunks, name)];
                     } : function (chunks) {
+                        if (chunks.length === 0) {
+                            // See above
+                            return [];
+                        }
+
                         return [new SourceNode(null, null, filePath, chunks)];
                     },
                     labelRepository: new LabelRepository()

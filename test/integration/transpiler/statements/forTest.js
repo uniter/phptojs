@@ -91,4 +91,45 @@ describe('Transpiler "for" statement test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile an infinite for loop', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_FOR_STATEMENT',
+                initializer: {
+                    name: 'N_COMMA_EXPRESSION',
+                    expressions: []
+                },
+                condition: {
+                    name: 'N_COMMA_EXPRESSION',
+                    expressions: []
+                },
+                update: {
+                    name: 'N_COMMA_EXPRESSION',
+                    expressions: []
+                },
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_ECHO_STATEMENT',
+                        expression: {
+                            name: 'N_VARIABLE',
+                            variable: 'i'
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'block_1: for (;;) {' +
+            'stdout.write(scope.getVariable("i").getValue().coerceToString().getNative());' +
+            '}' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });
