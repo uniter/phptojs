@@ -43,7 +43,10 @@ describe('Transpiler __LINE__ magic constant test', function () {
             statements: [
                 {
                     'name': 'N_FUNCTION_STATEMENT',
-                    'func': 'myFunction',
+                    'func': {
+                        'name': 'N_STRING',
+                        'string': 'myFunction'
+                    },
                     'args': [],
                     'body': {
                         'name': 'N_COMPOUND_STATEMENT',
@@ -67,7 +70,7 @@ describe('Transpiler __LINE__ magic constant test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("myFunction", function () {var scope = this;' +
+            'namespace.defineFunction("myFunction", function myFunction() {var scope = this;' +
             'return tools.valueFactory.createInteger(3);' +
             '});' +
             'return tools.valueFactory.createNull();' +

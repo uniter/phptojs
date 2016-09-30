@@ -44,7 +44,10 @@ describe('Transpiler __CLASS__ magic constant test', function () {
                         {
                             name: 'N_METHOD_DEFINITION',
                             visibility: 'public',
-                            func: 'getClass',
+                            func: {
+                                name: 'N_STRING',
+                                string: 'getClass'
+                            },
                             args: [],
                             body: {
                                 name: 'N_COMPOUND_STATEMENT',
@@ -70,7 +73,7 @@ describe('Transpiler __CLASS__ magic constant test', function () {
             'var currentClass = namespace.defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
-            'method: function () {var scope = this;' +
+            'method: function getClass() {var scope = this;' +
             'return scope.getClassName();' +
             '}}' +
             '}, constants: {}}, namespaceScope);}());' +

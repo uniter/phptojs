@@ -28,7 +28,10 @@ describe('Transpiler interface statement test', function () {
                     }
                 }, {
                     name: 'N_STATIC_INTERFACE_METHOD_DEFINITION',
-                    method: 'doSomething',
+                    method: {
+                        name: 'N_STRING',
+                        string: 'doSomething'
+                    },
                     visibility: 'public',
                     args: [{
                         name: 'N_ARGUMENT',
@@ -40,7 +43,10 @@ describe('Transpiler interface statement test', function () {
                     }]
                 }, {
                     name: 'N_INTERFACE_METHOD_DEFINITION',
-                    func: 'doSomethingElse',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'doSomethingElse'
+                    },
                     visibility: 'public',
                     args: [{
                         name: 'N_ARGUMENT',

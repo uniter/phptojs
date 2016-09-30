@@ -22,7 +22,10 @@ describe('Transpiler class statement with abstract methods test', function () {
                 className: 'AbstractMyClass',
                 members: [{
                     name: 'N_ABSTRACT_METHOD_DEFINITION',
-                    func: 'myMethod',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
                     visibility: 'protected',
                     args: [{
                         name: 'N_ARGUMENT',
@@ -41,7 +44,10 @@ describe('Transpiler class statement with abstract methods test', function () {
                     }]
                 }, {
                     name: 'N_ABSTRACT_STATIC_METHOD_DEFINITION',
-                    method: 'myMethod',
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
                     visibility: 'protected',
                     args: [{
                         name: 'N_ARGUMENT',

@@ -43,6 +43,41 @@ describe('Transpiler array access operator test', function () {
         );
     });
 
+    it('should correctly transpile a return statement with multiple array indices', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ARRAY_INDEX',
+                    array: {
+                        name: 'N_VARIABLE',
+                        variable: 'myArray'
+                    },
+                    indices: [{
+                        index: {
+                            name: 'N_INTEGER',
+                            number: 21
+                        }
+                    }, {
+                        index: {
+                            name: 'N_INTEGER',
+                            number: 101
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).getValue().getElementByKey(tools.valueFactory.createInteger(101)).getValue();' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
     it('should correctly transpile an assignment with a single array index', function () {
         var ast = {
             name: 'N_PROGRAM',
