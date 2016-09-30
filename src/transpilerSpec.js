@@ -97,11 +97,18 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         bindingAssignmentChunks = [],
         subContext = {
             blockContexts: [],
-            labelRepository: new LabelRepository()
+            labelRepository: new LabelRepository(),
+            variableMap: {
+                'this': true
+            }
         },
         body = context.createSourceNode(interpret(statementNode, subContext), statementNode);
 
-    bindingAssignmentChunks.push('var $this = tools.createDebugVar(scope, "this");');
+    if (context.buildingSourceMap) {
+        _.forOwn(subContext.variableMap, function (t, name) {
+            bindingAssignmentChunks.push('var $' + name + ' = tools.createDebugVar(scope, "' + name + '");');
+        });
+    }
 
     _.each(bindingNodes, function (bindingNode) {
         var isReference = bindingNode.name === 'N_REFERENCE',
@@ -444,7 +451,7 @@ module.exports = {
                         staticPropertyCodeChunks.push(', ');
                     }
 
-                    staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value + '}');
+                    staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
                 } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
                     if (methodCodeChunks.length > 0) {
                         methodCodeChunks.push(', ');
@@ -862,7 +869,7 @@ module.exports = {
         },
         'N_INLINE_HTML_STATEMENT': function (node, interpret, context) {
             return context.createSourceNode(
-                'stdout.write(' + JSON.stringify(node.html) + ');',
+                ['stdout.write(' + JSON.stringify(node.html) + ');'],
                 node
             );
         },
@@ -883,7 +890,7 @@ module.exports = {
             };
         },
         'N_INTEGER': function (node, interpret, context) {
-            return context.createSourceNode('tools.valueFactory.createInteger(' + node.number + ')', node);
+            return context.createSourceNode(['tools.valueFactory.createInteger(' + node.number + ')'], node);
         },
         'N_INTEGER_CAST': function (node, interpret, context) {
             return context.createSourceNode(
@@ -1079,6 +1086,12 @@ module.exports = {
                 return context.createSourceNode(bodyChunks, node);
             }
 
+            if (context.buildingSourceMap) {
+                _.forOwn(context.variableMap, function (t, name) {
+                    bodyChunks.unshift('var $' + name + ' = tools.createDebugVar(scope, "' + name + '");');
+                });
+            }
+
             return context.createSourceNode(
                 [
                     'if (namespaceResult = (function (globalNamespace) {var namespace = globalNamespace.getDescendant(' +
@@ -1184,14 +1197,12 @@ module.exports = {
                         // Lines are 1-based, but columns are 0-based
                         return [new SourceNode(node.offset.line, node.offset.column - 1, filePath, chunks, name)];
                     } : function (chunks) {
-                        if (chunks.length === 0) {
-                            // See above
-                            return [];
-                        }
-
-                        return [new SourceNode(null, null, filePath, chunks)];
+                        // Just return the chunks array: all chunks will be flattened
+                        // into the final concatenated string by one outer SourceNode object in this mode
+                        return chunks;
                     },
-                    labelRepository: new LabelRepository()
+                    labelRepository: new LabelRepository(),
+                    variableMap: {}
                 },
                 labels,
                 name,
@@ -1214,6 +1225,12 @@ module.exports = {
             }
 
             body.push(processBlock(hoistDeclarations(node.statements), interpret, context));
+
+            if (context.buildingSourceMap) {
+                _.forOwn(context.variableMap, function (t, name) {
+                    body.unshift('var $' + name + ' = tools.createDebugVar(scope, "' + name + '");');
+                });
+            }
 
             labels = context.labelRepository.getLabels();
 
@@ -1254,13 +1271,10 @@ module.exports = {
                 }
 
                 compiledSourceMap = sourceMap.toStringWithSourceMap();
-                compiledBody = compiledSourceMap.code;
+                compiledBody = compiledSourceMap.code + '\n\n' +
+                    sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
             } else {
                 compiledBody = sourceMap.toString();
-            }
-
-            if (sourceMapOptions) {
-                compiledBody += '\n\n' + sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
             }
 
             if (!bareMode) {
@@ -1298,12 +1312,12 @@ module.exports = {
         'N_SELF': function (node, interpret, context) {
             if (context.isConstant) {
                 return context.createSourceNode(
-                    'tools.valueFactory.createString(currentClass.getName())',
+                    ['tools.valueFactory.createString(currentClass.getName())'],
                     node
                 );
             }
 
-            return context.createSourceNode('scope.getClassNameOrThrow()', node);
+            return context.createSourceNode(['scope.getClassNameOrThrow()'], node);
         },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
             var argChunks = [];
@@ -1370,13 +1384,13 @@ module.exports = {
         'N_STRING': function (node, interpret, context) {
             if (context.allowBareword) {
                 return context.createSourceNode(
-                    'tools.valueFactory.createBarewordString(' + JSON.stringify(node.string) + ')',
+                    ['tools.valueFactory.createBarewordString(' + JSON.stringify(node.string) + ')'],
                     node
                 );
             }
 
             return context.createSourceNode(
-                'namespaceScope.getConstant(' + JSON.stringify(node.string) + ')',
+                ['namespaceScope.getConstant(' + JSON.stringify(node.string) + ')'],
                 node
             );
         },
@@ -1404,7 +1418,7 @@ module.exports = {
         },
         'N_STRING_LITERAL': function (node, interpret, context) {
             return context.createSourceNode(
-                'tools.valueFactory.createString(' + JSON.stringify(node.string) + ')',
+                ['tools.valueFactory.createString(' + JSON.stringify(node.string) + ')'],
                 node
             );
         },
@@ -1555,9 +1569,11 @@ module.exports = {
                 }
             });
 
-            return context.createSourceNode(code, node);
+            return context.createSourceNode([code], node);
         },
         'N_VARIABLE': function (node, interpret, context) {
+            context.variableMap[node.variable] = true;
+
             return context.createSourceNode(
                 ['scope.getVariable("' + node.variable + '")' + (context.getValue !== false ? '.getValue()' : '')],
                 node,
@@ -1575,7 +1591,7 @@ module.exports = {
             );
         },
         'N_VOID': function (node, interpret, context) {
-            return context.createSourceNode('tools.referenceFactory.createNull()', node);
+            return context.createSourceNode(['tools.referenceFactory.createNull()'], node);
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['while']),
