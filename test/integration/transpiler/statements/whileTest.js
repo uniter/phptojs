@@ -34,10 +34,10 @@ describe('Transpiler "while" statement test', function () {
                 },
                 statements: [{
                     name: 'N_ECHO_STATEMENT',
-                    expression: {
+                    expressions: [{
                         name: 'N_INTEGER',
                         number: '4'
-                    }
+                    }]
                 }]
             }]
         };

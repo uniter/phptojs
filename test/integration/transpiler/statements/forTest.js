@@ -68,10 +68,10 @@ describe('Transpiler "for" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_ECHO_STATEMENT',
-                        expression: {
+                        expressions: [{
                             name: 'N_VARIABLE',
                             variable: 'i'
-                        }
+                        }]
                     }]
                 }
             }]
@@ -113,10 +113,10 @@ describe('Transpiler "for" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_ECHO_STATEMENT',
-                        expression: {
+                        expressions: [{
                             name: 'N_VARIABLE',
                             variable: 'i'
-                        }
+                        }]
                     }]
                 }
             }]

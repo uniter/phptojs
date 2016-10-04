@@ -578,10 +578,17 @@ module.exports = {
             );
         },
         'N_ECHO_STATEMENT': function (node, interpret, context) {
-            return context.createSourceNode(
-                ['stdout.write(', interpret(node.expression), '.coerceToString().getNative());'],
-                node
-            );
+            var chunks = [];
+
+            _.each(node.expressions, function (expressionNode) {
+                chunks.push(
+                    'stdout.write(',
+                    interpret(expressionNode),
+                    '.coerceToString().getNative());'
+                );
+            });
+
+            return context.createSourceNode(chunks, node);
         },
         'N_EXIT': function (node, interpret, context) {
             if (hasOwn.call(node, 'status')) {

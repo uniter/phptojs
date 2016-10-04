@@ -36,10 +36,10 @@ describe('Transpiler "do..while" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_ECHO_STATEMENT',
-                        expression: {
+                        expressions: [{
                             name: 'N_INTEGER',
                             number: '4'
-                        }
+                        }]
                     }]
                 }
             }]

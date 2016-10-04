@@ -28,10 +28,10 @@ describe('Transpiler "foreach" statement test', function () {
                 },
                 body: {
                     name: 'N_ECHO_STATEMENT',
-                    expression: {
+                    expressions: [{
                         name: 'N_INTEGER',
                         number: '1'
-                    }
+                    }]
                 }
             }]
         };
@@ -70,10 +70,10 @@ describe('Transpiler "foreach" statement test', function () {
                 },
                 body: {
                     name: 'N_ECHO_STATEMENT',
-                    expression: {
+                    expressions: [{
                         name: 'N_INTEGER',
                         number: '1'
-                    }
+                    }]
                 }
             }]
         };
@@ -113,10 +113,10 @@ describe('Transpiler "foreach" statement test', function () {
                 },
                 body: {
                     name: 'N_ECHO_STATEMENT',
-                    expression: {
+                    expressions: [{
                         name: 'N_INTEGER',
                         number: '1'
-                    }
+                    }]
                 }
             }]
         };

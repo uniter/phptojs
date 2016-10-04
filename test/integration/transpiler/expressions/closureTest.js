@@ -60,10 +60,10 @@ describe('Transpiler closure expression test', function () {
                         name: 'N_COMPOUND_STATEMENT',
                         statements: [{
                             name: 'N_ECHO_STATEMENT',
-                            expression: {
+                            expressions: [{
                                 name: 'N_INTEGER',
                                 number: 21
-                            }
+                            }]
                         }]
                     }
                 }
@@ -117,10 +117,10 @@ describe('Transpiler closure expression test', function () {
                         name: 'N_COMPOUND_STATEMENT',
                         statements: [{
                             name: 'N_ECHO_STATEMENT',
-                            expression: {
+                            expressions: [{
                                 name: 'N_INTEGER',
                                 number: 21
-                            }
+                            }]
                         }]
                     }
                 }
