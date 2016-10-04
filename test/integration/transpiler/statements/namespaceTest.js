@@ -61,7 +61,7 @@ describe('Transpiler namespace statement test', function () {
             'var currentClass = namespace.defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
-            'method: function getClass() {var scope = this;' +
+            'method: function _getClass() {var scope = this;' +
             'return namespaceScope.getNamespaceName();' +
             '}}' +
             '}, constants: {}}, namespaceScope);}());' +

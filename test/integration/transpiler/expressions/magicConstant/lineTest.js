@@ -70,7 +70,7 @@ describe('Transpiler __LINE__ magic constant test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("myFunction", function myFunction() {var scope = this;' +
+            'namespace.defineFunction("myFunction", function _myFunction() {var scope = this;' +
             'return tools.valueFactory.createInteger(3);' +
             '});' +
             'return tools.valueFactory.createNull();' +

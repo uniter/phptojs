@@ -184,7 +184,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     // Build function expression
     body = [
         'function ',
-        nameNode ? context.createSourceNode([nameNode.string], nameNode, nameNode.name) : '',
+        nameNode ? context.createSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
         '(' + args.join(', ') + ') {',
         'var scope = this;',
         body,

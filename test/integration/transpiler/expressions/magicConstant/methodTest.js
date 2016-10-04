@@ -73,7 +73,7 @@ describe('Transpiler __METHOD__ magic constant test', function () {
             'var currentClass = namespace.defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
-            'method: function getClass() {var scope = this;' +
+            'method: function _getClass() {var scope = this;' +
             'return scope.getMethodName();' +
             '}}' +
             '}, constants: {}}, namespaceScope);}());' +

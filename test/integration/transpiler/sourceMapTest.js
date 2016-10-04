@@ -231,7 +231,7 @@ describe('Transpiler source map test', function () {
             'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             // Debug variable will be inserted for better debugging in Chrome dev tools
             'var $myGlobalCodeVar = tools.createDebugVar(scope, "myGlobalCodeVar");' +
-            'namespace.defineFunction("myFunc", function myFunc() {' +
+            'namespace.defineFunction("myFunc", function _myFunc() {' +
             'var scope = this;' +
             'var $this = tools.createDebugVar(scope, "this");' +
             'var $myFunctionVar = tools.createDebugVar(scope, "myFunctionVar");' +
@@ -240,7 +240,7 @@ describe('Transpiler source map test', function () {
             '(function () {var currentClass = namespace.defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"myMethod": {' +
-            'isStatic: false, method: function myMethod() {' +
+            'isStatic: false, method: function _myMethod() {' +
             'var scope = this;var $this = tools.createDebugVar(scope, "this");' +
             'var $myMethodVar = tools.createDebugVar(scope, "myMethodVar");' +
             'return scope.getVariable("myMethodVar").getValue();' +
@@ -258,8 +258,12 @@ describe('Transpiler source map test', function () {
             '}; }(scope)), scope);' +
             'return tools.valueFactory.createNull();' +
             '})' +
-            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15X21vZHVsZS5waH' +
-            'AiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIsIiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiJzUkFFSyw0Q0FBQUEsTUFBQSx1SUFLSSxPQUFVQyw2Q0FBVixDQUxKLEdBREksaUtBU0ksbUNBTE5ELFFBS00sbUlBSE0sT0FBQUUsMkNBQUEsQ0FHTixFQVRKLHdDQU1BLE9BQVVDLCtDQUFWLENBQVUsdWFBQUFDLFdBQUEsb0RBQUFDLDRDQUFBLHNCIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +
+            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15X21vZHVsZS5' +
+            'waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIsIiRteUdsb2JhbENvZGVWYXIi' +
+            'LCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiJzUkFFSyw0Q0FBQUEsT0FBQSx1SUFLSSxPQUFVQyw2Q' +
+            '0FBVixDQUxKLEdBREksaUtBU0ksbUNBTE5ELFNBS00sbUlBSE0sT0FBQUUsMkNBQUEsQ0FHTixFQVRKLHdDQU1BLE9BQVVDLCtDQU' +
+            'FWLENBQVUsdWFBQUFDLFdBQUEsb0RBQUFDLDRDQUFBLHNCIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG1' +
+            '5IHNvdXJjZSBQSFBcIjsiXX0=' +
             '\n;'
         );
     });
