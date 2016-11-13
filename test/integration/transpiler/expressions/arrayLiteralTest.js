@@ -39,7 +39,7 @@ describe('Transpiler array literal expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.valueFactory.createArray([' +
             'tools.valueFactory.createInteger(21), ' +
             'scope.getVariable("myVarByVal").getValue(), ' +
@@ -116,7 +116,7 @@ describe('Transpiler array literal expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("myTarget").setValue(tools.valueFactory.createArray([' +
             'tools.valueFactory.createInteger(21), ' +
             'scope.getVariable("myVarByVal").getValue(), ' +

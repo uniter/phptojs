@@ -80,7 +80,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: for (' +
             'scope.getVariable("i").setValue(tools.valueFactory.createInteger(0));' +
             'scope.getVariable("i").getValue().isLessThan(tools.valueFactory.createInteger(2)).coerceToBoolean().getNative();' +
@@ -118,7 +118,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var array_1 = scope.getVariable("myArray").getValue().reset();' +
             'var length_1 = array_1.getLength();' +
             'var pointer_1 = 0;' +
@@ -153,7 +153,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative()) {' +
             'break block_1;' +
             '}' +
@@ -186,7 +186,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: do {' +
             'break block_1;' +
             '} while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative());' +
@@ -223,7 +223,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: {' +
             'var switchExpression_1 = tools.valueFactory.createInteger(21), ' +
             'switchMatched_1 = false;' +
@@ -285,7 +285,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'tools.throwCannotBreakOrContinue(1);' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -313,7 +313,7 @@ describe('Transpiler "break" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative()) {' +
             'tools.throwCannotBreakOrContinue(2);' +
             '}' +

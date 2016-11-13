@@ -38,7 +38,7 @@ describe('Transpiler "foreach" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var array_1 = scope.getVariable("myArray").getValue().reset();' +
             'var length_1 = array_1.getLength();' +
             'var pointer_1 = 0;' +
@@ -80,7 +80,7 @@ describe('Transpiler "foreach" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var array_1 = scope.getVariable("myArray").getValue().reset();' +
             'var length_1 = array_1.getLength();' +
             'var pointer_1 = 0;' +
@@ -123,7 +123,7 @@ describe('Transpiler "foreach" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var array_1 = scope.getVariable("myArray").getValue().reset();' +
             'var length_1 = array_1.getLength();' +
             'var pointer_1 = 0;' +

@@ -26,7 +26,7 @@ describe('Transpiler exit(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'tools.exit();' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -50,7 +50,7 @@ describe('Transpiler exit(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'tools.exit(tools.valueFactory.createInteger(21));' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -74,7 +74,7 @@ describe('Transpiler exit(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             '(stdout.write(tools.valueFactory.createString("My failure message").getNative()), tools.exit());' +
             'return tools.valueFactory.createNull();' +
             '});'

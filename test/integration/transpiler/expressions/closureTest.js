@@ -72,7 +72,7 @@ describe('Transpiler closure expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.createClosure(' +
             '(function (parentScope) { ' +
             'return function ($arg1, $arg2, $arg3) {' +
@@ -129,7 +129,7 @@ describe('Transpiler closure expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.createClosure(' +
             'function ($myArg) {' +
             'var scope = this;' +

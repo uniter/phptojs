@@ -86,7 +86,7 @@ describe('Transpiler "switch" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: {' +
             'var switchExpression_1 = tools.valueFactory.createInteger(21).add(tools.valueFactory.createInteger(6)), ' +
             'switchMatched_1 = false;' +

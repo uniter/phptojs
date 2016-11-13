@@ -37,7 +37,7 @@ describe('Transpiler bitwise right-shift assignment operator ">>=" test', functi
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myVar").shiftRightBy(tools.valueFactory.createInteger(12));' +
             'return tools.valueFactory.createNull();' +
             '});'

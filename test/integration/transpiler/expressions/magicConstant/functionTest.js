@@ -26,7 +26,7 @@ describe('Transpiler __FUNCTION__ magic constant test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getFunctionName();' +
             'return tools.valueFactory.createNull();' +
             '}'
@@ -61,10 +61,10 @@ describe('Transpiler __FUNCTION__ magic constant test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'namespace.defineFunction("myFunction", function _myFunction() {var scope = this;' +
             'return scope.getFunctionName();' +
-            '});' +
+            '}, namespaceScope);' +
             'return tools.valueFactory.createNull();' +
             '}'
         );

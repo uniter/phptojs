@@ -55,7 +55,7 @@ describe('Transpiler if statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'if (tools.valueFactory.createBoolean(true).coerceToBoolean().getNative()) {' +
             '(tools.valueFactory.createBarewordString("firstFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
             '} else {' +

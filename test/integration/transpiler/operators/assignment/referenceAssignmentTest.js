@@ -40,7 +40,7 @@ describe('Transpiler reference assignment pseudo-operator "=&" test', function (
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myVar").setReference(scope.getVariable("anotherVar").getReference());' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -84,7 +84,7 @@ describe('Transpiler reference assignment pseudo-operator "=&" test', function (
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("firstVar").setValue(scope.getVariable("secondVar").setReference(scope.getVariable("thirdVar").getReference()).getValue());' +
             'return tools.valueFactory.createNull();' +
             '});'

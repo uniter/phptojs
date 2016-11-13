@@ -36,7 +36,7 @@ describe('Transpiler array access operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).getValue();' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -71,7 +71,7 @@ describe('Transpiler array access operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).getValue().getElementByKey(tools.valueFactory.createInteger(101)).getValue();' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -111,7 +111,7 @@ describe('Transpiler array access operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'tools.implyArray(scope.getVariable("myArray")).getElementByKey(tools.valueFactory.createInteger(21)).setValue(tools.valueFactory.createInteger(5));' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -156,7 +156,7 @@ describe('Transpiler array access operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'tools.implyArray(tools.implyArray(scope.getVariable("myArray")).getElementByKey(tools.valueFactory.createInteger(21))).getElementByKey(tools.valueFactory.createInteger(24)).setValue(tools.valueFactory.createInteger(5));' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -191,7 +191,7 @@ describe('Transpiler array access operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'tools.implyArray(scope.getVariable("myArray")).getPushElement().setValue(tools.valueFactory.createInteger(21));' +
             'return tools.valueFactory.createNull();' +
             '});'

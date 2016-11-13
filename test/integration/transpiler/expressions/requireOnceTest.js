@@ -40,7 +40,7 @@ describe('Transpiler "require_once" expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("map").setValue(tools.requireOnce(tools.valueFactory.createString("abc.php").getNative(), scope));' +
             'return tools.valueFactory.createNull();' +
             '});'

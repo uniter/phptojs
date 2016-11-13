@@ -102,7 +102,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
                 'this': true
             }
         },
-        body = context.createSourceNode(interpret(statementNode, subContext), statementNode);
+        body = context.createInternalSourceNode(interpret(statementNode, subContext), statementNode);
 
     if (context.buildingSourceMap) {
         _.forOwn(subContext.variableMap, function (t, name) {
@@ -126,7 +126,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         if (context.buildingSourceMap) {
             bindingAssignmentChunks.push(
                 'var ',
-                context.createSourceNode(
+                context.createInternalSourceNode(
                     ['$' + variableName],
                     isReference ? bindingNode.operand : bindingNode,
                     '$' + variableName
@@ -184,9 +184,11 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     // Build function expression
     body = [
         'function ',
-        nameNode ? context.createSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
+        nameNode ? context.createInternalSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
         '(' + args.join(', ') + ') {',
         'var scope = this;',
+        // Add instrumentation code for fetching the current line number for this call if enabled
+        context.lineNumbers ? 'var line;tools.instrument(function () {return line;});' : '',
         body,
         '}'
     ];
@@ -287,7 +289,7 @@ module.exports = {
             };
         },
         'N_ARRAY_CAST': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.value, {getValue: true}).concat('.coerceToArray()'),
                 node
             );
@@ -333,19 +335,19 @@ module.exports = {
                     //     arrayVariableChunks.unshift('tools.implyArray(');
                     // });
 
-                    return context.createSourceNode(
+                    return context.createExpressionSourceNode(
                         arrayVariableChunks.concat('.getElementByKey(', indexValueChunks, ')' + suffix),
                         node
                     );
                 }
 
-                return context.createSourceNode(
+                return context.createExpressionSourceNode(
                     arrayVariableChunks.concat('.getElementByKey(', indexValueChunks, ')' + suffix),
                     node
                 );
             }
 
-            return context.createSourceNode(arrayVariableChunks.concat('.getPushElement()' + suffix), node);
+            return context.createExpressionSourceNode(arrayVariableChunks.concat('.getPushElement()' + suffix), node);
         },
         'N_ARRAY_LITERAL': function (node, interpret, context) {
             var elementValueChunks = [];
@@ -358,25 +360,25 @@ module.exports = {
                 elementValueChunks.push(interpret(element));
             });
 
-            return context.createSourceNode(['tools.valueFactory.createArray(['].concat(elementValueChunks, '])'), node);
+            return context.createExpressionSourceNode(['tools.valueFactory.createArray(['].concat(elementValueChunks, '])'), node);
         },
         'N_BINARY_CAST': function (node, interpret, context) {
-            return context.createSourceNode(interpret(node.value, {getValue: true}).concat('.coerceToString()'), node);
+            return context.createExpressionSourceNode(interpret(node.value, {getValue: true}).concat('.coerceToString()'), node);
         },
         'N_BINARY_LITERAL': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.valueFactory.createString('].concat(JSON.stringify(node.string), ')'),
                 node
             );
         },
         'N_BOOLEAN': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.valueFactory.createBoolean('].concat(node.bool.toLowerCase(), ')'),
                 node
             );
         },
         'N_BOOLEAN_CAST': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.value, {getValue: true}).concat('.coerceToBoolean()'),
                 node
             );
@@ -395,10 +397,10 @@ module.exports = {
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return context.createSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
+                return context.createExpressionSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
             }
 
-            return context.createSourceNode(['break block_' + targetLevel + ';'], node);
+            return context.createExpressionSourceNode(['break block_' + targetLevel + ';'], node);
         },
         'N_CASE': function (node, interpret, context) {
             var bodyChunks = [];
@@ -407,7 +409,7 @@ module.exports = {
                 bodyChunks.push(interpret(statement));
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [
                     'if (switchMatched_' + context.blockContexts.length +
                     ' || switchExpression_' + context.blockContexts.length + '.isEqualTo('
@@ -421,7 +423,7 @@ module.exports = {
             );
         },
         'N_CLASS_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.className, {getValue: true, allowBareword: true}).concat(
                     '.getConstantByName(' + JSON.stringify(node.constant) + ', namespaceScope)'
                 ),
@@ -478,7 +480,7 @@ module.exports = {
                 '}, constants: {', constantCodeChunks, '}}'
             );
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 [
                     '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.className) + ', '
                 ].concat(codeChunks, ', namespaceScope);}());'),
@@ -488,7 +490,7 @@ module.exports = {
         'N_CLOSURE': function (node, interpret, context) {
             var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context);
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.createClosure('].concat(func, ', scope)'),
                 node
             );
@@ -504,15 +506,15 @@ module.exports = {
                 expressionCodeChunks.push(interpret(expression));
             });
 
-            return context.createSourceNode(expressionCodeChunks, node);
+            return context.createExpressionSourceNode(expressionCodeChunks, node);
         },
         'N_COMPOUND_STATEMENT': function (node, interpret, context) {
-            return context.createSourceNode(processBlock(node.statements, interpret, context), node);
+            return context.createInternalSourceNode(processBlock(node.statements, interpret, context), node);
         },
         'N_CONSTANT_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.constant,
-                value: context.createSourceNode(
+                value: context.createExpressionSourceNode(
                     ['function () { return '].concat(interpret(node.value, {isConstant: true}), '; }'),
                     node
                 )
@@ -533,12 +535,12 @@ module.exports = {
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return context.createSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
+                return context.createExpressionSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
             }
 
             statement = context.blockContexts[targetLevel - 1] === 'switch' ? 'break' : 'continue';
 
-            return context.createSourceNode([statement + ' block_' + targetLevel + ';'], node);
+            return context.createStatementSourceNode([statement + ' block_' + targetLevel + ';'], node);
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
             var bodyChunks = [];
@@ -547,7 +549,7 @@ module.exports = {
                 bodyChunks.push(interpret(statement));
             });
 
-            return context.createSourceNode(
+            return context.createInternalSourceNode(
                 ['if (!switchMatched_' + context.blockContexts.length +
                 ') {switchMatched_' + context.blockContexts.length + ' = true; '
                 ].concat(bodyChunks, '}'),
@@ -561,7 +563,7 @@ module.exports = {
                 },
                 codeChunks = interpret(node.body, subContext);
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 ['block_' + blockContexts.length + ': do {'].concat(
                     codeChunks,
                     '} while (',
@@ -572,7 +574,7 @@ module.exports = {
             );
         },
         'N_DOUBLE_CAST': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.value, {getValue: true}).concat('.coerceToFloat()'),
                 node
             );
@@ -588,11 +590,11 @@ module.exports = {
                 );
             });
 
-            return context.createSourceNode(chunks, node);
+            return context.createStatementSourceNode(chunks, node);
         },
         'N_EXIT': function (node, interpret, context) {
             if (hasOwn.call(node, 'status')) {
-                return context.createSourceNode(
+                return context.createExpressionSourceNode(
                     ['tools.exit('].concat(
                         interpret(node.status),
                         ')'
@@ -602,7 +604,7 @@ module.exports = {
             }
 
             if (hasOwn.call(node, 'message')) {
-                return context.createSourceNode(
+                return context.createExpressionSourceNode(
                     ['(stdout.write('].concat(
                         interpret(node.message),
                         '.getNative()), tools.exit())'
@@ -611,7 +613,7 @@ module.exports = {
                 );
             }
 
-            return context.createSourceNode(['tools.exit()'], node);
+            return context.createStatementSourceNode(['tools.exit()'], node);
         },
         'N_EXPRESSION': function (node, interpret, context) {
             var isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
@@ -683,13 +685,13 @@ module.exports = {
                 }
             });
 
-            return context.createSourceNode(expressionStart.concat(expressionEnd), node);
+            return context.createExpressionSourceNode(expressionStart.concat(expressionEnd), node);
         },
         'N_EXPRESSION_STATEMENT': function (node, interpret, context) {
-            return context.createSourceNode(interpret(node.expression).concat(';'), node);
+            return context.createStatementSourceNode(interpret(node.expression).concat(';'), node);
         },
         'N_FLOAT': function (node, interpret, context) {
-            return context.createSourceNode(['tools.valueFactory.createFloat(' + node.number + ')'], node);
+            return context.createExpressionSourceNode(['tools.valueFactory.createFloat(' + node.number + ')'], node);
         },
         'N_FOR_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['for']),
@@ -705,7 +707,7 @@ module.exports = {
                 conditionCodeChunks.push('.coerceToBoolean().getNative()');
             }
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 ['block_' + blockContexts.length + ': for ('].concat(
                     initializerCodeChunks,
                     ';',
@@ -765,15 +767,15 @@ module.exports = {
 
             codeChunks.push('}');
 
-            return context.createSourceNode(codeChunks, node);
+            return context.createStatementSourceNode(codeChunks, node);
         },
         'N_FUNCTION_STATEMENT': function (node, interpret, context) {
             var func;
 
             func = interpretFunction(node.func, node.args, null, node.body, interpret, context);
 
-            return context.createSourceNode(
-                ['namespace.defineFunction(' + JSON.stringify(node.func.string) + ', '].concat(func, ');'),
+            return context.createStatementSourceNode(
+                ['namespace.defineFunction(' + JSON.stringify(node.func.string) + ', '].concat(func, ', namespaceScope);'),
                 node
             );
         },
@@ -788,7 +790,7 @@ module.exports = {
                 argChunks.push(interpret(arg, {getValue: false}));
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['('].concat(
                     interpret(node.func, {getValue: true, allowBareword: true}),
                     '.call([',
@@ -805,7 +807,7 @@ module.exports = {
                 code += 'scope.importGlobal(' + JSON.stringify(variable.variable) + ');';
             });
 
-            return context.createSourceNode([code], node);
+            return context.createStatementSourceNode([code], node);
         },
         'N_GOTO_STATEMENT': function (node, interpret, context) {
             var code = '',
@@ -821,7 +823,7 @@ module.exports = {
                 code += ' break ' + label + ';';
             }
 
-            return context.createSourceNode([code], node);
+            return context.createStatementSourceNode([code], node);
         },
         'N_IF_STATEMENT': function (node, interpret, context) {
             // Consequent statements are executed if the condition is truthy,
@@ -860,28 +862,28 @@ module.exports = {
 
             codeChunks = ['if ('].concat(conditionCodeChunks, ') ', consequentCodeChunks, alternateCodeChunks);
 
-            return context.createSourceNode(codeChunks, node);
+            return context.createStatementSourceNode(codeChunks, node);
         },
         'N_INCLUDE_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.include('].concat(interpret(node.path), '.getNative(), scope)'),
                 node
             );
         },
         'N_INCLUDE_ONCE_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.includeOnce('].concat(interpret(node.path), '.getNative(), scope)'),
                 node
             );
         },
         'N_INLINE_HTML_STATEMENT': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 ['stdout.write(' + JSON.stringify(node.html) + ');'],
                 node
             );
         },
         'N_INSTANCE_OF': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.object, {getValue: true}).concat([
                     '.isAnInstanceOf(',
                     interpret(node['class'], {allowBareword: true}),
@@ -893,14 +895,14 @@ module.exports = {
         'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
-                value: context.createSourceNode(node.value ? interpret(node.value) : ['null'], node)
+                value: context.createInternalSourceNode(node.value ? interpret(node.value) : ['null'], node)
             };
         },
         'N_INTEGER': function (node, interpret, context) {
-            return context.createSourceNode(['tools.valueFactory.createInteger(' + node.number + ')'], node);
+            return context.createExpressionSourceNode(['tools.valueFactory.createInteger(' + node.number + ')'], node);
         },
         'N_INTEGER_CAST': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.value, {getValue: true}).concat('.coerceToInteger()'),
                 node
             );
@@ -932,13 +934,13 @@ module.exports = {
                         methodCodeChunks.push(', ');
                     }
 
-                    methodCodeChunks.push(context.createSourceNode(['"' + data.name + '": '].concat(data.body), member));
+                    methodCodeChunks.push(context.createExpressionSourceNode(['"' + data.name + '": '].concat(data.body), member));
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
                     if (constantCodeChunks.length > 0) {
                         constantCodeChunks.push(', ');
                     }
 
-                    constantCodeChunks.push(context.createSourceNode(['"' + data.name + '": '].concat(data.value), member));
+                    constantCodeChunks.push(context.createExpressionSourceNode(['"' + data.name + '": '].concat(data.value), member));
                 }
             });
 
@@ -951,7 +953,7 @@ module.exports = {
                 '}}'
             );
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 [
                     '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.interfaceName) + ', '
                 ].concat(
@@ -978,7 +980,7 @@ module.exports = {
                 issetChunks.push(interpret(variable, {getValue: false}), '.isSet()');
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [
                     '(function (scope) {scope.suppressOwnErrors();' +
                     'var result = tools.valueFactory.createBoolean('
@@ -991,7 +993,7 @@ module.exports = {
             );
         },
         'N_KEY_VALUE_PAIR': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.createKeyValuePair('].concat(interpret(node.key), ', ', interpret(node.value), ')'),
                 node
             );
@@ -1014,34 +1016,34 @@ module.exports = {
                 elementsCodeChunks.push(interpret(element, {getValue: false}));
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.createList(['].concat(elementsCodeChunks, '])'),
                 node
             );
         },
         'N_MAGIC_CLASS_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(['scope.getClassName()'], node);
+            return context.createExpressionSourceNode(['scope.getClassName()'], node);
         },
         'N_MAGIC_DIR_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(['tools.getPathDirectory()'], node);
+            return context.createExpressionSourceNode(['tools.getPathDirectory()'], node);
         },
         'N_MAGIC_FILE_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(['tools.getPath()'], node);
+            return context.createExpressionSourceNode(['tools.getPath()'], node);
         },
         'N_MAGIC_FUNCTION_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(['scope.getFunctionName()'], node);
+            return context.createExpressionSourceNode(['scope.getFunctionName()'], node);
         },
         'N_MAGIC_LINE_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.valueFactory.createInteger(' + node.offset.line + ')'],
                 node
             );
         },
         'N_MAGIC_METHOD_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(['scope.getMethodName()'], node);
+            return context.createExpressionSourceNode(['scope.getMethodName()'], node);
         },
         'N_MAGIC_NAMESPACE_CONSTANT': function (node, interpret, context) {
-            return context.createSourceNode(['namespaceScope.getNamespaceName()'], node);
+            return context.createExpressionSourceNode(['namespaceScope.getNamespaceName()'], node);
         },
         'N_METHOD_CALL': function (node, interpret, context) {
             var codeChunks = [];
@@ -1064,7 +1066,7 @@ module.exports = {
                 codeChunks.push('])');
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.object, {getValue: true}).concat(codeChunks),
                 node
             );
@@ -1072,7 +1074,7 @@ module.exports = {
         'N_METHOD_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.func.string,
-                body: context.createSourceNode(
+                body: context.createInternalSourceNode(
                     ['{isStatic: false, method: '].concat(
                         interpretFunction(node.func, node.args, null, node.body, interpret, context),
                         '}'
@@ -1090,7 +1092,7 @@ module.exports = {
 
             if (node.namespace === '') {
                 // Global namespace
-                return context.createSourceNode(bodyChunks, node);
+                return context.createExpressionSourceNode(bodyChunks, node);
             }
 
             if (context.buildingSourceMap) {
@@ -1099,7 +1101,7 @@ module.exports = {
                 });
             }
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 [
                     'if (namespaceResult = (function (globalNamespace) {var namespace = globalNamespace.getDescendant(' +
                     JSON.stringify(node.namespace) +
@@ -1121,7 +1123,7 @@ module.exports = {
                 argChunks.push(interpret(arg));
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.createInstance(namespaceScope, '].concat(
                     interpret(node.className, {allowBareword: true}),
                     ', [',
@@ -1132,10 +1134,10 @@ module.exports = {
             );
         },
         'N_NULL': function (node, interpret, context) {
-            return context.createSourceNode(['tools.valueFactory.createNull()'], node);
+            return context.createExpressionSourceNode(['tools.valueFactory.createNull()'], node);
         },
         'N_OBJECT_CAST': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.value, {getValue: true}).concat('.coerceToObject()'),
                 node
             );
@@ -1169,13 +1171,13 @@ module.exports = {
                 }
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [objectVariableCodeChunks, propertyCodeChunks, suffix],
                 node
             );
         },
         'N_PRINT_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [
                     '(stdout.write(',
                     interpret(node.operand, {getValue: true}),
@@ -1189,26 +1191,19 @@ module.exports = {
                 body = [],
                 compiledBody,
                 compiledSourceMap,
+                createSourceNode,
+                createSpecificSourceNode,
                 filePath = options ? options[PATH] : null,
                 context = {
+                    // Whether source map is to be built will be set later based on options
                     blockContexts: [],
-                    buildingSourceMap: !!node.offset,
-                    // Define optimized SourceNode factory, depending on mode
-                    createSourceNode: node.offset ? function (chunks, node, name) {
-                        if (chunks.length === 0) {
-                            // Allow detecting empty comma expressions etc. by returning an empty array
-                            // rather than an array containing an empty SourceNode
-                            return [];
-                        }
-
-                        // Lines are 1-based, but columns are 0-based
-                        return [new SourceNode(node.offset.line, node.offset.column - 1, filePath, chunks, name)];
-                    } : function (chunks) {
-                        // Just return the chunks array: all chunks will be flattened
-                        // into the final concatenated string by one outer SourceNode object in this mode
-                        return chunks;
-                    },
+                    buildingSourceMap: null,
+                    // Optimized SourceNode factories will be defined later depending on mode
+                    createExpressionSourceNode: null,
+                    createInternalSourceNode: null,
+                    createStatementSourceNode: null,
                     labelRepository: new LabelRepository(),
+                    lineNumbers: null,
                     variableMap: {}
                 },
                 labels,
@@ -1225,6 +1220,96 @@ module.exports = {
             sourceMapOptions = options[SOURCE_MAP] ?
                 (options[SOURCE_MAP] === true ? {} : options[SOURCE_MAP]) :
                 null;
+            context.buildingSourceMap = !!sourceMapOptions;
+            context.lineNumbers = !!options.lineNumbers;
+
+            // Define optimized SourceNode factory, depending on mode
+            if (node.offset) {
+                createSourceNode = function (node, chunks, name) {
+                    // Lines are 1-based, but columns are 0-based
+                    return new SourceNode(node.offset.line, node.offset.column - 1, filePath, chunks, name);
+                };
+
+                if (context.lineNumbers) {
+                    // For efficiency, line number tracking is done by just assigning to this local `line` variable
+                    // before every statement/expression rather than calling a method. This function
+                    // allows the line number to be read later
+                    body.push('var line;tools.instrument(function () {return line;});');
+
+                    context.createExpressionSourceNode = function (chunks, node, name) {
+                        if (chunks.length === 0) {
+                            // Allow detecting empty comma expressions etc. by returning an empty array
+                            // rather than an array containing an empty SourceNode
+                            return [];
+                        }
+
+                        return [
+                            '(line = ' + node.offset.line,
+                            ', ',
+                            createSourceNode(node, chunks, name),
+                            ')'
+                        ];
+                    };
+                    // "Internal" nodes are those that do not map directly back to a PHP construct,
+                    // or where we do not need them to. For example, a function declaration's name
+                    context.createInternalSourceNode = function (chunks, node, name) {
+                        if (chunks.length === 0) {
+                            // Allow detecting empty comma expressions etc. by returning an empty array
+                            // rather than an array containing an empty SourceNode
+                            return [];
+                        }
+
+                        // Lines are 1-based, but columns are 0-based
+                        return [createSourceNode(node, chunks, name)];
+                    };
+                    context.createStatementSourceNode = function (chunks, node, name) {
+                        if (chunks.length === 0) {
+                            // Allow detecting empty comma expressions etc. by returning an empty array
+                            // rather than an array containing an empty SourceNode
+                            return [];
+                        }
+
+                        // Lines are 1-based, but columns are 0-based
+                        return [
+                            'line = ' + node.offset.line + ';',
+                            createSourceNode(node, chunks, name)
+                        ];
+                    };
+                } else {
+                    createSpecificSourceNode = function (chunks, node, name) {
+                        if (chunks.length === 0) {
+                            // Allow detecting empty comma expressions etc. by returning an empty array
+                            // rather than an array containing an empty SourceNode
+                            return [];
+                        }
+
+                        // Lines are 1-based, but columns are 0-based
+                        return [createSourceNode(node, chunks, name)];
+                    };
+
+                    context.createExpressionSourceNode = createSpecificSourceNode;
+                    context.createInternalSourceNode = createSpecificSourceNode;
+                    context.createStatementSourceNode = createSpecificSourceNode;
+                }
+            } else {
+                if (context.buildingSourceMap) {
+                    throw new Error('Source map enabled, but AST contains no node offsets');
+                }
+
+                if (context.lineNumbers) {
+                    throw new Error('Line number tracking enabled, but AST contains no node offsets');
+                }
+
+                createSpecificSourceNode = function (chunks) {
+                    // Just return the chunks array: all chunks will be flattened
+                    // into the final concatenated string by one outer SourceNode object in this mode
+                    return chunks;
+                };
+
+                context.createExpressionSourceNode = createSpecificSourceNode;
+                context.createInternalSourceNode = createSpecificSourceNode;
+                context.createStatementSourceNode = createSpecificSourceNode;
+            }
 
             // Optional synchronous mode
             if (options[SYNC]) {
@@ -1245,7 +1330,7 @@ module.exports = {
                 body.unshift('var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;');
             }
 
-            body.unshift('var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;');
+            body.unshift('var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;');
 
             // Program returns null rather than undefined if nothing is returned
             body.push('return tools.valueFactory.createNull();');
@@ -1272,11 +1357,14 @@ module.exports = {
             // Don't provide a line or column number for the program node itself
             sourceMap = new SourceNode(null, null, filePath, body);
 
-            if (sourceMapOptions) {
+            if (context.buildingSourceMap) {
                 if (sourceMapOptions[SOURCE_CONTENT]) {
+                    // The original source PHP for the module will be embedded inside the source map itself
                     sourceMap.setSourceContent(filePath, sourceMapOptions[SOURCE_CONTENT]);
                 }
 
+                // Append a source map comment containing the entire source map data as a data: URI,
+                // in the form `//# sourceMappingURL=data:application/json;base64,...`
                 compiledSourceMap = sourceMap.toStringWithSourceMap();
                 compiledBody = compiledSourceMap.code + '\n\n' +
                     sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
@@ -1291,19 +1379,19 @@ module.exports = {
             return compiledBody;
         },
         'N_REFERENCE': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.operand, {getValue: false}).concat('.getReference()'),
                 node
             );
         },
         'N_REQUIRE_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.require('].concat(interpret(node.path), '.getNative(), scope)'),
                 node
             );
         },
         'N_REQUIRE_ONCE_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.requireOnce('].concat(interpret(node.path), '.getNative(), scope)'),
                 node
             );
@@ -1311,20 +1399,20 @@ module.exports = {
         'N_RETURN_STATEMENT': function (node, interpret, context) {
             var expression = interpret(node.expression);
 
-            return context.createSourceNode(
+            return context.createInternalSourceNode(
                 ['return '].concat(expression ? expression : 'tools.valueFactory.createNull()', ';'),
                 node
             );
         },
         'N_SELF': function (node, interpret, context) {
             if (context.isConstant) {
-                return context.createSourceNode(
+                return context.createExpressionSourceNode(
                     ['tools.valueFactory.createString(currentClass.getName())'],
                     node
                 );
             }
 
-            return context.createSourceNode(['scope.getClassNameOrThrow()'], node);
+            return context.createExpressionSourceNode(['scope.getClassNameOrThrow()'], node);
         },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
             var argChunks = [];
@@ -1337,7 +1425,7 @@ module.exports = {
                 argChunks.push(interpret(arg));
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [
                     interpret(node.className, {allowBareword: true}),
                     '.callStaticMethod(',
@@ -1352,7 +1440,7 @@ module.exports = {
         'N_STATIC_METHOD_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.method.string,
-                body: context.createSourceNode(
+                body: context.createInternalSourceNode(
                     ['{isStatic: true, method: '].concat(
                         interpretFunction(node.method, node.args, null, node.body, interpret, context),
                         '}'
@@ -1373,7 +1461,7 @@ module.exports = {
                 suffix = '.getValue()';
             }
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 classVariableCode.concat(propertyCodeChunks, suffix),
                 node
             );
@@ -1382,7 +1470,7 @@ module.exports = {
             return {
                 name: node.variable.variable,
                 visibility: JSON.stringify(node.visibility),
-                value: context.createSourceNode(
+                value: context.createInternalSourceNode(
                     node.value ? interpret(node.value) : ['tools.valueFactory.createNull()'],
                     node
                 )
@@ -1390,19 +1478,19 @@ module.exports = {
         },
         'N_STRING': function (node, interpret, context) {
             if (context.allowBareword) {
-                return context.createSourceNode(
+                return context.createExpressionSourceNode(
                     ['tools.valueFactory.createBarewordString(' + JSON.stringify(node.string) + ')'],
                     node
                 );
             }
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['namespaceScope.getConstant(' + JSON.stringify(node.string) + ')'],
                 node
             );
         },
         'N_STRING_CAST': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 interpret(node.value, {getValue: true}).concat('.coerceToString()'),
                 node
             );
@@ -1418,19 +1506,19 @@ module.exports = {
                 codeChunks.push(interpret(part), '.coerceToString().getNative()');
             });
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.valueFactory.createString('].concat(codeChunks, ')'),
                 node
             );
         },
         'N_STRING_LITERAL': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['tools.valueFactory.createString(' + JSON.stringify(node.string) + ')'],
                 node
             );
         },
         'N_SUPPRESSED_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [
                     '(function (scope) {scope.suppressErrors();' +
                     'var result = '
@@ -1461,7 +1549,7 @@ module.exports = {
                 codeChunks.push(interpret(caseNode, subContext));
             });
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 ['block_' + blockContexts.length + ': {', codeChunks, '}'],
                 node
             );
@@ -1489,10 +1577,10 @@ module.exports = {
                 ')'
             ];
 
-            return context.createSourceNode(expression, node);
+            return context.createExpressionSourceNode(expression, node);
         },
         'N_THROW_STATEMENT': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 ['throw ', interpret(node.expression), ';'],
                 node
             );
@@ -1532,20 +1620,20 @@ module.exports = {
                 codeChunks.push(' finally {', interpret(node.finalizer), '}');
             }
 
-            return context.createSourceNode(codeChunks, node);
+            return context.createStatementSourceNode(codeChunks, node);
         },
         'N_UNARY_EXPRESSION': function (node, interpret, context) {
             var operator = node.operator,
                 operand = interpret(node.operand, {getValue: operator !== '++' && operator !== '--'});
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [operand, '.' + unaryOperatorToMethod[node.prefix ? 'prefix' : 'suffix'][operator] + '()'],
                 node
             );
         },
         'N_UNSET_CAST': function (node, interpret, context) {
             // Unset cast coerces all values to NULL
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['(', interpret(node.value, {getValue: true}), ', tools.valueFactory.createNull())'],
                 node
             );
@@ -1563,7 +1651,7 @@ module.exports = {
 
             statementChunks.push(';');
 
-            return context.createSourceNode(statementChunks, node);
+            return context.createStatementSourceNode(statementChunks, node);
         },
         'N_USE_STATEMENT': function (node, interpret, context) {
             var code = '';
@@ -1576,19 +1664,19 @@ module.exports = {
                 }
             });
 
-            return context.createSourceNode([code], node);
+            return context.createStatementSourceNode([code], node);
         },
         'N_VARIABLE': function (node, interpret, context) {
             context.variableMap[node.variable] = true;
 
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 ['scope.getVariable("' + node.variable + '")' + (context.getValue !== false ? '.getValue()' : '')],
                 node,
                 '$' + node.variable
             );
         },
         'N_VARIABLE_EXPRESSION': function (node, interpret, context) {
-            return context.createSourceNode(
+            return context.createExpressionSourceNode(
                 [
                     'scope.getVariable(',
                     interpret(node.expression),
@@ -1598,7 +1686,7 @@ module.exports = {
             );
         },
         'N_VOID': function (node, interpret, context) {
-            return context.createSourceNode(['tools.referenceFactory.createNull()'], node);
+            return context.createExpressionSourceNode(['tools.referenceFactory.createNull()'], node);
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['while']),
@@ -1615,7 +1703,7 @@ module.exports = {
                 codeChunks.push(interpret(statement, subContext));
             });
 
-            return context.createSourceNode(
+            return context.createStatementSourceNode(
                 [
                     'block_' + blockContexts.length + ': while (',
                     interpret(node.condition, subContext),

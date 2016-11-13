@@ -44,7 +44,7 @@ describe('Transpiler "while" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'block_1: while (' +
             'tools.valueFactory.createInteger(27).isGreaterThan(tools.valueFactory.createInteger(21)).coerceToBoolean().getNative()' +
             ') {' +

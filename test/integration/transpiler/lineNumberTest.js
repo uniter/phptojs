@@ -12,7 +12,7 @@
 var expect = require('chai').expect,
     phpToJS = require('../../..');
 
-describe('Transpiler source map test', function () {
+describe('Transpiler line numbers test', function () {
     it('should correctly transpile a simple return statement in default (async) mode', function () {
         var ast = {
                 name: 'N_PROGRAM',
@@ -27,36 +27,31 @@ describe('Transpiler source map test', function () {
                         }
                     },
                     offset: {
-                        line: 8,
+                        line: 6,
                         column: 10
                     }
                 }],
                 offset: {
-                    line: 4,
+                    line: 1,
                     column: 6
                 }
             },
             options = {
                 path: 'my_module.php',
-                sourceMap: {
-                    sourceContent: '<?php $this = "is my source PHP";'
-                }
+                lineNumbers: true
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(4);' +
+            'var line;tools.instrument(function () {return line;});' +
+            'return (line = 8, tools.valueFactory.createInteger(4));' +
             'return tools.valueFactory.createNull();' +
-            '})' +
-            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15' +
-            'X21vZHVsZS5waHAiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6InVNQU9TLE9BQVUsbUNBQVYsQyIsInNvdXJjZXNDb2' +
-            '50ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
-            '\n;'
+            '});'
         );
     });
 
-    it('should correctly transpile global code, functions, methods and closures with debug vars in default (async) mode', function () {
+    it('should correctly transpile global code, functions, methods and closures in default (async) mode', function () {
         var ast = {
                 name: 'N_PROGRAM',
                 statements: [{
@@ -65,7 +60,7 @@ describe('Transpiler source map test', function () {
                         name: 'N_VARIABLE',
                         variable: 'myGlobalCodeVar',
                         offset: {
-                            line: 8,
+                            line: 1,
                             column: 20
                         }
                     },
@@ -133,7 +128,7 @@ describe('Transpiler source map test', function () {
                                     name: 'N_VARIABLE',
                                     variable: 'myMethodVar',
                                     offset: {
-                                        line: 8,
+                                        line: 10,
                                         column: 20
                                     }
                                 },
@@ -191,7 +186,7 @@ describe('Transpiler source map test', function () {
                                     name: 'N_VARIABLE',
                                     variable: 'myClosureVar',
                                     offset: {
-                                        line: 8,
+                                        line: 11,
                                         column: 20
                                     }
                                 },
@@ -206,7 +201,7 @@ describe('Transpiler source map test', function () {
                             }
                         },
                         offset: {
-                            line: 8,
+                            line: 12,
                             column: 20
                         }
                     },
@@ -222,54 +217,41 @@ describe('Transpiler source map test', function () {
             },
             options = {
                 path: 'my_module.php',
-                sourceMap: {
-                    sourceContent: '<?php $this = "is my source PHP";'
-                }
+                lineNumbers: true
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            // Debug variable will be inserted for better debugging in Chrome dev tools
-            'var $myGlobalCodeVar = tools.createDebugVar(scope, "myGlobalCodeVar");' +
-            'namespace.defineFunction("myFunc", function _myFunc() {' +
+            'var line;tools.instrument(function () {return line;});' +
+            'line = 3;namespace.defineFunction("myFunc", function _myFunc() {' +
             'var scope = this;' +
-            'var $this = tools.createDebugVar(scope, "this");' +
-            'var $myFunctionVar = tools.createDebugVar(scope, "myFunctionVar");' +
-            'return scope.getVariable("myFunctionVar").getValue();' +
+            'var line;tools.instrument(function () {return line;});' +
+            'return (line = 8, scope.getVariable("myFunctionVar").getValue());' +
             '}, namespaceScope);' +
-            '(function () {var currentClass = namespace.defineClass("MyClass", {' +
+            'line = 2;(function () {var currentClass = namespace.defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"myMethod": {' +
             'isStatic: false, method: function _myMethod() {' +
-            'var scope = this;var $this = tools.createDebugVar(scope, "this");' +
-            'var $myMethodVar = tools.createDebugVar(scope, "myMethodVar");' +
-            'return scope.getVariable("myMethodVar").getValue();' +
+            'var scope = this;' +
+            'var line;tools.instrument(function () {return line;});' +
+            'return (line = 10, scope.getVariable("myMethodVar").getValue());' +
             '}' +
             '}}, constants: {}}, namespaceScope);}());' +
-            'return scope.getVariable("myGlobalCodeVar").getValue();' +
-            'return tools.createClosure((function (parentScope) { return function ($myArgVar) {' +
-            'var scope = this;scope.getVariable("myArgVar").setValue($myArgVar.getValue());' +
-            'var $myArgVar = tools.createDebugVar(scope, "myArgVar");' +
-            'var $this = tools.createDebugVar(scope, "this");' +
-            'var $myClosureVar = tools.createDebugVar(scope, "myClosureVar");' +
+            'return (line = 1, scope.getVariable("myGlobalCodeVar").getValue());' +
+            'return (line = 12, tools.createClosure((function (parentScope) { return function ($myArgVar) {' +
+            'var scope = this;' +
+            'var line;tools.instrument(function () {return line;});' +
+            'scope.getVariable("myArgVar").setValue($myArgVar.getValue());' +
             'scope.getVariable("myBoundVar").setValue(parentScope.getVariable("myBoundVar").getValue());' +
-            'var $myBoundVar = tools.createDebugVar(scope, "myBoundVar");' +
-            'return scope.getVariable("myClosureVar").getValue();' +
-            '}; }(scope)), scope);' +
+            'return (line = 11, scope.getVariable("myClosureVar").getValue());' +
+            '}; }(scope)), scope));' +
             'return tools.valueFactory.createNull();' +
-            '})' +
-            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15X21' +
-            'vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIsIiRteUds' +
-            'b2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2UUFFSyw0Q0FBQUEsT' +
-            '0FBQSx1SUFLSSxPQUFVQyw2Q0FBVixDQUxKLG1CQURJLGlLQVNJLG1DQUxORCxTQUtNLG1JQUhNLE9BQUFFLDJDQUFBLE' +
-            'NBR04sRUFUSix3Q0FNQSxPQUFVQywrQ0FBVixDQUFVLHVhQUFBQyxXQUFBLG9EQUFBQyw0Q0FBQSxzQiIsInNvdXJjZXN' +
-            'Db250ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
-            '\n;'
+            '});'
         );
     });
 
-    it('should throw an exception when source map enabled but AST has no node offsets', function () {
+    it('should throw an exception when line numbers enabled but AST has no node offsets', function () {
         var ast = {
                 name: 'N_PROGRAM',
                 statements: [{
@@ -282,11 +264,11 @@ describe('Transpiler source map test', function () {
             },
             options = {
                 path: 'my_module.php',
-                sourceMap: true
+                lineNumbers: true
             };
 
         expect(function () {
             phpToJS.transpile(ast, options);
-        }).to.throw('Source map enabled, but AST contains no node offsets');
+        }).to.throw('Line number tracking enabled, but AST contains no node offsets');
     });
 });

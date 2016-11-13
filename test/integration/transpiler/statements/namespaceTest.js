@@ -54,7 +54,7 @@ describe('Transpiler namespace statement test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'if (namespaceResult = (function (globalNamespace) {' +
             'var namespace = globalNamespace.getDescendant("This\\\\Is\\\\My\\\\Space"), namespaceScope = tools.createNamespaceScope(namespace);' +
             '(function () {' +

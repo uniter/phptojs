@@ -43,7 +43,7 @@ describe('Transpiler binary cast operator test', function () {
         // (was slated for PHP v6.)
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("myVar").getValue().add(tools.valueFactory.createInteger(21)).coerceToString();' +
             'return tools.valueFactory.createNull();' +
             '}'

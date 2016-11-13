@@ -27,7 +27,7 @@ describe('Transpiler unset(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("a_var").unset();' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -51,7 +51,7 @@ describe('Transpiler unset(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("first_var").unset(); scope.getVariable("second_var").unset();' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -81,7 +81,7 @@ describe('Transpiler unset(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).unset();' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -111,7 +111,7 @@ describe('Transpiler unset(...) construct expression test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'scope.getVariable("an_object").getInstancePropertyByName(tools.valueFactory.createBarewordString("prop")).unset();' +
             'return tools.valueFactory.createNull();' +
             '});'

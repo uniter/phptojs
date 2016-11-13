@@ -34,7 +34,7 @@ describe('Transpiler instanceof binary operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myObject").getValue().isAnInstanceOf(scope.getVariable("myClass").getValue(), namespaceScope);' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -62,7 +62,7 @@ describe('Transpiler instanceof binary operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return scope.getVariable("myObject").getValue().isAnInstanceOf(tools.valueFactory.createBarewordString("MyClass"), namespaceScope);' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -97,7 +97,7 @@ describe('Transpiler instanceof binary operator test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return (tools.valueFactory.createBarewordString("myFunc").call([scope.getVariable("myObject").getValue().isAnInstanceOf(' +
             'tools.valueFactory.createBarewordString("MyClass"), namespaceScope' +
             ')], namespaceScope) || tools.valueFactory.createNull());' +

@@ -27,7 +27,7 @@ describe('Transpiler "return" statement test', function () {
 
         expect(phpToJS.transpile(ast, {runtimePath: '/path/to/runtime'})).to.equal(
             'require(\'/path/to/runtime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.valueFactory.createInteger(4);' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -48,7 +48,7 @@ describe('Transpiler "return" statement test', function () {
 
         expect(phpToJS.transpile(ast, {sync: true, runtimePath: '/path/to/runtime'})).to.equal(
             'require(\'/path/to/runtime/sync\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.createNamespaceScope(namespace), namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.valueFactory.createInteger(6);' +
             'return tools.valueFactory.createNull();' +
             '});'
