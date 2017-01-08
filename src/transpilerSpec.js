@@ -592,6 +592,19 @@ module.exports = {
 
             return context.createStatementSourceNode(chunks, node);
         },
+        'N_EMPTY': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                [
+                    '(function (scope) {scope.suppressOwnErrors();' +
+                    'var result = tools.valueFactory.createBoolean('
+                ].concat(
+                    interpret(node.variable, {getValue: false}),
+                    '.isEmpty());' +
+                    'scope.unsuppressOwnErrors(); return result;}(scope))'
+                ),
+                node
+            );
+        },
         'N_EXIT': function (node, interpret, context) {
             if (hasOwn.call(node, 'status')) {
                 return context.createExpressionSourceNode(
