@@ -32,14 +32,11 @@ describe('Transpiler class statement with constants test', function () {
                         name: 'N_CONSTANT_DEFINITION',
                         constant: 'ANOTHER_ONE',
                         value: {
-                            name: 'N_STATIC_PROPERTY',
+                            name: 'N_CLASS_CONSTANT',
                             className: {
                                 name: 'N_SELF'
                             },
-                            property: {
-                                name: 'N_STRING',
-                                string: 'MY_CONST'
-                            }
+                            constant: 'MY_CONST'
                         }
                     }
                 ]
@@ -62,7 +59,7 @@ describe('Transpiler class statement with constants test', function () {
             '}, ' +
             '"ANOTHER_ONE": function () { ' +
             'return tools.valueFactory.createString(currentClass.getName())' +
-            '.getStaticPropertyByName(tools.valueFactory.createBarewordString("MY_CONST"), namespaceScope).getValue(); ' +
+            '.getConstantByName("MY_CONST", namespaceScope); ' +
             '}' +
             '}' +
             '}, namespaceScope);' +
