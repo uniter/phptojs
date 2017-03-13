@@ -1470,7 +1470,7 @@ module.exports = {
                 ),
                 suffix = '';
 
-            if (!context.assignment) {
+            if (!context.assignment && context.getValue !== false) {
                 suffix = '.getValue()';
             }
 
