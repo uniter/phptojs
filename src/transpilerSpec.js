@@ -1427,6 +1427,9 @@ module.exports = {
 
             return context.createExpressionSourceNode(['scope.getClassNameOrThrow()'], node);
         },
+        'N_STATIC': function (node, interpret, context) {
+            return context.createExpressionSourceNode(['scope.getStaticClassNameOrThrow()'], node);
+        },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
             var argChunks = [];
 
