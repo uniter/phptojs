@@ -81,7 +81,7 @@ function hoistDeclarations(statements) {
         nonDeclarations = [];
 
     _.each(statements, function (statement) {
-        if (/^N_(CLASS|FUNCTION)_STATEMENT$/.test(statement.name)) {
+        if (/^N_(CLASS|FUNCTION|USE)_STATEMENT$/.test(statement.name)) {
             declarations.push(statement);
         } else {
             nonDeclarations.push(statement);
