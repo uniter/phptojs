@@ -1189,6 +1189,17 @@ module.exports = {
                 node
             );
         },
+        'N_PARENT': function (node, interpret, context) {
+            if (context.isConstant) {
+                // Wrap in a tools method call, so that a fatal error can be thrown if the class has no parent
+                return context.createExpressionSourceNode(
+                    ['tools.getParentClassName(currentClass)'],
+                    node
+                );
+            }
+
+            return context.createExpressionSourceNode(['scope.getParentClassNameOrThrow()'], node);
+        },
         'N_PRINT_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 [
