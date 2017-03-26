@@ -1442,7 +1442,10 @@ module.exports = {
             return context.createExpressionSourceNode(['scope.getStaticClassNameOrThrow()'], node);
         },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
-            var argChunks = [];
+            var argChunks = [],
+                isForwarding = node.className.name === 'N_SELF' ||
+                    node.className.name === 'N_PARENT' ||
+                    node.className.name === 'N_STATIC';
 
             _.each(node.args, function (arg, index) {
                 if (index > 0) {
@@ -1459,7 +1462,9 @@ module.exports = {
                     interpret(node.method, {allowBareword: true}),
                     ', [',
                     argChunks,
-                    '], namespaceScope)'
+                    '], namespaceScope, ' +
+                    !!isForwarding +
+                    ')'
                 ],
                 node
             );

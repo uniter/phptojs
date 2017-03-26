@@ -39,4 +39,35 @@ describe('Transpiler static:: construct expression test', function () {
             '});'
         );
     });
+
+    // Calls to static methods with keywords eg. self::, parent:: and static:: are always forwarding,
+    // calls to the same methods with the class name eg. MyClass:: are non-forwarding
+    it('should correctly transpile a call to a method with parent:: (forwarding)', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_STATIC_METHOD_CALL',
+                    className: {
+                        name: 'N_STATIC'
+                    },
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: []
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'scope.getStaticClassNameOrThrow()' +
+            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [], namespaceScope, true);' + // Forwarding
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });

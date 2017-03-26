@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler static method call expression test', function () {
-    it('should correctly transpile a call to static method with FQCN', function () {
+    it('should correctly transpile a call to static method with FQCN (non-forwarding)', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -36,7 +36,8 @@ describe('Transpiler static method call expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.valueFactory.createBarewordString("\\\\My\\\\Space\\\\MyClass").callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [], namespaceScope);' +
+            'tools.valueFactory.createBarewordString("\\\\My\\\\Space\\\\MyClass")' +
+            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [], namespaceScope, false);' + // Non-forwarding
             'return tools.valueFactory.createNull();' +
             '});'
         );
