@@ -1431,7 +1431,7 @@ module.exports = {
         'N_SELF': function (node, interpret, context) {
             if (context.isConstant) {
                 return context.createExpressionSourceNode(
-                    ['tools.valueFactory.createString(currentClass.getName())'],
+                    ['tools.getClassName(currentClass)'],
                     node
                 );
             }

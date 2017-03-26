@@ -58,7 +58,7 @@ describe('Transpiler class statement with constants test', function () {
             'return tools.valueFactory.createInteger(1001); ' +
             '}, ' +
             '"ANOTHER_ONE": function () { ' +
-            'return tools.valueFactory.createString(currentClass.getName())' +
+            'return tools.getClassName(currentClass)' +
             '.getConstantByName("MY_CONST", namespaceScope); ' +
             '}' +
             '}' +

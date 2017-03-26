@@ -39,4 +39,6 @@ describe('Transpiler self:: construct expression test', function () {
             '});'
         );
     });
+
+    // See constantTest.js for a test that uses self:: in class constant -scope
 });
