@@ -838,6 +838,22 @@ module.exports = {
 
             return context.createStatementSourceNode([code], node);
         },
+        'N_HEREDOC': function (node, interpret, context) {
+            var codeChunks = [];
+
+            _.each(node.parts, function (part, index) {
+                if (index > 0) {
+                    codeChunks.push(' + ');
+                }
+
+                codeChunks.push(interpret(part), '.coerceToString().getNative()');
+            });
+
+            return context.createExpressionSourceNode(
+                ['tools.valueFactory.createString('].concat(codeChunks, ')'),
+                node
+            );
+        },
         'N_IF_STATEMENT': function (node, interpret, context) {
             // Consequent statements are executed if the condition is truthy,
             // Alternate statements are executed if the condition is falsy
@@ -1143,6 +1159,12 @@ module.exports = {
                     argChunks,
                     '])'
                 ),
+                node
+            );
+        },
+        'N_NOWDOC': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                ['tools.valueFactory.createString(', JSON.stringify(node.string), ')'],
                 node
             );
         },
