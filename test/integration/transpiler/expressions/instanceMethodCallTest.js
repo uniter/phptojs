@@ -12,25 +12,27 @@
 var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
-describe('Transpiler static method call expression test', function () {
-    it('should correctly transpile a call to static method with FQCN (non-forwarding)', function () {
+describe('Transpiler instance method call expression test', function () {
+    it('should correctly transpile a call to instance method of variable', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_EXPRESSION_STATEMENT',
                 expression: {
-                    name: 'N_STATIC_METHOD_CALL',
-                    className: {
-                        name: 'N_STRING',
-                        string: '\\My\\Space\\MyClass'
-                    },
-                    method: {
-                        name: 'N_STRING',
-                        string: 'myMethod'
-                    },
-                    args: [{
+                    name: 'N_METHOD_CALL',
+                    object: {
                         name: 'N_VARIABLE',
-                        variable: 'myVar'
+                        variable: 'myObject'
+                    },
+                    calls: [{
+                        func: {
+                            name: 'N_STRING',
+                            string: 'myMethod'
+                        },
+                        args: [{
+                            name: 'N_VARIABLE',
+                            variable: 'myVar'
+                        }]
                     }]
                 }
             }]
@@ -39,10 +41,11 @@ describe('Transpiler static method call expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.valueFactory.createBarewordString("\\\\My\\\\Space\\\\MyClass")' +
-            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [' +
+            'scope.getVariable("myObject").getValue().callMethod(' +
+            'tools.valueFactory.createBarewordString("myMethod").getNative(), [' +
             'scope.getVariable("myVar")' +
-            '], namespaceScope, false);' + // Non-forwarding
+            ']' +
+            ');' +
             'return tools.valueFactory.createNull();' +
             '});'
         );

@@ -1085,7 +1085,7 @@ module.exports = {
                         argChunks.push(', ');
                     }
 
-                    argChunks.push(interpret(arg));
+                    argChunks.push(interpret(arg, {getValue: false}));
                 });
 
                 codeChunks.push('.callMethod(');
@@ -1474,7 +1474,7 @@ module.exports = {
                     argChunks.push(', ');
                 }
 
-                argChunks.push(interpret(arg));
+                argChunks.push(interpret(arg, {getValue: false}));
             });
 
             return context.createExpressionSourceNode(
