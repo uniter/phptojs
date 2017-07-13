@@ -1289,12 +1289,7 @@ module.exports = {
                             return [];
                         }
 
-                        return [
-                            '(line = ' + node.offset.line,
-                            ', ',
-                            createSourceNode(node, chunks, name),
-                            ')'
-                        ];
+                        return [createSourceNode(node, ['(line = ' + node.offset.line + ', ', chunks, ')'], name)];
                     };
                     // "Internal" nodes are those that do not map directly back to a PHP construct,
                     // or where we do not need them to. For example, a function declaration's name
@@ -1316,10 +1311,7 @@ module.exports = {
                         }
 
                         // Lines are 1-based, but columns are 0-based
-                        return [
-                            'line = ' + node.offset.line + ';',
-                            createSourceNode(node, chunks, name)
-                        ];
+                        return [createSourceNode(node, ['line = ' + node.offset.line + ';', chunks], name)];
                     };
                 } else {
                     createSpecificSourceNode = function (chunks, node, name) {
