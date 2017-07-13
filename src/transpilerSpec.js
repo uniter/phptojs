@@ -357,7 +357,7 @@ module.exports = {
                     elementValueChunks.push(', ');
                 }
 
-                elementValueChunks.push(interpret(element));
+                elementValueChunks.push(interpret(element, {getValue: true}));
             });
 
             return context.createExpressionSourceNode(['tools.valueFactory.createArray(['].concat(elementValueChunks, '])'), node);
