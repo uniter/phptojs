@@ -51,6 +51,52 @@ describe('Transpiler line numbers test', function () {
         );
     });
 
+    it('should correctly transpile a root namespace statement in default (async) mode', function () {
+        var ast = {
+                name: 'N_PROGRAM',
+                statements: [{
+                    name: 'N_NAMESPACE_STATEMENT',
+                    namespace: '',
+                    statements: [{
+                        name: 'N_RETURN_STATEMENT',
+                        expression: {
+                            name: 'N_INTEGER',
+                            number: '101',
+                            offset: {
+                                line: 8,
+                                column: 20
+                            }
+                        },
+                        offset: {
+                            line: 6,
+                            column: 10
+                        }
+                    }],
+                    offset: {
+                        line: 4,
+                        column: 15
+                    }
+                }],
+                offset: {
+                    line: 1,
+                    column: 6
+                }
+            },
+            options = {
+                path: 'my_module.php',
+                lineNumbers: true
+            };
+
+        expect(phpToJS.transpile(ast, options)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var line;tools.instrument(function () {return line;});' +
+            'line = 4;return (line = 8, tools.valueFactory.createInteger(101));' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
     it('should correctly transpile global code, functions, methods and closures in default (async) mode', function () {
         var ast = {
                 name: 'N_PROGRAM',

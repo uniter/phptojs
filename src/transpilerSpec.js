@@ -397,10 +397,10 @@ module.exports = {
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return context.createExpressionSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
+                return context.createStatementSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
             }
 
-            return context.createExpressionSourceNode(['break block_' + targetLevel + ';'], node);
+            return context.createStatementSourceNode(['break block_' + targetLevel + ';'], node);
         },
         'N_CASE': function (node, interpret, context) {
             var bodyChunks = [];
@@ -409,7 +409,7 @@ module.exports = {
                 bodyChunks.push(interpret(statement));
             });
 
-            return context.createExpressionSourceNode(
+            return context.createStatementSourceNode(
                 [
                     'if (switchMatched_' + context.blockContexts.length +
                     ' || switchExpression_' + context.blockContexts.length + '.isEqualTo('
@@ -514,7 +514,7 @@ module.exports = {
         'N_CONSTANT_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.constant,
-                value: context.createExpressionSourceNode(
+                value: context.createInternalSourceNode(
                     ['function () { return '].concat(interpret(node.value, {isConstant: true}), '; }'),
                     node
                 )
@@ -535,7 +535,7 @@ module.exports = {
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return context.createExpressionSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
+                return context.createStatementSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
             }
 
             statement = context.blockContexts[targetLevel - 1] === 'switch' ? 'break' : 'continue';
@@ -969,7 +969,7 @@ module.exports = {
                         constantCodeChunks.push(', ');
                     }
 
-                    constantCodeChunks.push(context.createExpressionSourceNode(['"' + data.name + '": '].concat(data.value), member));
+                    constantCodeChunks.push(context.createInternalSourceNode(['"' + data.name + '": '].concat(data.value), member));
                 }
             });
 
@@ -1121,7 +1121,7 @@ module.exports = {
 
             if (node.namespace === '') {
                 // Global namespace
-                return context.createExpressionSourceNode(bodyChunks, node);
+                return context.createStatementSourceNode(bodyChunks, node);
             }
 
             if (context.buildingSourceMap) {
