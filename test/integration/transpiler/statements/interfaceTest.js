@@ -19,6 +19,10 @@ describe('Transpiler interface statement test', function () {
             statements: [{
                 name: 'N_INTERFACE_STATEMENT',
                 interfaceName: 'Thing',
+                extend: [
+                    'First\\SuperClass',
+                    'Second\\SuperClass'
+                ],
                 members: [{
                     name: 'N_CONSTANT_DEFINITION',
                     constant: 'SHAPE',
@@ -66,6 +70,7 @@ describe('Transpiler interface statement test', function () {
             '(function () {' +
             'var currentClass = namespace.defineClass("Thing", {' +
             'superClass: null, ' +
+            'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
             'staticProperties: {}, ' +
             'properties: {}, ' +
             'methods: {' +

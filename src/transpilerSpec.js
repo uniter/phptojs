@@ -946,7 +946,7 @@ module.exports = {
             var codeChunks,
                 constantCodeChunks = [],
                 methodCodeChunks = [],
-                superClass = node.extend ? 'namespaceScope.getClass(' + JSON.stringify(node.extend) + ')' : 'null';
+                extend = JSON.stringify(node.extend || []);
 
             _.each(node.members, function (member) {
                 var data = interpret(member);
@@ -974,7 +974,11 @@ module.exports = {
             });
 
             codeChunks = [
-                '{superClass: ' + superClass + ', staticProperties: {}, properties: {}, methods: {'
+                '{superClass: null' +
+                ', interfaces: ' + extend + // Interfaces can extend multiple other interfaces
+                ', staticProperties: {' +
+                '}, properties: {' +
+                '}, methods: {'
             ].concat(
                 methodCodeChunks,
                 '}, constants: {',
