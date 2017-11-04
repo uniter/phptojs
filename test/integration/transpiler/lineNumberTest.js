@@ -198,6 +198,49 @@ describe('Transpiler line numbers test', function () {
                         column: 10
                     }
                 }, {
+                    name: 'N_INTERFACE_STATEMENT',
+                    interfaceName: 'MyThingInterface',
+                    extend: [
+                        'First\\SuperClass',
+                        'Second\\SuperClass'
+                    ],
+                    members: [{
+                        name: 'N_INTERFACE_METHOD_DEFINITION',
+                        func: {
+                            name: 'N_STRING',
+                            string: 'doSomethingElse',
+                            offset: {
+                                line: 3,
+                                column: 2
+                            }
+                        },
+                        visibility: 'public',
+                        args: [{
+                            name: 'N_ARGUMENT',
+                            type: 'array',
+                            variable: {
+                                name: 'N_VARIABLE',
+                                variable: 'myBodyArgs',
+                                offset: {
+                                    line: 2,
+                                    column: 5
+                                }
+                            },
+                            offset: {
+                                line: 2,
+                                column: 4
+                            }
+                        }],
+                        offset: {
+                            line: 2,
+                            column: 1
+                        }
+                    }],
+                    offset: {
+                        line: 3,
+                        column: 10
+                    }
+                }, {
                     name: 'N_RETURN_STATEMENT',
                     expression: {
                         name: 'N_CLOSURE',
@@ -285,6 +328,17 @@ describe('Transpiler line numbers test', function () {
             '}' +
             '}}, constants: {}}, namespaceScope);}());' +
             'return (line = 1, scope.getVariable("myGlobalCodeVar").getValue());' +
+            'line = 3;(function () {var currentClass = namespace.defineClass("MyThingInterface", {' +
+            'superClass: null, ' +
+            'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
+            'staticProperties: {}, ' +
+            'properties: {}, ' +
+            'methods: {' +
+            '"doSomethingElse": {isStatic: false, abstract: true}' +
+            '}, ' +
+            'constants: {}' +
+            '}, namespaceScope);' +
+            '}());' +
             'return (line = 12, tools.createClosure((function (parentScope) { return function ($myArgVar) {' +
             'var scope = this;' +
             'var line;tools.instrument(function () {return line;});' +

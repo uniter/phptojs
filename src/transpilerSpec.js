@@ -968,7 +968,7 @@ module.exports = {
                         methodCodeChunks.push(', ');
                     }
 
-                    methodCodeChunks.push(context.createExpressionSourceNode(['"' + data.name + '": '].concat(data.body), member));
+                    methodCodeChunks.push(context.createInternalSourceNode(['"' + data.name + '": '].concat(data.body), member));
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
                     if (constantCodeChunks.length > 0) {
                         constantCodeChunks.push(', ');
