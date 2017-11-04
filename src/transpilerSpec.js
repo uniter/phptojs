@@ -924,7 +924,12 @@ module.exports = {
         'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
-                value: context.createInternalSourceNode(node.value ? interpret(node.value) : ['null'], node)
+                value: context.createInternalSourceNode(
+                    // Output a function that can be called to create the property's value,
+                    // so that each instance gets a separate array object (if one is used as the value)
+                    ['function () { return '].concat(node.value ? interpret(node.value) : ['null'], '; }'),
+                    node
+                )
             };
         },
         'N_INTEGER': function (node, interpret, context) {

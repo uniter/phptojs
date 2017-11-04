@@ -50,8 +50,8 @@ describe('Transpiler class statement with properties test', function () {
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"firstProp": null, ' +
-            '"secondProp": tools.valueFactory.createInteger(21)' +
+            '"firstProp": function () { return null; }, ' +
+            '"secondProp": function () { return tools.valueFactory.createInteger(21); }' +
             '}, ' +
             'methods: {}, ' +
             'constants: {}' +
