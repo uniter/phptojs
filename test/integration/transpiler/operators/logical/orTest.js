@@ -44,6 +44,52 @@ describe('Transpiler logical "or" operator test', function () {
         );
     });
 
+    it('should correctly transpile a return with two "||" operations on numbers', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_INTEGER',
+                        number: 21
+                    },
+                    right: [{
+                        operator: '||',
+                        operand: {
+                            name: 'N_EXPRESSION',
+                            left: {
+                                name: 'N_INTEGER',
+                                number: 27
+                            },
+                            right: [{
+                                operator: '||',
+                                operand: {
+                                    name: 'N_INTEGER',
+                                    number: 101
+                                }
+                            }]
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return tools.valueFactory.createBoolean(' +
+            'tools.valueFactory.createInteger(21).coerceToBoolean().getNative() || (' +
+            'tools.valueFactory.createBoolean(tools.valueFactory.createInteger(27).coerceToBoolean().getNative() || (' +
+            'tools.valueFactory.createInteger(101).coerceToBoolean().getNative())).coerceToBoolean().getNative()' +
+            ')' +
+            ');' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
+
     it('should correctly transpile a return with a word-"or" operation on two strings', function () {
         var ast = {
             name: 'N_PROGRAM',

@@ -65,4 +65,87 @@ describe('Transpiler if statement test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile an if statement with two "||" operations containing a comparison', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_IF_STATEMENT',
+                condition: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_EXPRESSION',
+                        left: {
+                            name: 'N_INTEGER',
+                            number: 1
+                        },
+                        right: [{
+                            operator: '===',
+                            operand: {
+                                name: 'N_INTEGER',
+                                number: 2
+                            }
+                        }]
+                    },
+                    right: [{
+                        operator: '||',
+                        operand: {
+                            name: 'N_EXPRESSION',
+                            left: {
+                                name: 'N_EXPRESSION',
+                                left: {
+                                    name: 'N_INTEGER',
+                                    number: 3
+                                },
+                                right: [{
+                                    operator: '===',
+                                    operand: {
+                                        name: 'N_INTEGER',
+                                        number: 4
+                                    }
+                                }]
+                            },
+                            right: [{
+                                operator: '||',
+                                operand: {
+                                    name: 'N_EXPRESSION',
+                                    left: {
+                                        name: 'N_INTEGER',
+                                        number: 5
+                                    },
+                                    right: [{
+                                        operator: '===',
+                                        operand: {
+                                            name: 'N_INTEGER',
+                                            number: 6
+                                        }
+                                    }]
+                                }
+                            }]
+                        }
+                    }]
+                },
+                consequentStatement: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: []
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'if (tools.valueFactory.createBoolean(' +
+            'tools.valueFactory.createInteger(1).isIdenticalTo(' +
+            'tools.valueFactory.createInteger(2)).coerceToBoolean().getNative() || (' +
+            'tools.valueFactory.createBoolean(tools.valueFactory.createInteger(3).isIdenticalTo(' +
+            'tools.valueFactory.createInteger(4)).coerceToBoolean().getNative() || (' +
+            'tools.valueFactory.createInteger(5).isIdenticalTo(tools.valueFactory.createInteger(6)' +
+            ').coerceToBoolean().getNative())).coerceToBoolean().getNative()' +
+            ')' +
+            ').coerceToBoolean().getNative()) {}' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
 });
