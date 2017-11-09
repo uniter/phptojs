@@ -1610,7 +1610,7 @@ module.exports = {
             );
         },
         'N_TERNARY': function (node, interpret, context) {
-            var condition = interpret(node.condition),
+            var condition = interpret(node.condition, {getValue: true}),
                 consequent,
                 expression;
 

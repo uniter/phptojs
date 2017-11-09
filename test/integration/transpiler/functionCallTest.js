@@ -125,6 +125,20 @@ describe('Transpiler function call expression test', function () {
                     }, {
                         name: 'N_VARIABLE',
                         variable: 'myVarAsArg'
+                    }, {
+                        name: 'N_TERNARY',
+                        condition: {
+                            name: 'N_VARIABLE',
+                            variable: 'myVarAsCondition'
+                        },
+                        consequent: {
+                            name: 'N_STRING',
+                            string: 'show me if truthy'
+                        },
+                        alternate: {
+                            name: 'N_STRING',
+                            string: 'show me if falsy'
+                        }
                     }]
                 }
             }]
@@ -146,7 +160,11 @@ describe('Transpiler function call expression test', function () {
             'scope.getVariable("myVarInIndexedElement").getValue()' +
             ']), ' +
             'scope.getVariable("myVarAsArg")' + // Should not `.getValue()`, in case parameter is by-reference
-            '], namespaceScope) || tools.valueFactory.createNull());' +
+            ', ' +
+            '(scope.getVariable("myVarAsCondition").getValue().coerceToBoolean().getNative() ? ' +
+            'namespaceScope.getConstant("show me if truthy") : ' +
+            'namespaceScope.getConstant("show me if falsy")' +
+            ')], namespaceScope) || tools.valueFactory.createNull());' +
             'return tools.valueFactory.createNull();' +
             '}'
         );
