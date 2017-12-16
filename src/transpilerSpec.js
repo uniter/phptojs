@@ -1531,6 +1531,24 @@ module.exports = {
                 )
             };
         },
+        'N_STATIC_STATEMENT': function (node, interpret, context) {
+            var code = '';
+
+            _.each(node.variables, function (declarator) {
+                code += 'scope.importStatic(' + JSON.stringify(declarator.variable.variable);
+
+                if (declarator.initialiser) {
+                    // An initialiser will be evaluated only once and assigned to the variable
+                    // the first time the function it's in is called - subsequent calls to the function
+                    // will have access to the most recent value of the variable.
+                    code += ', ' + interpret(declarator.initialiser);
+                }
+
+                code += ');';
+            });
+
+            return context.createStatementSourceNode([code], node);
+        },
         'N_STRING': function (node, interpret, context) {
             if (context.allowBareword) {
                 return context.createExpressionSourceNode(
