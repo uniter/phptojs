@@ -96,6 +96,9 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
         subContext = {
+            // This sub-context deliberately doesn't extend the parent one (from `context`),
+            // to keep it isolated (eg. reset the value of `getValue()`
+            // when this is a closure defined inside an expression)
             blockContexts: [],
             labelRepository: new LabelRepository(),
             variableMap: {
@@ -515,7 +518,7 @@ module.exports = {
             return {
                 name: node.constant,
                 value: context.createInternalSourceNode(
-                    ['function () { return '].concat(interpret(node.value, {isConstant: true}), '; }'),
+                    ['function () { return '].concat(interpret(node.value, {isConstantOrProperty: true}), '; }'),
                     node
                 )
             };
@@ -927,7 +930,7 @@ module.exports = {
                 value: context.createInternalSourceNode(
                     // Output a function that can be called to create the property's value,
                     // so that each instance gets a separate array object (if one is used as the value)
-                    ['function () { return '].concat(node.value ? interpret(node.value) : ['null'], '; }'),
+                    ['function () { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'], '; }'),
                     node
                 )
             };
@@ -1221,7 +1224,7 @@ module.exports = {
             );
         },
         'N_PARENT': function (node, interpret, context) {
-            if (context.isConstant) {
+            if (context.isConstantOrProperty) {
                 // Wrap in a tools method call, so that a fatal error can be thrown if the class has no parent
                 return context.createExpressionSourceNode(
                     ['tools.getParentClassName(currentClass)'],
@@ -1452,9 +1455,9 @@ module.exports = {
             );
         },
         'N_SELF': function (node, interpret, context) {
-            if (context.isConstant) {
+            if (context.isConstantOrProperty) {
                 return context.createExpressionSourceNode(
-                    ['tools.getClassName(currentClass)'],
+                    ['currentClass'],
                     node
                 );
             }
@@ -1526,7 +1529,7 @@ module.exports = {
                 name: node.variable.variable,
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
-                    node.value ? interpret(node.value) : ['tools.valueFactory.createNull()'],
+                    ['function (currentClass) { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['tools.valueFactory.createNull()'], '; }'),
                     node
                 )
             };
