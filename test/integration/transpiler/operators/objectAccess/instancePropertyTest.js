@@ -51,4 +51,34 @@ describe('Transpiler object instance property access test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a dynamic reference to a property', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_OBJECT_PROPERTY',
+                    object: {
+                        name: 'N_VARIABLE',
+                        variable: 'myObjectVar'
+                    },
+                    properties: [{
+                        property: {
+                            name: 'N_VARIABLE',
+                            variable: 'myVarHoldingPropName'
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return scope.getVariable("myObjectVar").getInstancePropertyByName(scope.getVariable("myVarHoldingPropName").getValue()).getValue();' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
 });

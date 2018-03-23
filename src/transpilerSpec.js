@@ -1209,7 +1209,7 @@ module.exports = {
             }
 
             _.each(node.properties, function (property, index) {
-                var nameValue = interpret(property.property, {assignment: false, getValue: false, allowBareword: true});
+                var nameValue = interpret(property.property, {assignment: false, getValue: true, allowBareword: true});
 
                 propertyCodeChunks.push('.getInstancePropertyByName(', nameValue, ')');
 
