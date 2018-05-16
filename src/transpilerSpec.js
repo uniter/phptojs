@@ -608,6 +608,12 @@ module.exports = {
                 node
             );
         },
+        'N_EVAL': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                ['tools.eval(' + interpret(node.code, {getValue: true}) + '.getNative(), scope)'],
+                node
+            );
+        },
         'N_EXIT': function (node, interpret, context) {
             if (hasOwn.call(node, 'status')) {
                 return context.createExpressionSourceNode(
