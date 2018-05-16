@@ -119,12 +119,11 @@ describe('Transpiler "continue" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var array_1 = scope.getVariable("myArray").getValue().reset();' +
-            'var length_1 = array_1.getLength();' +
-            'var pointer_1 = 0;' +
-            'block_1: while (pointer_1 < length_1) {' +
-            'scope.getVariable("item").setValue(array_1.getElementByIndex(pointer_1).getValue());' +
-            'pointer_1++;' +
+            '' +
+            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
+            'iterator_1.isNotFinished(); ' +
+            'iterator_1.advance()) {' +
+            'scope.getVariable("item").setValue(iterator_1.getCurrentElementValue());' +
             'continue block_1;' +
             '}' +
             'return tools.valueFactory.createNull();' +

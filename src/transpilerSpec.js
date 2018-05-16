@@ -745,11 +745,9 @@ module.exports = {
         },
         'N_FOREACH_STATEMENT': function (node, interpret, context) {
             var arrayValue = interpret(node.array),
-                arrayVariable,
+                iteratorVariable,
                 codeChunks = [],
                 key = node.key ? interpret(node.key, {getValue: false}) : null,
-                lengthVariable,
-                pointerVariable,
                 blockContexts = context.blockContexts.concat(['foreach']),
                 subContext = {
                     blockContexts: blockContexts
@@ -758,32 +756,36 @@ module.exports = {
                 nodeValue = valueIsReference ? node.value.operand : node.value,
                 value = interpret(nodeValue, {getValue: false});
 
-            arrayVariable = 'array_' + blockContexts.length;
-
-            // Cache the value being iterated over and reset the internal array pointer before the loop
-            codeChunks.push('var ' + arrayVariable + ' = ', arrayValue, '.reset();');
-
-            lengthVariable = 'length_' + blockContexts.length;
-            codeChunks.push('var ' + lengthVariable + ' = ' + arrayVariable + '.getLength();');
-            pointerVariable = 'pointer_' + blockContexts.length;
-            codeChunks.push('var ' + pointerVariable + ' = 0;');
+            iteratorVariable = 'iterator_' + blockContexts.length;
 
             // Prepend label for `break;` and `continue;` to reference
             codeChunks.push('block_' + blockContexts.length + ': ');
 
             // Loop management
-            codeChunks.push('while (' + pointerVariable + ' < ' + lengthVariable + ') {');
+            codeChunks.push(
+                // Create an iterator for the loop - for an array, this will be an instance
+                // of an internal class called ArrayIterator. For instances of Iterator,
+                // it will be the ObjectValue itself, whereas for instances of IteratorAggregate
+                // it will be the ObjectValue returned from the PHP ->getIterator() method
+                'for (var ' + iteratorVariable + ' = ',
+                arrayValue,
+                '.getIterator(); ' + iteratorVariable + '.isNotFinished(); ',
+                // Advance iterator to next element at end of loop body as per spec
+                iteratorVariable + '.advance()',
+                ') {'
+            );
+
+            // Iterator value variable
+            if (valueIsReference) {
+                codeChunks.push(value, '.setReference(' + iteratorVariable + '.getCurrentElementReference());');
+            } else {
+                codeChunks.push(value, '.setValue(' + iteratorVariable + '.getCurrentElementValue());');
+            }
 
             if (key) {
                 // Iterator key variable (if specified)
-                codeChunks.push(key, '.setValue(' + arrayVariable + '.getKeyByIndex(' + pointerVariable + '));');
+                codeChunks.push(key, '.setValue(' + iteratorVariable + '.getCurrentKey());');
             }
-
-            // Iterator value variable
-            codeChunks.push(value, '.set' + (valueIsReference ? 'Reference' : 'Value') + '(' + arrayVariable + '.getElementByIndex(' + pointerVariable + ')' + (valueIsReference ? '.getReference()' : '.getValue()') + ');');
-
-            // Set pointer to next element at start of loop body as per spec
-            codeChunks.push(pointerVariable + '++;');
 
             codeChunks = codeChunks.concat(interpret(node.body, subContext));
 

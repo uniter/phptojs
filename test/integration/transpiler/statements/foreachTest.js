@@ -39,12 +39,11 @@ describe('Transpiler "foreach" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var array_1 = scope.getVariable("myArray").getValue().reset();' +
-            'var length_1 = array_1.getLength();' +
-            'var pointer_1 = 0;' +
-            'block_1: while (pointer_1 < length_1) {' +
-            'scope.getVariable("item").setValue(array_1.getElementByIndex(pointer_1).getValue());' +
-            'pointer_1++;' +
+            '' +
+            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
+            'iterator_1.isNotFinished(); ' +
+            'iterator_1.advance()) {' +
+            'scope.getVariable("item").setValue(iterator_1.getCurrentElementValue());' +
             'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
             '}' +
             'return tools.valueFactory.createNull();' +
@@ -81,12 +80,10 @@ describe('Transpiler "foreach" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var array_1 = scope.getVariable("myArray").getValue().reset();' +
-            'var length_1 = array_1.getLength();' +
-            'var pointer_1 = 0;' +
-            'block_1: while (pointer_1 < length_1) {' +
-            'scope.getVariable("item").setReference(array_1.getElementByIndex(pointer_1).getReference());' +
-            'pointer_1++;' +
+            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
+            'iterator_1.isNotFinished(); ' +
+            'iterator_1.advance()) {' +
+            'scope.getVariable("item").setReference(iterator_1.getCurrentElementReference());' +
             'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
             '}' +
             'return tools.valueFactory.createNull();' +
@@ -124,13 +121,11 @@ describe('Transpiler "foreach" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var array_1 = scope.getVariable("myArray").getValue().reset();' +
-            'var length_1 = array_1.getLength();' +
-            'var pointer_1 = 0;' +
-            'block_1: while (pointer_1 < length_1) {' +
-            'scope.getVariable("theKey").setValue(array_1.getKeyByIndex(pointer_1));' +
-            'scope.getVariable("item").setValue(array_1.getElementByIndex(pointer_1).getValue());' +
-            'pointer_1++;' +
+            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
+            'iterator_1.isNotFinished(); ' +
+            'iterator_1.advance()) {' +
+            'scope.getVariable("item").setValue(iterator_1.getCurrentElementValue());' +
+            'scope.getVariable("theKey").setValue(iterator_1.getCurrentKey());' +
             'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
             '}' +
             'return tools.valueFactory.createNull();' +
