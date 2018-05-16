@@ -20,9 +20,11 @@ describe('Transpiler __LINE__ magic constant test', function () {
                 name: 'N_RETURN_STATEMENT',
                 expression: {
                     name: 'N_MAGIC_LINE_CONSTANT',
-                    offset: {
-                        line: 1,
-                        offset: 2
+                    bounds: {
+                        start: {
+                            line: 1,
+                            offset: 2
+                        }
                     }
                 }
             }]
@@ -42,22 +44,24 @@ describe('Transpiler __LINE__ magic constant test', function () {
             name: 'N_PROGRAM',
             statements: [
                 {
-                    'name': 'N_FUNCTION_STATEMENT',
-                    'func': {
+                    name: 'N_FUNCTION_STATEMENT',
+                    func: {
                         'name': 'N_STRING',
                         'string': 'myFunction'
                     },
-                    'args': [],
-                    'body': {
-                        'name': 'N_COMPOUND_STATEMENT',
-                        'statements': [
+                    args: [],
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: [
                             {
-                                'name': 'N_RETURN_STATEMENT',
-                                'expression': {
-                                    'name': 'N_MAGIC_LINE_CONSTANT',
-                                    'offset': {
-                                        'line': 3,
-                                        'offset': 8
+                                name: 'N_RETURN_STATEMENT',
+                                expression: {
+                                    name: 'N_MAGIC_LINE_CONSTANT',
+                                    bounds: {
+                                        start: {
+                                            line: 3,
+                                            offset: 8
+                                        }
                                     }
                                 }
                             }

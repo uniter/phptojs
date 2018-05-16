@@ -21,19 +21,25 @@ describe('Transpiler source map test', function () {
                     expression: {
                         name: 'N_INTEGER',
                         number: '4',
-                        offset: {
-                            line: 8,
-                            column: 20
+                        bounds: {
+                            start: {
+                                line: 8,
+                                column: 20
+                            }
                         }
                     },
-                    offset: {
-                        line: 8,
-                        column: 10
+                    bounds: {
+                        start: {
+                            line: 8,
+                            column: 10
+                        }
                     }
                 }],
-                offset: {
-                    line: 4,
-                    column: 6
+                bounds: {
+                    start: {
+                        line: 4,
+                        column: 6
+                    }
                 }
             },
             options = {
@@ -64,23 +70,29 @@ describe('Transpiler source map test', function () {
                     expression: {
                         name: 'N_VARIABLE',
                         variable: 'myGlobalCodeVar',
-                        offset: {
-                            line: 8,
-                            column: 20
+                        bounds: {
+                            start: {
+                                line: 8,
+                                column: 20
+                            }
                         }
                     },
-                    offset: {
-                        line: 8,
-                        column: 10
+                    bounds: {
+                        start: {
+                            line: 8,
+                            column: 10
+                        }
                     }
                 }, {
                     name: 'N_FUNCTION_STATEMENT',
                     func: {
                         name: 'N_STRING',
                         string: 'myFunc',
-                        offset: {
-                            line: 3,
-                            column: 6
+                        bounds: {
+                            start: {
+                                line: 3,
+                                column: 6
+                            }
                         }
                     },
                     args: [],
@@ -91,24 +103,32 @@ describe('Transpiler source map test', function () {
                             expression: {
                                 name: 'N_VARIABLE',
                                 variable: 'myFunctionVar',
-                                offset: {
-                                    line: 8,
-                                    column: 20
+                                bounds: {
+                                    start: {
+                                        line: 8,
+                                        column: 20
+                                    }
                                 }
                             },
-                            offset: {
-                                line: 8,
-                                column: 10
+                            bounds: {
+                                start: {
+                                    line: 8,
+                                    column: 10
+                                }
                             }
                         }],
-                        offset: {
-                            line: 12,
-                            column: 17
+                        bounds: {
+                            start: {
+                                line: 12,
+                                column: 17
+                            }
                         }
                     },
-                    offset: {
-                        line: 3,
-                        column: 6
+                    bounds: {
+                        start: {
+                            line: 3,
+                            column: 6
+                        }
                     }
                 }, {
                     name: 'N_CLASS_STATEMENT',
@@ -119,9 +139,11 @@ describe('Transpiler source map test', function () {
                         func: {
                             name: 'N_STRING',
                             string: 'myMethod',
-                            offset: {
-                                line: 6,
-                                column: 8
+                            bounds: {
+                                start: {
+                                    line: 6,
+                                    column: 8
+                                }
                             }
                         },
                         args: [],
@@ -132,29 +154,39 @@ describe('Transpiler source map test', function () {
                                 expression: {
                                     name: 'N_VARIABLE',
                                     variable: 'myMethodVar',
-                                    offset: {
+                                    bounds: {
+                                        start: {
+                                            line: 8,
+                                            column: 20
+                                        }
+                                    }
+                                },
+                                bounds: {
+                                    start: {
                                         line: 8,
                                         column: 20
                                     }
-                                },
-                                offset: {
-                                    line: 8,
-                                    column: 20
                                 }
                             }],
-                            offset: {
-                                line: 4,
-                                column: 5
+                            bounds: {
+                                start: {
+                                    line: 4,
+                                    column: 5
+                                }
                             }
                         },
-                        offset: {
-                            line: 11,
-                            column: 14
+                        bounds: {
+                            start: {
+                                line: 11,
+                                column: 14
+                            }
                         }
                     }],
-                    offset: {
-                        line: 2,
-                        column: 10
+                    bounds: {
+                        start: {
+                            line: 2,
+                            column: 10
+                        }
                     }
                 }, {
                     name: 'N_RETURN_STATEMENT',
@@ -165,22 +197,28 @@ describe('Transpiler source map test', function () {
                             variable: {
                                 name: 'N_VARIABLE',
                                 variable: 'myArgVar',
-                                offset: {
+                                bounds: {
+                                    start: {
+                                        line: 8,
+                                        column: 20
+                                    }
+                                }
+                            },
+                            bounds: {
+                                start: {
                                     line: 8,
                                     column: 20
                                 }
-                            },
-                            offset: {
-                                line: 8,
-                                column: 20
                             }
                         }],
                         bindings: [{
                             name: 'N_VARIABLE',
                             variable: 'myBoundVar',
-                            offset: {
-                                line: 8,
-                                column: 20
+                            bounds: {
+                                start: {
+                                    line: 8,
+                                    column: 20
+                                }
                             }
                         }],
                         body: {
@@ -190,34 +228,46 @@ describe('Transpiler source map test', function () {
                                 expression: {
                                     name: 'N_VARIABLE',
                                     variable: 'myClosureVar',
-                                    offset: {
+                                    bounds: {
+                                        start: {
+                                            line: 8,
+                                            column: 20
+                                        }
+                                    }
+                                },
+                                bounds: {
+                                    start: {
                                         line: 8,
                                         column: 20
                                     }
-                                },
-                                offset: {
+                                }
+                            }],
+                            bounds: {
+                                start: {
                                     line: 8,
                                     column: 20
                                 }
-                            }],
-                            offset: {
+                            }
+                        },
+                        bounds: {
+                            start: {
                                 line: 8,
                                 column: 20
                             }
-                        },
-                        offset: {
+                        }
+                    },
+                    bounds: {
+                        start: {
                             line: 8,
                             column: 20
                         }
-                    },
-                    offset: {
-                        line: 8,
-                        column: 20
                     }
                 }],
-                offset: {
-                    line: 4,
-                    column: 6
+                bounds: {
+                    start: {
+                        line: 4,
+                        column: 6
+                    }
                 }
             },
             options = {
@@ -269,7 +319,7 @@ describe('Transpiler source map test', function () {
         );
     });
 
-    it('should throw an exception when source map enabled but AST has no node offsets', function () {
+    it('should throw an exception when source map enabled but AST has no node bounds', function () {
         var ast = {
                 name: 'N_PROGRAM',
                 statements: [{
@@ -287,6 +337,6 @@ describe('Transpiler source map test', function () {
 
         expect(function () {
             phpToJS.transpile(ast, options);
-        }).to.throw('Source map enabled, but AST contains no node offsets');
+        }).to.throw('Source map enabled, but AST contains no node bounds');
     });
 });

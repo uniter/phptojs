@@ -1084,7 +1084,7 @@ module.exports = {
         },
         'N_MAGIC_LINE_CONSTANT': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createInteger(' + node.offset.line + ')'],
+                ['tools.valueFactory.createInteger(' + node.bounds.start.line + ')'],
                 node
             );
         },
@@ -1270,6 +1270,7 @@ module.exports = {
                     createStatementSourceNode: null,
                     labelRepository: new LabelRepository(),
                     lineNumbers: null,
+                    tick: null,
                     variableMap: {}
                 },
                 labels,
@@ -1288,12 +1289,13 @@ module.exports = {
                 null;
             context.buildingSourceMap = !!sourceMapOptions;
             context.lineNumbers = !!options.lineNumbers;
+            context.tick = !!options.tick;
 
             // Define optimized SourceNode factory, depending on mode
-            if (node.offset) {
+            if (node.bounds) {
                 createSourceNode = function (node, chunks, name) {
                     // Lines are 1-based, but columns are 0-based
-                    return new SourceNode(node.offset.line, node.offset.column - 1, filePath, chunks, name);
+                    return new SourceNode(node.bounds.start.line, node.bounds.start.column - 1, filePath, chunks, name);
                 };
 
                 if (context.lineNumbers) {
@@ -1309,7 +1311,7 @@ module.exports = {
                             return [];
                         }
 
-                        return [createSourceNode(node, ['(line = ' + node.offset.line + ', ', chunks, ')'], name)];
+                        return [createSourceNode(node, ['(line = ' + node.bounds.start.line + ', ', chunks, ')'], name)];
                     };
                     // "Internal" nodes are those that do not map directly back to a PHP construct,
                     // or where we do not need them to. For example, a function declaration's name
@@ -1331,7 +1333,23 @@ module.exports = {
                         }
 
                         // Lines are 1-based, but columns are 0-based
-                        return [createSourceNode(node, ['line = ' + node.offset.line + ';', chunks], name)];
+                        return [createSourceNode(
+                            node,
+                            [
+                                'line = ' + node.bounds.start.line + ';',
+                                context.tick ?
+                                    // Ticking is enabled, so add a call to the tick callback after each statement
+                                    'tools.tick(' + [
+                                        node.bounds.start.line,
+                                        node.bounds.start.column,
+                                        node.bounds.end.line,
+                                        node.bounds.end.column
+                                    ].join(', ') + ');' :
+                                    '',
+                                chunks
+                            ],
+                            name
+                        )];
                     };
                 } else {
                     createSpecificSourceNode = function (chunks, node, name) {
@@ -1347,15 +1365,36 @@ module.exports = {
 
                     context.createExpressionSourceNode = createSpecificSourceNode;
                     context.createInternalSourceNode = createSpecificSourceNode;
-                    context.createStatementSourceNode = createSpecificSourceNode;
+                    context.createStatementSourceNode = function (chunks, node, name) {
+                        return [createSourceNode(
+                            node,
+                            [
+                                context.tick ?
+                                    // Ticking is enabled, so add a call to the tick callback after each statement
+                                    'tools.tick(' + [
+                                        node.bounds.start.line,
+                                        node.bounds.start.column,
+                                        node.bounds.end.line,
+                                        node.bounds.end.column
+                                    ].join(', ') + ');' :
+                                    '',
+                                chunks
+                            ],
+                            name
+                        )];
+                    };
                 }
             } else {
                 if (context.buildingSourceMap) {
-                    throw new Error('Source map enabled, but AST contains no node offsets');
+                    throw new Error('Source map enabled, but AST contains no node bounds');
                 }
 
                 if (context.lineNumbers) {
-                    throw new Error('Line number tracking enabled, but AST contains no node offsets');
+                    throw new Error('Line number tracking enabled, but AST contains no node bounds');
+                }
+
+                if (context.tick) {
+                    throw new Error('Ticking enabled, but AST contains no node bounds');
                 }
 
                 createSpecificSourceNode = function (chunks) {
@@ -1457,7 +1496,7 @@ module.exports = {
         'N_RETURN_STATEMENT': function (node, interpret, context) {
             var expression = interpret(node.expression);
 
-            return context.createInternalSourceNode(
+            return context.createStatementSourceNode(
                 ['return '].concat(expression ? expression : 'tools.valueFactory.createNull()', ';'),
                 node
             );
