@@ -54,11 +54,11 @@ describe('Transpiler source map test', function () {
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'return tools.valueFactory.createInteger(4);' +
             'return tools.valueFactory.createNull();' +
-            '})' +
+            '});' +
             '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15' +
             'X21vZHVsZS5waHAiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6InVNQU9TLE9BQVUsbUNBQVYsQyIsInNvdXJjZXNDb2' +
             '50ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
-            '\n;'
+            '\n'
         );
     });
 
@@ -308,14 +308,14 @@ describe('Transpiler source map test', function () {
             'return scope.getVariable("myClosureVar").getValue();' +
             '}; }(scope)), scope);' +
             'return tools.valueFactory.createNull();' +
-            '})' +
+            '});' +
             '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15X21' +
             'vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIsIiRteUds' +
             'b2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2UUFFSyw0Q0FBQUEsT' +
             '0FBQSx1SUFLSSxPQUFVQyw2Q0FBVixDQUxKLG1CQURJLGlLQVNJLG1DQUxORCxTQUtNLG1JQUhNLE9BQUFFLDJDQUFBLE' +
             'NBR04sRUFUSix3Q0FNQSxPQUFVQywrQ0FBVixDQUFVLHVhQUFBQyxXQUFBLG9EQUFBQyw0Q0FBQSxzQiIsInNvdXJjZXN' +
             'Db250ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
-            '\n;'
+            '\n'
         );
     });
 

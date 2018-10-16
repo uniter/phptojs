@@ -1451,6 +1451,10 @@ module.exports = {
                 body.push(options[SUFFIX]);
             }
 
+            if (!bareMode) {
+                body.push(';');
+            }
+
             // Don't provide a line or column number for the program node itself
             sourceMap = new SourceNode(null, null, filePath, body);
 
@@ -1467,10 +1471,6 @@ module.exports = {
                     sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
             } else {
                 compiledBody = sourceMap.toString();
-            }
-
-            if (!bareMode) {
-                compiledBody += ';';
             }
 
             return compiledBody;
