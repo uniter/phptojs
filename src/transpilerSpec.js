@@ -1213,7 +1213,7 @@ module.exports = {
                     suffix = '.getValue()';
                 }
 
-                objectVariableCodeChunks = interpret(node.object, {getValue: false});
+                objectVariableCodeChunks = interpret(node.object, {getValue: true});
             }
 
             _.each(node.properties, function (property, index) {

@@ -155,7 +155,7 @@ describe('Transpiler function call expression test', function () {
             '), ' +
             'tools.createKeyValuePair(' +
             'tools.valueFactory.createString("myPropertyElement"), ' +
-            'scope.getVariable("myObject").getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue()' +
+            'scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue()' +
             '), ' +
             'scope.getVariable("myVarInIndexedElement").getValue()' +
             ']), ' +

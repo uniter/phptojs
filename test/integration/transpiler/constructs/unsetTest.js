@@ -112,7 +112,7 @@ describe('Transpiler unset(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("an_object").getInstancePropertyByName(tools.valueFactory.createBarewordString("prop")).unset();' +
+            'scope.getVariable("an_object").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("prop")).unset();' +
             'return tools.valueFactory.createNull();' +
             '});'
         );

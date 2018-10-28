@@ -13,6 +13,40 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler if statement test', function () {
+    it('should correctly transpile an if statement with reference inside the condition', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_IF_STATEMENT',
+                condition: {
+                    name: 'N_OBJECT_PROPERTY',
+                    object: {
+                        name: 'N_VARIABLE',
+                        variable: 'myObject'
+                    },
+                    properties: [{
+                        property: {
+                            name: 'N_STRING',
+                            string: 'myProp'
+                        }
+                    }]
+                },
+                consequentStatement: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: []
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'if (scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue().coerceToBoolean().getNative()) {}' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
+
     it('should correctly transpile an if statement with else clause', function () {
         var ast = {
             name: 'N_PROGRAM',

@@ -122,7 +122,7 @@ describe('Transpiler array literal expression test', function () {
             'scope.getVariable("myVarByVal").getValue(), ' +
             'scope.getVariable("myVarByRef").getReference(), ' +
             'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createString("myElementByRef")).getReference(), ' +
-            'scope.getVariable("myObject").getInstancePropertyByName(tools.valueFactory.createBarewordString("myElementByRef")).getReference()' +
+            'scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myElementByRef")).getReference()' +
             ']));' +
             'return tools.valueFactory.createNull();' +
             '}'
