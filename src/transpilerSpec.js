@@ -450,7 +450,7 @@ module.exports = {
                         propertyCodeChunks.push(', ');
                     }
 
-                    propertyCodeChunks.push('"' + data.name + '": ', data.value);
+                    propertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
                 } else if (member.name === 'N_STATIC_PROPERTY_DEFINITION') {
                     if (staticPropertyCodeChunks.length > 0) {
                         staticPropertyCodeChunks.push(', ');
@@ -935,6 +935,7 @@ module.exports = {
         'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
+                visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
                     // Output a function that can be called to create the property's value,
                     // so that each instance gets a separate array object (if one is used as the value)

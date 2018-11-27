@@ -50,8 +50,8 @@ describe('Transpiler class statement with properties test', function () {
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"firstProp": function () { return null; }, ' +
-            '"secondProp": function () { return tools.valueFactory.createInteger(21); }' +
+            '"firstProp": {visibility: "private", value: function () { return null; }}, ' +
+            '"secondProp": {visibility: "private", value: function () { return tools.valueFactory.createInteger(21); }}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {}' +
@@ -132,7 +132,7 @@ describe('Transpiler class statement with properties test', function () {
                     },
                     {
                         name: 'N_INSTANCE_PROPERTY_DEFINITION',
-                        visibility: 'private',
+                        visibility: 'protected',
                         variable: {
                             name: 'N_VARIABLE',
                             variable: 'myProp'
@@ -158,9 +158,9 @@ describe('Transpiler class statement with properties test', function () {
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"myProp": function () { ' +
+            '"myProp": {visibility: "protected", value: function () { ' +
             'return currentClass.getConstantByName("MY_CONST", namespaceScope); ' +
-            '}' +
+            '}}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {' +
