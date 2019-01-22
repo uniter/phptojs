@@ -47,6 +47,61 @@ describe('Transpiler if statement test', function () {
         );
     });
 
+    it('should correctly transpile an if statement with reference inside the condition when inside a closure', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myFunc'
+                    },
+                    args: [{
+                        name: 'N_CLOSURE',
+                        args: [],
+                        bindings: [],
+                        body: {
+                            name: 'N_COMPOUND_STATEMENT',
+                            statements: [{
+                                name: 'N_IF_STATEMENT',
+                                condition: {
+                                    name: 'N_OBJECT_PROPERTY',
+                                    object: {
+                                        name: 'N_VARIABLE',
+                                        variable: 'myObject'
+                                    },
+                                    properties: [{
+                                        property: {
+                                            name: 'N_STRING',
+                                            string: 'myProp'
+                                        }
+                                    }]
+                                },
+                                consequentStatement: {
+                                    name: 'N_COMPOUND_STATEMENT',
+                                    statements: []
+                                }
+                            }]
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            '(tools.valueFactory.createBarewordString("myFunc").call([' +
+            'tools.createClosure(function () {var scope = this;' +
+            'if (scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue().coerceToBoolean().getNative()) {}' +
+            '}, scope)' +
+            '], namespaceScope) || tools.valueFactory.createNull());' +
+            'return tools.valueFactory.createNull();}'
+        );
+    });
+
     it('should correctly transpile an if statement with else clause', function () {
         var ast = {
             name: 'N_PROGRAM',

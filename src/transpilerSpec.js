@@ -96,10 +96,11 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
         subContext = {
-            // This sub-context deliberately doesn't extend the parent one (from `context`),
-            // to keep it isolated (eg. reset the value of `getValue()`
-            // when this is a closure defined inside an expression)
+            // This sub-context will be merged with the parent one,
+            // so we need to override any value for the `assignment` and `getValue` options
+            assignment: undefined,
             blockContexts: [],
+            getValue: undefined,
             labelRepository: new LabelRepository(),
             variableMap: {
                 'this': true
@@ -870,7 +871,7 @@ module.exports = {
             // Alternate statements are executed if the condition is falsy
             var alternateCodeChunks,
                 codeChunks,
-                conditionCodeChunks = interpret(node.condition).concat('.coerceToBoolean().getNative()'),
+                conditionCodeChunks = interpret(node.condition, {getValue: true}).concat('.coerceToBoolean().getNative()'),
                 consequentCodeChunks,
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
