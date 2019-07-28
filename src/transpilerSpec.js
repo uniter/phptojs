@@ -1340,7 +1340,7 @@ module.exports = {
                             [
                                 'line = ' + node.bounds.start.line + ';',
                                 context.tick ?
-                                    // Ticking is enabled, so add a call to the tick callback after each statement
+                                    // Ticking is enabled, so add a call to the tick callback before each statement
                                     'tools.tick(' + [
                                         node.bounds.start.line,
                                         node.bounds.start.column,
@@ -1372,7 +1372,7 @@ module.exports = {
                             node,
                             [
                                 context.tick ?
-                                    // Ticking is enabled, so add a call to the tick callback after each statement
+                                    // Ticking is enabled, so add a call to the tick callback before each statement
                                     'tools.tick(' + [
                                         node.bounds.start.line,
                                         node.bounds.start.column,
