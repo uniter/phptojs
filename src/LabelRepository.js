@@ -11,6 +11,13 @@
 
 var _ = require('microdash'),
     Set = require('es6-set'),
+    /**
+     * Emits an event for the LabelRepository
+     *
+     * @param {LabelRepository} repository
+     * @param {string} name
+     * @param {*} arg
+     */
     emit = function (repository, name, arg) {
         if (!repository.listenersByEvent[name]) {
             return;
