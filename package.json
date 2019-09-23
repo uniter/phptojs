@@ -23,6 +23,7 @@
     "test": "npm run jshint && npm run mocha"
   },
   "dependencies": {
+    "es6-set": "^0.1.5",
     "microdash": "~1",
     "phpcommon": "^1.13.0",
     "source-map": "^0.5.6",

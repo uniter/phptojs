@@ -10,18 +10,42 @@
 'use strict';
 
 var _ = require('microdash'),
-    util = require('util'),
-    EventEmitter = require('events').EventEmitter;
+    Set = require('es6-set'),
+    emit = function (repository, name, arg) {
+        if (!repository.listenersByEvent[name]) {
+            return;
+        }
 
+        repository.listenersByEvent[name].forEach(function (listener) {
+            listener(arg);
+        });
+    };
+
+/**
+ * Represents a collection of labels and gotos that jump to them during transpilation.
+ * At any given time, a label may have zero or more gotos and a goto may refer to a label
+ * that has not yet been found
+ *
+ * @constructor
+ */
 function LabelRepository() {
-    EventEmitter.call(this);
-
+    /**
+     * @type {Object.<string, boolean>}
+     */
     this.foundLabels = {};
+    /**
+     * @type {Object.<string, boolean>}
+     */
     this.labels = {};
+    /**
+     * @type {Object.<string, Set>}
+     */
+    this.listenersByEvent = {};
+    /**
+     * @type {Object.<string, boolean>}
+     */
     this.pendingLabels = {};
 }
-
-util.inherits(LabelRepository, EventEmitter);
 
 _.extend(LabelRepository.prototype, {
     /**
@@ -41,7 +65,7 @@ _.extend(LabelRepository.prototype, {
             repository.pendingLabels[label] = true;
         }
 
-        repository.emit('goto label', label);
+        emit(repository, 'goto label', label);
     },
 
     /**
@@ -55,7 +79,7 @@ _.extend(LabelRepository.prototype, {
         repository.foundLabels[label] = true;
         repository.labels[label] = true;
         delete repository.pendingLabels[label];
-        repository.emit('found label', label);
+        emit(repository, 'found label', label);
     },
 
     /**
@@ -125,7 +149,25 @@ _.extend(LabelRepository.prototype, {
      * @param {Function} listener
      */
     off: function (name, listener) {
-        this.removeListener(name, listener);
+        if (!this.listenersByEvent[name]) {
+            return;
+        }
+
+        this.listenersByEvent[name].delete(listener);
+    },
+
+    /**
+     * Adds an event listener
+     *
+     * @param {string} name
+     * @param {Function} listener
+     */
+    on: function (name, listener) {
+        if (!this.listenersByEvent[name]) {
+            this.listenersByEvent[name] = new Set();
+        }
+
+        this.listenersByEvent[name].add(listener);
     }
 });
 
