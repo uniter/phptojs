@@ -95,18 +95,27 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     var args = [],
         argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
+        labelRepository = new LabelRepository(),
         subContext = {
             // This sub-context will be merged with the parent one,
             // so we need to override any value for the `assignment` and `getValue` options
             assignment: undefined,
             blockContexts: [],
             getValue: undefined,
-            labelRepository: new LabelRepository(),
+            labelRepository: labelRepository,
             variableMap: {
                 'this': true
             }
         },
         body = context.createInternalSourceNode(interpret(statementNode, subContext), statementNode);
+
+    if (labelRepository.hasPending()) {
+        // After processing the body of the function, one or more gotos were found targetting labels
+        // that were never defined, so throw a compile-time fatal error
+        throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
+            'label': labelRepository.getPendingLabels()[0]
+        });
+    }
 
     if (context.buildingSourceMap) {
         _.forOwn(subContext.variableMap, function (t, name) {
@@ -214,7 +223,7 @@ function processBlock(statements, interpret, context) {
             gotos = {},
             statementCodeChunks;
 
-        function onPendingLabel(label) {
+        function onGoto(label) {
             gotos[label] = true;
         }
 
@@ -222,11 +231,11 @@ function processBlock(statements, interpret, context) {
             labels[label] = true;
         }
 
-        labelRepository.on('pending label', onPendingLabel);
+        labelRepository.on('goto label', onGoto);
         labelRepository.on('found label', onFoundLabel);
 
         statementCodeChunks = interpret(statement, context);
-        labelRepository.off('pending label', onPendingLabel);
+        labelRepository.off('goto label', onGoto);
         labelRepository.off('found label', onFoundLabel);
 
         statementDatas.push({
@@ -239,11 +248,16 @@ function processBlock(statements, interpret, context) {
     });
 
     _.each(statementDatas, function (statementData, index) {
-        if (index > 0) {
-            _.each(Object.keys(statementData.labels), function (label) {
-                statementDatas[0].prefix = 'if (!' + 'goingToLabel_' + label + ') {' + statementDatas[0].prefix;
-                statementData.prefix = '}' + statementData.prefix;
-            });
+        var subsequentIndex,
+            subsequentLabels = [];
+
+        for (subsequentIndex = index + 1; subsequentIndex < statementDatas.length; subsequentIndex++) {
+            subsequentLabels = subsequentLabels.concat(Object.keys(statementDatas[subsequentIndex].labels));
+        }
+
+        if (subsequentLabels.length > 0) {
+            statementData.prefix = 'if (!goingToLabel_' + subsequentLabels.join(' && !goingToLabel_') + ') {' + statementData.prefix;
+            statementData.suffix += '}';
         }
     });
 
@@ -257,13 +271,17 @@ function processBlock(statements, interpret, context) {
                             // We have found the label we are trying to jump to
                             if (otherStatementIndex > statementIndex) {
                                 // The label is after the goto (forward jump)
-                                statementData.prefix = label + ': {' + statementData.prefix;
+                                statementDatas[0].prefix = label + ': {' + statementDatas[0].prefix;
                                 otherStatementData.prefix = '}' + otherStatementData.prefix;
                             } else {
                                 // The goto is after the label (backward jump)
-                                otherStatementData.prefix += 'continue_' + label + ': do {';
-                                statementData.suffix += '} while (goingToLabel_' + label + ');';
+                                // TODO: Consider only using one do..while loop for this per-function
+                                //       or per-block where one is needed
+                                statementDatas[0].prefix = 'continue_' + label + ': do {' + statementDatas[0].prefix;
+                                statementDatas[statementDatas.length - 1].suffix += '} while (goingToLabel_' + label + ');';
                             }
+
+                            return false;
                         }
                     }
                 });
@@ -562,16 +580,46 @@ module.exports = {
         },
         'N_DO_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['do-while']),
+                labelRepository = context.labelRepository,
+                labelsInsideLoopHash = {},
+                // Record which labels have gotos to labels that are not yet defined,
+                // meaning they could be defined either inside the loop body (invalid) or afterwards
+                priorPendingLabelsHash = labelRepository.getPendingLabelsHash(),
                 subContext = {
                     blockContexts: blockContexts
                 },
-                codeChunks = interpret(node.body, subContext);
+                codeChunks,
+                conditionChunks = interpret(node.condition, subContext);
+
+            function onFoundLabel(label) {
+                labelsInsideLoopHash[label] = true;
+
+                if (priorPendingLabelsHash[label] === true) {
+                    // A goto above this do..while loop (but within the same function)
+                    // is attempting to jump forward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            }
+
+            labelRepository.on('found label', onFoundLabel);
+
+            codeChunks = interpret(node.body, subContext);
+
+            labelRepository.off('found label', onFoundLabel);
+
+            labelRepository.on('goto label', function (label) {
+                if (labelsInsideLoopHash[label] === true) {
+                    // A goto below this do..while loop (but within the same function)
+                    // is attempting to jump backward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            });
 
             return context.createStatementSourceNode(
                 ['block_' + blockContexts.length + ': do {'].concat(
                     codeChunks,
                     '} while (',
-                    interpret(node.condition, subContext),
+                    conditionChunks,
                     '.coerceToBoolean().getNative());'
                 ),
                 node
@@ -718,13 +766,42 @@ module.exports = {
         },
         'N_FOR_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['for']),
+                labelRepository = context.labelRepository,
+                labelsInsideLoopHash = {},
+                // Record which labels have gotos to labels that are not yet defined,
+                // meaning they could be defined either inside the loop body (invalid) or afterwards
+                priorPendingLabelsHash = labelRepository.getPendingLabelsHash(),
                 subContext = {
                     blockContexts: blockContexts
                 },
-                bodyCodeChunks = interpret(node.body, subContext),
+                bodyCodeChunks,
                 conditionCodeChunks = interpret(node.condition, subContext),
                 initializerCodeChunks = interpret(node.initializer, subContext),
                 updateCodeChunks = interpret(node.update, subContext);
+
+            function onFoundLabel(label) {
+                labelsInsideLoopHash[label] = true;
+
+                if (priorPendingLabelsHash[label] === true) {
+                    // A goto above this for loop (but within the same function)
+                    // is attempting to jump forward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            }
+
+            labelRepository.on('found label', onFoundLabel);
+
+            bodyCodeChunks = interpret(node.body, subContext);
+
+            labelRepository.off('found label', onFoundLabel);
+
+            labelRepository.on('goto label', function (label) {
+                if (labelsInsideLoopHash[label] === true) {
+                    // A goto below this for loop (but within the same function)
+                    // is attempting to jump backward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            });
 
             if (conditionCodeChunks.length > 0) {
                 conditionCodeChunks.push('.coerceToBoolean().getNative()');
@@ -750,6 +827,11 @@ module.exports = {
                 codeChunks = [],
                 key = node.key ? interpret(node.key, {getValue: false}) : null,
                 blockContexts = context.blockContexts.concat(['foreach']),
+                labelRepository = context.labelRepository,
+                labelsInsideLoopHash = {},
+                // Record which labels have gotos to labels that are not yet defined,
+                // meaning they could be defined either inside the loop body (invalid) or afterwards
+                priorPendingLabelsHash = labelRepository.getPendingLabelsHash(),
                 subContext = {
                     blockContexts: blockContexts
                 },
@@ -788,7 +870,29 @@ module.exports = {
                 codeChunks.push(key, '.setValue(' + iteratorVariable + '.getCurrentKey());');
             }
 
+            function onFoundLabel(label) {
+                labelsInsideLoopHash[label] = true;
+
+                if (priorPendingLabelsHash[label] === true) {
+                    // A goto above this foreach loop (but within the same function)
+                    // is attempting to jump forward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            }
+
+            labelRepository.on('found label', onFoundLabel);
+
             codeChunks = codeChunks.concat(interpret(node.body, subContext));
+
+            labelRepository.off('found label', onFoundLabel);
+
+            labelRepository.on('goto label', function (label) {
+                if (labelsInsideLoopHash[label] === true) {
+                    // A goto below this foreach loop (but within the same function)
+                    // is attempting to jump backward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            });
 
             codeChunks.push('}');
 
@@ -838,7 +942,7 @@ module.exports = {
             var code = '',
                 label = node.label;
 
-            context.labelRepository.addPending(label);
+            context.labelRepository.addGoto(label);
 
             code += 'goingToLabel_' + label + ' = true;';
 
@@ -876,7 +980,7 @@ module.exports = {
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
 
-            function onPendingLabel(label) {
+            function onGoto(label) {
                 delete gotosJumpingIn[label];
             }
 
@@ -884,11 +988,11 @@ module.exports = {
                 gotosJumpingIn[label] = true;
             }
 
-            labelRepository.on('pending label', onPendingLabel);
+            labelRepository.on('goto label', onGoto);
             labelRepository.on('found label', onFoundLabel);
 
             consequentCodeChunks = interpret(node.consequentStatement);
-            labelRepository.off('pending label', onPendingLabel);
+            labelRepository.off('goto label', onGoto);
             labelRepository.off('found label', onFoundLabel);
 
             _.each(Object.keys(gotosJumpingIn), function (label) {
@@ -1052,9 +1156,20 @@ module.exports = {
         'N_LABEL_STATEMENT': function (node, interpret, context) {
             var label = node.label;
 
+            if (context.labelRepository.hasBeenFound(label)) {
+                // This is an attempt to redefine the label, so throw a compile-time fatal error
+                throw new PHPFatalError(PHPFatalError.LABEL_ALREADY_DEFINED, {
+                    'label': label
+                });
+            }
+
             context.labelRepository.found(label);
 
-            return [''];
+            return [
+                // Once we've reached the label, reset the flag that indicates we were going to it
+                // so that no more skipping will occur (until/unless this label is jumped to again)
+                'goingToLabel_' + label + ' = false;'
+            ];
         },
         'N_LIST': function (node, interpret, context) {
             var elementsCodeChunks = [];
@@ -1262,6 +1377,7 @@ module.exports = {
                 createSourceNode,
                 createSpecificSourceNode,
                 filePath = options ? options[PATH] : null,
+                labelRepository = new LabelRepository(),
                 context = {
                     // Whether source map is to be built will be set later based on options
                     blockContexts: [],
@@ -1270,7 +1386,7 @@ module.exports = {
                     createExpressionSourceNode: null,
                     createInternalSourceNode: null,
                     createStatementSourceNode: null,
-                    labelRepository: new LabelRepository(),
+                    labelRepository: labelRepository,
                     lineNumbers: null,
                     tick: null,
                     variableMap: {}
@@ -1416,6 +1532,14 @@ module.exports = {
             }
 
             body.push(processBlock(hoistDeclarations(node.statements), interpret, context));
+
+            if (labelRepository.hasPending()) {
+                // After processing the root body of the program, one or more gotos were found targetting labels
+                // that were never defined, so throw a compile-time fatal error
+                throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
+                    'label': labelRepository.getPendingLabels()[0]
+                });
+            }
 
             if (context.buildingSourceMap) {
                 _.forOwn(context.variableMap, function (t, name) {
@@ -1657,6 +1781,11 @@ module.exports = {
         },
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
             var codeChunks = [],
+                labelRepository = context.labelRepository,
+                labelsInsideLoopHash = {},
+                // Record which labels have gotos to labels that are not yet defined,
+                // meaning they could be defined either inside the switch body (invalid) or afterwards
+                priorPendingLabelsHash = labelRepository.getPendingLabelsHash(),
                 expressionCode = interpret(node.expression),
                 blockContexts = context.blockContexts.concat(['switch']),
                 subContext = {
@@ -1670,8 +1799,30 @@ module.exports = {
                 ' switchMatched_' + blockContexts.length + ' = false;'
             );
 
+            function onFoundLabel(label) {
+                labelsInsideLoopHash[label] = true;
+
+                if (priorPendingLabelsHash[label] === true) {
+                    // A goto above this switch (but within the same function)
+                    // is attempting to jump forward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            }
+
+            labelRepository.on('found label', onFoundLabel);
+
             _.each(node.cases, function (caseNode) {
                 codeChunks.push(interpret(caseNode, subContext));
+            });
+
+            labelRepository.off('found label', onFoundLabel);
+
+            labelRepository.on('goto label', function (label) {
+                if (labelsInsideLoopHash[label] === true) {
+                    // A goto below this switch (but within the same function)
+                    // is attempting to jump backward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
             });
 
             return context.createStatementSourceNode(
@@ -1815,23 +1966,45 @@ module.exports = {
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['while']),
+                labelRepository = context.labelRepository,
+                labelsInsideLoopHash = {},
+                // Record which labels have gotos to labels that are not yet defined,
+                // meaning they could be defined either inside the loop body (invalid) or afterwards
+                priorPendingLabelsHash = labelRepository.getPendingLabelsHash(),
                 subContext = {
                     blockContexts: blockContexts
                 },
-                codeChunks = [];
+                conditionChunks = interpret(node.condition, subContext),
+                codeChunks;
 
-            context.labelRepository.on('found label', function () {
-                throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
-            });
+            function onFoundLabel(label) {
+                labelsInsideLoopHash[label] = true;
 
-            _.each(node.statements, function (statement) {
-                codeChunks.push(interpret(statement, subContext));
+                if (priorPendingLabelsHash[label] === true) {
+                    // A goto above this while loop (but within the same function)
+                    // is attempting to jump forward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
+            }
+
+            labelRepository.on('found label', onFoundLabel);
+
+            codeChunks = interpret(node.body, subContext);
+
+            labelRepository.off('found label', onFoundLabel);
+
+            labelRepository.on('goto label', function (label) {
+                if (labelsInsideLoopHash[label] === true) {
+                    // A goto below this while loop (but within the same function)
+                    // is attempting to jump backward into it
+                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                }
             });
 
             return context.createStatementSourceNode(
                 [
                     'block_' + blockContexts.length + ': while (',
-                    interpret(node.condition, subContext),
+                    conditionChunks,
                     '.coerceToBoolean().getNative()) {',
                     codeChunks,
                     '}'

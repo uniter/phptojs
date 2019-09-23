@@ -111,6 +111,80 @@ describe('Transpiler line numbers test', function () {
         );
     });
 
+    it('should correctly transpile a while loop in default (async) mode', function () {
+        var ast = {
+                name: 'N_PROGRAM',
+                statements: [{
+                    name: 'N_WHILE_STATEMENT',
+                    condition: {
+                        name: 'N_VARIABLE',
+                        variable: 'myCond',
+                        bounds: {
+                            start: {
+                                line: 8,
+                                column: 4
+                            }
+                        }
+                    },
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: [{
+                            name: 'N_ECHO_STATEMENT',
+                            expressions: [{
+                                name: 'N_VARIABLE',
+                                variable: 'myVar',
+                                bounds: {
+                                    start: {
+                                        line: 9,
+                                        column: 13
+                                    }
+                                }
+                            }],
+                            bounds: {
+                                start: {
+                                    line: 9,
+                                    column: 8
+                                }
+                            }
+                        }],
+                        bounds: {
+                            start: {
+                                line: 8,
+                                column: 4
+                            }
+                        }
+                    },
+                    bounds: {
+                        start: {
+                            line: 6,
+                            column: 10
+                        }
+                    }
+                }],
+                bounds: {
+                    start: {
+                        line: 4,
+                        column: 15
+                    }
+                }
+            },
+            options = {
+                path: 'my_module.php',
+                lineNumbers: true
+            };
+
+        expect(phpToJS.transpile(ast, options)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var line;tools.instrument(function () {return line;});' +
+            'line = 6;block_1: while ((line = 8, scope.getVariable("myCond").getValue()).coerceToBoolean().getNative()) {' +
+            'line = 9;stdout.write((line = 9, scope.getVariable("myVar").getValue()).coerceToString().getNative());' +
+            '}' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
     it('should correctly transpile global code, functions, methods and closures in default (async) mode', function () {
         var ast = {
                 name: 'N_PROGRAM',

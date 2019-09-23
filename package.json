@@ -19,12 +19,13 @@
   "main": "index",
   "scripts": {
     "jshint": "jshint .",
-    "mocha": "mocha --recursive test/",
+    "mocha": "mocha -r test/harness --recursive test/unit/ test/integration/",
     "test": "npm run jshint && npm run mocha"
   },
   "dependencies": {
+    "es6-set": "^0.1.5",
     "microdash": "~1",
-    "phpcommon": "^1.12.1",
+    "phpcommon": "^1.13.0",
     "source-map": "^0.5.6",
     "source-map-to-comment": "^1.1.0",
     "transpiler": "~1.2"
