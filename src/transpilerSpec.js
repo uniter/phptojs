@@ -570,6 +570,11 @@ function processBlock(statements, interpret, context, labelRepository) {
         }
 
         if (subsequentLabels.length > 0) {
+            /*
+             * When jumping backwards, we need to be able to skip over any code between the start
+             * of the function (as we jump back to the top of the special loop added around the entire function)
+             * and the target statement. Each nested block will need a separate jump-if.
+             */
             statementData.prefix = 'if (!goingToLabel_' + subsequentLabels.join(' && !goingToLabel_') + ') {' + statementData.prefix;
             statementData.suffix += '}';
         }
