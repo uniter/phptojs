@@ -140,13 +140,16 @@ describe('Transpiler "break" statement test', function () {
                     name: 'N_INTEGER',
                     number: 21
                 },
-                statements: [{
-                    name: 'N_BREAK_STATEMENT',
-                    levels: {
-                        name: 'N_INTEGER',
-                        number: '1'
-                    }
-                }]
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_BREAK_STATEMENT',
+                        levels: {
+                            name: 'N_INTEGER',
+                            number: '1'
+                        }
+                    }]
+                }
             }]
         };
 
@@ -300,13 +303,16 @@ describe('Transpiler "break" statement test', function () {
                     name: 'N_INTEGER',
                     number: 21
                 },
-                statements: [{
-                    name: 'N_BREAK_STATEMENT',
-                    levels: {
-                        name: 'N_INTEGER',
-                        number: 2
-                    }
-                }]
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_BREAK_STATEMENT',
+                        levels: {
+                            name: 'N_INTEGER',
+                            number: 2
+                        }
+                    }]
+                }
             }]
         };
 

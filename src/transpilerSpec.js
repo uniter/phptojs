@@ -1989,14 +1989,7 @@ module.exports = {
 
             labelRepository.on('found label', onFoundLabel);
 
-            // Create a virtual compound statement node, so that it is processed as a block correctly -
-            // both via processBlock(...) and by correcting defining blockContexts
-            // TODO: Change the N_WHILE_STATEMENT node to take an N_COMPOUND_STATEMENT as its "body"
-            //       to remove the need for this
-            codeChunks = interpret({
-                name: 'N_COMPOUND_STATEMENT',
-                statements: node.statements
-            }, subContext);
+            codeChunks = interpret(node.body, subContext);
 
             labelRepository.off('found label', onFoundLabel);
 

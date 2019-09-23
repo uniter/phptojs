@@ -342,19 +342,22 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_VARIABLE',
                     variable: 'myCondition'
                 },
-                statements: [{
-                    name: 'N_GOTO_STATEMENT',
-                    label: 'my_label'
-                }, {
-                    name: 'N_ECHO_STATEMENT',
-                    expressions: [{
-                        name: 'N_INTEGER',
-                        number: '4'
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_GOTO_STATEMENT',
+                        label: 'my_label'
+                    }, {
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_INTEGER',
+                            number: '4'
+                        }]
+                    }, {
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
                     }]
-                }, {
-                    name: 'N_LABEL_STATEMENT',
-                    label: 'my_label'
-                }]
+                }
             }]
         };
 
@@ -477,16 +480,19 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_VARIABLE',
                     variable: 'myCondition'
                 },
-                statements: [{
-                    name: 'N_LABEL_STATEMENT',
-                    label: 'my_label'
-                }, {
-                    name: 'N_ECHO_STATEMENT',
-                    expressions: [{
-                        name: 'N_INTEGER',
-                        number: '4'
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
+                    }, {
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_INTEGER',
+                            number: '4'
+                        }]
                     }]
-                }]
+                }
             }]
         };
 
@@ -504,16 +510,19 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_VARIABLE',
                     variable: 'myCondition'
                 },
-                statements: [{
-                    name: 'N_LABEL_STATEMENT',
-                    label: 'my_label'
-                }, {
-                    name: 'N_ECHO_STATEMENT',
-                    expressions: [{
-                        name: 'N_INTEGER',
-                        number: '4'
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
+                    }, {
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_INTEGER',
+                            number: '4'
+                        }]
                     }]
-                }]
+                }
             }, {
                 name: 'N_GOTO_STATEMENT',
                 label: 'my_label'
