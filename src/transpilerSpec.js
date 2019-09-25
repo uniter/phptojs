@@ -213,30 +213,38 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     return body;
 }
 
-function processBlock(statements, interpret, context) {
-    var codeChunks = [],
-        labelRepository = context.labelRepository,
+/**
+ * Transpiles the list of statements given, recording all labels and gotos within each one
+ *
+ * @param {object[]} statements
+ * @param {Function} interpret
+ * @param {object} context
+ * @param {LabelRepository} labelRepository
+ * @return {object[]}
+ */
+function transpileWithLabelsAndGotos(statements, interpret, context, labelRepository) {
+    var gotos,
+        labels,
         statementDatas = [];
 
+    function onGoto(label) {
+        gotos[label] = true;
+    }
+
+    function onFoundLabel(label) {
+        labels[label] = true;
+    }
+
+    labelRepository.on('goto label', onGoto);
+    labelRepository.on('found label', onFoundLabel);
+
     _.each(statements, function (statement) {
-        var labels = {},
-            gotos = {},
-            statementCodeChunks;
+        var statementCodeChunks;
 
-        function onGoto(label) {
-            gotos[label] = true;
-        }
-
-        function onFoundLabel(label) {
-            labels[label] = true;
-        }
-
-        labelRepository.on('goto label', onGoto);
-        labelRepository.on('found label', onFoundLabel);
+        labels = {};
+        gotos = {};
 
         statementCodeChunks = interpret(statement, context);
-        labelRepository.off('goto label', onGoto);
-        labelRepository.off('found label', onFoundLabel);
 
         statementDatas.push({
             codeChunks: statementCodeChunks,
@@ -247,10 +255,26 @@ function processBlock(statements, interpret, context) {
         });
     });
 
+    labelRepository.off('goto label', onGoto);
+    labelRepository.off('found label', onFoundLabel);
+
+    return statementDatas;
+}
+
+function processBlock(statements, interpret, context) {
+    var codeChunks = [],
+        labelsWithBackwardJumpLoopAdded = {},
+        labelsWithForwardJumpBlockAdded = {},
+        labelRepository = context.labelRepository,
+        statementDatas = transpileWithLabelsAndGotos(statements, interpret, context, labelRepository);
+
     _.each(statementDatas, function (statementData, index) {
         var subsequentIndex,
             subsequentLabels = [];
 
+        // If any statements after the current one contain a label declaration,
+        // add an if statement so that this statement may be skipped over after performing
+        // a goto jump via JS break or continue that doesn't quite take execution to the right place
         for (subsequentIndex = index + 1; subsequentIndex < statementDatas.length; subsequentIndex++) {
             subsequentLabels = subsequentLabels.concat(Object.keys(statementDatas[subsequentIndex].labels));
         }
@@ -266,24 +290,50 @@ function processBlock(statements, interpret, context) {
             if (!hasOwn.call(statementData.labels, label)) {
                 // This is a goto to a label in another statement: find the statement containing the label
                 _.each(statementDatas, function (otherStatementData, otherStatementIndex) {
-                    if (otherStatementData !== statementData) {
-                        if (hasOwn.call(otherStatementData.labels, label)) {
-                            // We have found the label we are trying to jump to
-                            if (otherStatementIndex > statementIndex) {
-                                // The label is after the goto (forward jump)
-                                statementDatas[0].prefix = label + ': {' + statementDatas[0].prefix;
-                                otherStatementData.prefix = '}' + otherStatementData.prefix;
-                            } else {
-                                // The goto is after the label (backward jump)
-                                // TODO: Consider only using one do..while loop for this per-function
-                                //       or per-block where one is needed
-                                statementDatas[0].prefix = 'continue_' + label + ': do {' + statementDatas[0].prefix;
-                                statementDatas[statementDatas.length - 1].suffix += '} while (goingToLabel_' + label + ');';
-                            }
-
-                            return false;
-                        }
+                    if (otherStatementData === statementData) {
+                        // No need to check the statement against itself
+                        return;
                     }
+
+                    if (!hasOwn.call(otherStatementData.labels, label)) {
+                        // This statement does not contain the label the goto targets: try the next one
+                        return;
+                    }
+
+                    // If we reach here, we have found the label we are trying to jump to
+
+                    if (otherStatementIndex > statementIndex) {
+                        // [Forward jump] the label is (or is nested inside) a statement after the goto
+
+                        if (hasOwn.call(labelsWithForwardJumpBlockAdded, label)) {
+                            // We have already added a block that can be used for this forward jump's JS break statement
+                            return;
+                        }
+
+                        labelsWithForwardJumpBlockAdded[label] = true;
+
+                        statementDatas[0].prefix = 'break_' + label + ': {' + statementDatas[0].prefix;
+                        otherStatementData.prefix = '}' + otherStatementData.prefix;
+                    } else {
+                        // [Backward jump] the goto is (or is nested inside) a statement after the label
+
+                        if (hasOwn.call(labelsWithBackwardJumpLoopAdded, label)) {
+                            // We have already added a loop (that wraps the entire body of the function)
+                            // that can be used for this backward jump's JS continue statement
+                            return;
+                        }
+
+                        labelsWithBackwardJumpLoopAdded[label] = true;
+
+                        // We can use `break` but not `continue` with plain JS block statements.
+                        // However, if we use a loop we can then use `continue` in order to jump backwards.
+                        // TODO: Should this just be an infinite loop (eg. `for (;;) {...}`) with a `break;` at the end
+                        //       so that it only ever executes once? Or a do..while with `while (false);`?
+                        statementDatas[0].prefix = 'continue_' + label + ': do {' + statementDatas[0].prefix;
+                        statementDatas[statementDatas.length - 1].suffix += '} while (goingToLabel_' + label + ');';
+                    }
+
+                    return false;
                 });
             }
         });
@@ -949,7 +999,7 @@ module.exports = {
             if (context.labelRepository.hasBeenFound(label)) {
                 code += ' continue continue_' + label + ';';
             } else {
-                code += ' break ' + label + ';';
+                code += ' break break_' + label + ';';
             }
 
             return context.createStatementSourceNode([code], node);

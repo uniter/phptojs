@@ -49,13 +49,13 @@ describe('Transpiler "goto" statement test', function () {
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var goingToLabel_my_goto_label = false;' +
-            'my_goto_label: {' +
+            'break_my_goto_label: {' +
                 'if (!goingToLabel_my_goto_label) {' +
                     'stdout.write(tools.valueFactory.createString("Let us begin...").coerceToString().getNative());' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
                     'goingToLabel_my_goto_label = true; ' +
-                    'break my_goto_label;' +
+                    'break break_my_goto_label;' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
                     'stdout.write(tools.valueFactory.createString("... continue...").coerceToString().getNative());' +
@@ -111,6 +111,118 @@ describe('Transpiler "goto" statement test', function () {
                 'goingToLabel_my_goto_label = true; ' +
                 'continue continue_my_goto_label;' +
                 'stdout.write(tools.valueFactory.createString("... and let us finish").coerceToString().getNative());' +
+            '} while (goingToLabel_my_goto_label);' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
+    it('should correctly transpile two gotos at the root level that jump forward to the same label', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_goto_label'
+            }, {
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: 'I am in between...'
+                }]
+            }, {
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_goto_label'
+            }, {
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: '... I am also...'
+                }]
+            }, {
+                name: 'N_LABEL_STATEMENT',
+                label: 'my_goto_label'
+            }, {
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: '... and we are done'
+                }]
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var goingToLabel_my_goto_label = false;' +
+            'break_my_goto_label: {' +
+                'if (!goingToLabel_my_goto_label) {' +
+                    'goingToLabel_my_goto_label = true; ' +
+                    'break break_my_goto_label;' +
+                '}' +
+                'if (!goingToLabel_my_goto_label) {' +
+                    'stdout.write(tools.valueFactory.createString("I am in between...").coerceToString().getNative());' +
+                '}' +
+                'if (!goingToLabel_my_goto_label) {' +
+                    'goingToLabel_my_goto_label = true; ' +
+                    'break break_my_goto_label;' +
+                '}' +
+                'if (!goingToLabel_my_goto_label) {' +
+                    'stdout.write(tools.valueFactory.createString("... I am also...").coerceToString().getNative());' +
+                '}' +
+            '}' +
+            'goingToLabel_my_goto_label = false;' +
+            'stdout.write(tools.valueFactory.createString("... and we are done").coerceToString().getNative());' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
+    it('should correctly transpile two gotos at the root level that jump backward to the same label', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_LABEL_STATEMENT',
+                label: 'my_goto_label'
+            }, {
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: 'I am in between...'
+                }]
+            }, {
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_goto_label'
+            }, {
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: '... I am also...'
+                }]
+            }, {
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_goto_label'
+            }, {
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: '... and we are done'
+                }]
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var goingToLabel_my_goto_label = false;' +
+            'continue_my_goto_label: do {' +
+                'goingToLabel_my_goto_label = false;' +
+                'stdout.write(tools.valueFactory.createString("I am in between...").coerceToString().getNative());' +
+                'goingToLabel_my_goto_label = true; ' +
+                'continue continue_my_goto_label;' +
+                'stdout.write(tools.valueFactory.createString("... I am also...").coerceToString().getNative());' +
+                'goingToLabel_my_goto_label = true; ' +
+                'continue continue_my_goto_label;' +
+                'stdout.write(tools.valueFactory.createString("... and we are done").coerceToString().getNative());' +
             '} while (goingToLabel_my_goto_label);' +
             'return tools.valueFactory.createNull();' +
             '});'
@@ -188,21 +300,21 @@ describe('Transpiler "goto" statement test', function () {
             'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
                 'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
                 'var goingToLabel_first_label = false, goingToLabel_second_label = false;' +
-                'second_label: {' +
-                    'first_label: {' +
+                'break_second_label: {' +
+                    'break_first_label: {' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'goingToLabel_first_label = true; ' +
-                            'break first_label;' +
+                            'break break_first_label;' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'goingToLabel_second_label = true; ' +
-                            'break second_label;' +
+                            'break break_second_label;' +
                         '}' +
                     '}' +
                     'if (!goingToLabel_second_label) {' +
@@ -301,13 +413,13 @@ describe('Transpiler "goto" statement test', function () {
                 'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
                 'var goingToLabel_second_label = false, goingToLabel_first_label = false;' +
                 'continue_first_label: do {' +
-                    'second_label: {' +
+                    'break_second_label: {' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'goingToLabel_second_label = true; ' +
-                            'break second_label;' +
+                            'break break_second_label;' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
@@ -366,10 +478,10 @@ describe('Transpiler "goto" statement test', function () {
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var goingToLabel_my_label = false;' +
             'block_1: while (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative()) {' +
-                'my_label: {' +
+                'break_my_label: {' +
                     'if (!goingToLabel_my_label) {' +
                         'goingToLabel_my_label = true; ' +
-                        'break my_label;' +
+                        'break break_my_label;' +
                     '}' +
                     'if (!goingToLabel_my_label) {' +
                         'stdout.write(tools.valueFactory.createInteger(4).coerceToString().getNative());' +
@@ -415,10 +527,10 @@ describe('Transpiler "goto" statement test', function () {
             'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
             'var goingToLabel_my_label = false;' +
             'block_1: do {' +
-                'my_label: {' +
+                'break_my_label: {' +
                     'if (!goingToLabel_my_label) {' +
                         'goingToLabel_my_label = true; ' +
-                        'break my_label;' +
+                        'break break_my_label;' +
                     '}' +
                     'if (!goingToLabel_my_label) {' +
                         'stdout.write(tools.valueFactory.createInteger(4).coerceToString().getNative());' +
