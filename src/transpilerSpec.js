@@ -213,32 +213,38 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     return body;
 }
 
-function processBlock(statements, interpret, context) {
-    var codeChunks = [],
-        labelsWithBackwardJumpLoopAdded = {},
-        labelsWithForwardJumpBlockAdded = {},
-        labelRepository = context.labelRepository,
+/**
+ * Transpiles the list of statements given, recording all labels and gotos within each one
+ *
+ * @param {object[]} statements
+ * @param {Function} interpret
+ * @param {object} context
+ * @param {LabelRepository} labelRepository
+ * @return {object[]}
+ */
+function transpileWithLabelsAndGotos(statements, interpret, context, labelRepository) {
+    var gotos,
+        labels,
         statementDatas = [];
 
+    function onGoto(label) {
+        gotos[label] = true;
+    }
+
+    function onFoundLabel(label) {
+        labels[label] = true;
+    }
+
+    labelRepository.on('goto label', onGoto);
+    labelRepository.on('found label', onFoundLabel);
+
     _.each(statements, function (statement) {
-        var labels = {},
-            gotos = {},
-            statementCodeChunks;
+        var statementCodeChunks;
 
-        function onGoto(label) {
-            gotos[label] = true;
-        }
-
-        function onFoundLabel(label) {
-            labels[label] = true;
-        }
-
-        labelRepository.on('goto label', onGoto);
-        labelRepository.on('found label', onFoundLabel);
+        labels = {};
+        gotos = {};
 
         statementCodeChunks = interpret(statement, context);
-        labelRepository.off('goto label', onGoto);
-        labelRepository.off('found label', onFoundLabel);
 
         statementDatas.push({
             codeChunks: statementCodeChunks,
@@ -249,10 +255,26 @@ function processBlock(statements, interpret, context) {
         });
     });
 
+    labelRepository.off('goto label', onGoto);
+    labelRepository.off('found label', onFoundLabel);
+
+    return statementDatas;
+}
+
+function processBlock(statements, interpret, context) {
+    var codeChunks = [],
+        labelsWithBackwardJumpLoopAdded = {},
+        labelsWithForwardJumpBlockAdded = {},
+        labelRepository = context.labelRepository,
+        statementDatas = transpileWithLabelsAndGotos(statements, interpret, context, labelRepository);
+
     _.each(statementDatas, function (statementData, index) {
         var subsequentIndex,
             subsequentLabels = [];
 
+        // If any statements after the current one contain a label declaration,
+        // add an if statement so that this statement may be skipped over after performing
+        // a goto jump via JS break or continue that doesn't quite take execution to the right place
         for (subsequentIndex = index + 1; subsequentIndex < statementDatas.length; subsequentIndex++) {
             subsequentLabels = subsequentLabels.concat(Object.keys(statementDatas[subsequentIndex].labels));
         }
