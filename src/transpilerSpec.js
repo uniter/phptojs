@@ -1038,19 +1038,12 @@ module.exports = {
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
 
-            function onGoto(label) {
-                delete gotosJumpingIn[label];
-            }
-
             function onFoundLabel(label) {
                 gotosJumpingIn[label] = true;
             }
 
-            labelRepository.on('goto label', onGoto);
             labelRepository.on('found label', onFoundLabel);
-
             consequentCodeChunks = interpret(node.consequentStatement);
-            labelRepository.off('goto label', onGoto);
             labelRepository.off('found label', onFoundLabel);
 
             _.each(Object.keys(gotosJumpingIn), function (label) {

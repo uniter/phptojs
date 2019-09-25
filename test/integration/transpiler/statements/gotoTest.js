@@ -580,6 +580,203 @@ describe('Transpiler "goto" statement test', function () {
         );
     });
 
+    it('should correctly transpile a jump into an if statement consequent clause', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: 'first'
+                }]
+            }, {
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_label'
+            }, {
+                name: 'N_IF_STATEMENT',
+                condition: {
+                    name: 'N_VARIABLE',
+                    variable: 'myCondition'
+                },
+                consequentStatement: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_STRING_LITERAL',
+                            string: 'second'
+                        }]
+                    }, {
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var goingToLabel_my_label = false;' +
+            'break_my_label: {' +
+                'if (!goingToLabel_my_label) {' +
+                    'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                '}' +
+                'if (!goingToLabel_my_label) {' +
+                    'goingToLabel_my_label = true; ' +
+                    'break break_my_label;' +
+                '}' +
+            '}' +
+            // The if statement's condition must allow execution to pass if we need to jump to a label
+            // that is inside its consequent clause's body
+            'if (goingToLabel_my_label || (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative())) {' +
+                'if (!goingToLabel_my_label) {' +
+                    'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+                '}' +
+                'goingToLabel_my_label = false;' +
+            '}' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
+    it('should correctly transpile a jump into an if statement alternate clause', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: 'first'
+                }]
+            }, {
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_label'
+            }, {
+                name: 'N_IF_STATEMENT',
+                condition: {
+                    name: 'N_VARIABLE',
+                    variable: 'myCondition'
+                },
+                consequentStatement: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_STRING_LITERAL',
+                            string: 'second'
+                        }]
+                    }]
+                },
+                alternateStatement: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_STRING_LITERAL',
+                            string: 'third'
+                        }]
+                    }, {
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var goingToLabel_my_label = false;' +
+            'break_my_label: {' +
+                'if (!goingToLabel_my_label) {' +
+                    'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                '}' +
+                'if (!goingToLabel_my_label) {' +
+                    'goingToLabel_my_label = true; ' +
+                    'break break_my_label;' +
+                '}' +
+            '}' +
+            // The if statement's condition must _not_ allow execution to pass if we need to jump to a label
+            // that is inside its alternate clause's body
+            'if (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative()) {' +
+                'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+            '} else {' +
+                'if (!goingToLabel_my_label) {' +
+                    'stdout.write(tools.valueFactory.createString("third").coerceToString().getNative());' +
+                '}' +
+                'goingToLabel_my_label = false;' +
+            '}' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
+    it('should correctly transpile a jump into an if statement consequent clause when there is also a backward jump inside', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_ECHO_STATEMENT',
+                expressions: [{
+                    name: 'N_STRING_LITERAL',
+                    string: 'first'
+                }]
+            }, {
+                name: 'N_GOTO_STATEMENT',
+                label: 'my_label'
+            }, {
+                name: 'N_IF_STATEMENT',
+                condition: {
+                    name: 'N_VARIABLE',
+                    variable: 'myCondition'
+                },
+                consequentStatement: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
+                    }, {
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_STRING_LITERAL',
+                            string: 'second'
+                        }]
+                    }, {
+                        name: 'N_GOTO_STATEMENT',
+                        label: 'my_label'
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'var goingToLabel_my_label = false;' +
+            'break_my_label: {' +
+                'if (!goingToLabel_my_label) {' +
+                    'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                '}' +
+                'if (!goingToLabel_my_label) {' +
+                    'goingToLabel_my_label = true; ' +
+                    'break break_my_label;' +
+                '}' +
+            '}' +
+            // The if statement's condition must allow execution to pass if we need to jump to a label
+            // that is inside its consequent clause's body
+            'if (goingToLabel_my_label || (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative())) {' +
+                'continue_my_label: do {' +
+                    'goingToLabel_my_label = false;' +
+                    'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+                    'goingToLabel_my_label = true; ' +
+                    'continue continue_my_label;' +
+                '} while (goingToLabel_my_label);' +
+            '}' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
     it('should correctly transpile a goto to a label inside a function', function () {
         var ast = {
             name: 'N_PROGRAM',
