@@ -580,6 +580,64 @@ describe('Transpiler "goto" statement test', function () {
         );
     });
 
+    it('should correctly transpile a goto to a label inside a function', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_FUNCTION_STATEMENT',
+                func: {
+                    name: 'N_STRING',
+                    string: 'myFunc'
+                },
+                args: [],
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_GOTO_STATEMENT',
+                        label: 'my_label'
+                    }, {
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_STRING_LITERAL',
+                            string: 'first'
+                        }]
+                    }, {
+                        name: 'N_LABEL_STATEMENT',
+                        label: 'my_label'
+                    }, {
+                        name: 'N_ECHO_STATEMENT',
+                        expressions: [{
+                            name: 'N_STRING_LITERAL',
+                            string: 'second'
+                        }]
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'namespace.defineFunction("myFunc", function _myFunc() {' +
+                'var scope = this;' +
+                'var goingToLabel_my_label = false;' +
+                'break_my_label: {' +
+                    'if (!goingToLabel_my_label) {' +
+                        'goingToLabel_my_label = true; ' +
+                        'break break_my_label;' +
+                    '}' +
+                    'if (!goingToLabel_my_label) {' +
+                        'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                    '}' +
+                '}' +
+                'goingToLabel_my_label = false;' +
+                'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+            '}, namespaceScope);' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
     it('should throw a fatal error when attempting to jump forwards into a while loop', function () {
         var ast = {
             name: 'N_PROGRAM',

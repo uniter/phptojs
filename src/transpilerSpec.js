@@ -96,6 +96,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
         labelRepository = new LabelRepository(),
+        labels,
         subContext = {
             // This sub-context will be merged with the parent one,
             // so we need to override any value for the `assignment` and `getValue` options
@@ -115,6 +116,13 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
             'label': labelRepository.getPendingLabels()[0]
         });
+    }
+
+    labels = labelRepository.getLabels();
+
+    // Define a flag variable for jumps to any labels
+    if (labels.length > 0) {
+        body.unshift('var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;');
     }
 
     if (context.buildingSourceMap) {
