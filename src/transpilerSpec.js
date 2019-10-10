@@ -11,6 +11,7 @@
 
 var _ = require('microdash'),
     BARE = 'bare',
+    MODE = 'mode',
     PATH = 'path',
     PREFIX = 'prefix',
     RUNTIME_PATH = 'runtimePath',
@@ -1577,9 +1578,18 @@ module.exports = {
                 context.createStatementSourceNode = createSpecificSourceNode;
             }
 
-            // Optional synchronous mode
-            if (options[SYNC]) {
+            if (options[MODE] && options[SYNC]) {
+                throw new Error('Only one of "mode" and "sync" options should be specified');
+            }
+
+            if (options[MODE] === 'sync' || options[SYNC]) {
+                // Synchronous mode
                 name += '/sync';
+            } else if (options[MODE] === 'psync') {
+                // Promise-synchronous mode
+                name += '/psync';
+            } else if (options[MODE] && options[MODE] !== 'async') {
+                throw new Error('Invalid mode "' + options[MODE] + '" given');
             }
 
             body.push(processBlock(hoistDeclarations(node.statements), interpret, context));
