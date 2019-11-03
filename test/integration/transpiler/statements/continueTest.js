@@ -247,14 +247,17 @@ describe('Transpiler "continue" statement test', function () {
                 name: 'N_CONTINUE_STATEMENT',
                 levels: {
                     name: 'N_INTEGER',
-                    number: 0
-                }
-            }]
+                    number: 0,
+                    bounds: {start: {line: 7, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'continue\' operator accepts only positive numbers');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'continue\' operator accepts only positive numbers in my_module.php on line 7');
     });
 
     it('should throw a fatal error when negative one is given as the continue level', function () {
@@ -264,14 +267,17 @@ describe('Transpiler "continue" statement test', function () {
                 name: 'N_CONTINUE_STATEMENT',
                 levels: {
                     name: 'N_INTEGER',
-                    number: -1
-                }
-            }]
+                    number: -1,
+                    bounds: {start: {line: 4, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'continue\' operator accepts only positive numbers');
+            phpToJS.transpile(ast, {path: 'their_module.php'});
+        }).to.throw(PHPFatalError, '\'continue\' operator accepts only positive numbers in their_module.php on line 4');
     });
 
     it('should throw a runtime fatal error when not inside a looping structure for 1 level', function () {

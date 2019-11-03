@@ -19,6 +19,15 @@ var _ = require('microdash'),
     SOURCE_MAP = 'sourceMap',
     SUFFIX = 'suffix',
     SYNC = 'sync',
+    TRANSLATOR = 'translator',
+
+    GOTO_DISALLOWED = 'core.goto_disallowed',
+    GOTO_TO_UNDEFINED_LABEL = 'core.goto_to_undefined_label',
+    INTERFACE_METHOD_BODY_NOT_ALLOWED = 'core.interface_method_body_not_allowed',
+    INTERFACE_PROPERTY_NOT_ALLOWED = 'core.interface_property_not_allowed',
+    LABEL_ALREADY_DEFINED = 'core.label_already_defined',
+    OPERATOR_REQUIRES_POSITIVE_NUMBER = 'core.operator_requires_positive_number',
+
     binaryOperatorToMethod = {
         '+': 'add',
         '-': 'subtract',
@@ -57,8 +66,10 @@ var _ = require('microdash'),
         }
     },
     hasOwn = {}.hasOwnProperty,
+    phpCommon = require('phpcommon'),
     sourceMap = require('source-map'),
     sourceMapToComment = require('source-map-to-comment'),
+    transpilerMessages = require('./builtin/messages/transpiler'),
     unaryOperatorToMethod = {
         prefix: {
             '+': 'toPositive',
@@ -74,8 +85,9 @@ var _ = require('microdash'),
         }
     },
     LabelRepository = require('./LabelRepository'),
-    PHPFatalError = require('phpcommon').PHPFatalError,
-    SourceNode = sourceMap.SourceNode;
+    PHPFatalError = phpCommon.PHPFatalError,
+    SourceNode = sourceMap.SourceNode,
+    Translator = phpCommon.Translator;
 
 function hoistDeclarations(statements) {
     var declarations = [],
@@ -98,6 +110,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         bindingAssignmentChunks = [],
         labelRepository = new LabelRepository(),
         labels,
+        pendingLabelGotoNode,
         subContext = {
             // This sub-context will be merged with the parent one,
             // so we need to override any value for the `assignment` and `getValue` options
@@ -114,8 +127,10 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     if (labelRepository.hasPending()) {
         // After processing the body of the function, one or more gotos were found targetting labels
         // that were never defined, so throw a compile-time fatal error
-        throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
-            'label': labelRepository.getPendingLabels()[0]
+        pendingLabelGotoNode = labelRepository.getFirstPendingLabelGotoNode();
+
+        context.raiseError(GOTO_TO_UNDEFINED_LABEL, pendingLabelGotoNode.label, {
+            'label': pendingLabelGotoNode.label.string
         });
     }
 
@@ -236,12 +251,12 @@ function transpileWithLabelsAndGotos(statements, interpret, context, labelReposi
         labels,
         statementDatas = [];
 
-    function onGoto(label) {
-        gotos[label] = true;
+    function onGoto(gotoNode) {
+        gotos[gotoNode.label.string] = true;
     }
 
-    function onFoundLabel(label) {
-        labels[label] = true;
+    function onFoundLabel(labelNode) {
+        labels[labelNode.label.string] = true;
     }
 
     labelRepository.on('goto label', onGoto);
@@ -470,7 +485,7 @@ module.exports = {
 
             // Invalid target levels throw a compile-time fatal error
             if (node.levels.number <= 0) {
-                throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
+                context.raiseError(OPERATOR_REQUIRES_POSITIVE_NUMBER, node.levels, {
                     'operator': 'break'
                 });
             }
@@ -608,7 +623,7 @@ module.exports = {
 
             // Invalid target levels throw a compile-time fatal error
             if (node.levels.number <= 0) {
-                throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
+                context.raiseError(OPERATOR_REQUIRES_POSITIVE_NUMBER, node.levels, {
                     'operator': 'continue'
                 });
             }
@@ -650,13 +665,15 @@ module.exports = {
                 codeChunks,
                 conditionChunks = interpret(node.condition, subContext);
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this do..while loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -666,11 +683,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this do..while loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -838,13 +857,15 @@ module.exports = {
                 initializerCodeChunks = interpret(node.initializer, subContext),
                 updateCodeChunks = interpret(node.update, subContext);
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this for loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -854,11 +875,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this for loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -929,13 +952,15 @@ module.exports = {
                 codeChunks.push(key, '.setValue(' + iteratorVariable + '.getCurrentKey());');
             }
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this foreach loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -945,11 +970,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this foreach loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -999,9 +1026,9 @@ module.exports = {
         },
         'N_GOTO_STATEMENT': function (node, interpret, context) {
             var code = '',
-                label = node.label;
+                label = node.label.string;
 
-            context.labelRepository.addGoto(label);
+            context.labelRepository.addGoto(node);
 
             code += 'goingToLabel_' + label + ' = true;';
 
@@ -1039,7 +1066,9 @@ module.exports = {
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 gotosJumpingIn[label] = true;
             }
 
@@ -1126,9 +1155,11 @@ module.exports = {
                 var data = interpret(member);
 
                 if (member.name === 'N_INSTANCE_PROPERTY_DEFINITION' || member.name === 'N_STATIC_PROPERTY_DEFINITION') {
-                    throw new PHPFatalError(PHPFatalError.INTERFACE_PROPERTY_NOT_ALLOWED);
+                    // NB: The line number must actually be that of the variable name itself if spanning multiple lines
+                    context.raiseError(INTERFACE_PROPERTY_NOT_ALLOWED, member.variable);
                 } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
-                    throw new PHPFatalError(PHPFatalError.INTERFACE_METHOD_BODY_NOT_ALLOWED, {
+                    // NB: The line number must actually be that of the function keyword itself if spanning multiple lines
+                    context.raiseError(INTERFACE_METHOD_BODY_NOT_ALLOWED, member, {
                         className: node.interfaceName,
                         methodName: member.func ? member.func.string : member.method.string
                     });
@@ -1206,16 +1237,18 @@ module.exports = {
             );
         },
         'N_LABEL_STATEMENT': function (node, interpret, context) {
-            var label = node.label;
+            var label = node.label.string;
 
             if (context.labelRepository.hasBeenFound(label)) {
                 // This is an attempt to redefine the label, so throw a compile-time fatal error
-                throw new PHPFatalError(PHPFatalError.LABEL_ALREADY_DEFINED, {
+                // (NB: when spanning multiple lines, it is the label itself whose line should be reported,
+                // not the label statement)
+                context.raiseError(LABEL_ALREADY_DEFINED, node.label, {
                     'label': label
                 });
             }
 
-            context.labelRepository.found(label);
+            context.labelRepository.found(node);
 
             return [
                 // Once we've reached the label, reset the flag that indicates we were going to it
@@ -1430,6 +1463,7 @@ module.exports = {
                 createSpecificSourceNode,
                 filePath = options ? options[PATH] : null,
                 labelRepository = new LabelRepository(),
+                translator,
                 context = {
                     // Whether source map is to be built will be set later based on options
                     blockContexts: [],
@@ -1440,11 +1474,25 @@ module.exports = {
                     createStatementSourceNode: null,
                     labelRepository: labelRepository,
                     lineNumbers: null,
+                    /**
+                     * Raises a PHPFatalError for the given translation key, variables and AST node
+                     *
+                     * @param {string} translationKey
+                     * @param {object} node
+                     * @param {Object.<String, string>=} placeholderVariables
+                     */
+                    raiseError: function (translationKey, node, placeholderVariables) {
+                        var message = translator.translate(translationKey, placeholderVariables),
+                            lineNumber = node.bounds ? node.bounds.start.line : null;
+
+                        throw new PHPFatalError(message, filePath, lineNumber);
+                    },
                     tick: null,
                     variableMap: {}
                 },
                 labels,
                 name,
+                pendingLabelGotoNode,
                 sourceMap,
                 sourceMapOptions;
 
@@ -1457,6 +1505,12 @@ module.exports = {
             sourceMapOptions = options[SOURCE_MAP] ?
                 (options[SOURCE_MAP] === true ? {} : options[SOURCE_MAP]) :
                 null;
+
+            translator = options[TRANSLATOR] || new Translator();
+            // Add our transpilation-related messages to the translator
+            // (note that these may be overridden later by an external library)
+            translator.addTranslations(transpilerMessages);
+
             context.buildingSourceMap = !!sourceMapOptions;
             context.lineNumbers = !!options.lineNumbers;
             context.tick = !!options.tick;
@@ -1597,8 +1651,10 @@ module.exports = {
             if (labelRepository.hasPending()) {
                 // After processing the root body of the program, one or more gotos were found targetting labels
                 // that were never defined, so throw a compile-time fatal error
-                throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
-                    'label': labelRepository.getPendingLabels()[0]
+                pendingLabelGotoNode = labelRepository.getFirstPendingLabelGotoNode();
+
+                context.raiseError(GOTO_TO_UNDEFINED_LABEL, pendingLabelGotoNode.label, {
+                    'label': pendingLabelGotoNode.label.string
                 });
             }
 
@@ -1860,13 +1916,15 @@ module.exports = {
                 ' switchMatched_' + blockContexts.length + ' = false;'
             );
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this switch (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -1878,11 +1936,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this switch (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -2038,13 +2098,15 @@ module.exports = {
                 conditionChunks = interpret(node.condition, subContext),
                 codeChunks;
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this while loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -2054,11 +2116,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this while loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 

@@ -26,7 +26,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT', // Jump over the "... continue ..." echo
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -35,7 +38,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -79,7 +85,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -88,7 +97,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT', // Jump back to just before the "... continue ..." label indefinitely
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -122,7 +134,10 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -131,7 +146,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -140,7 +158,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -182,7 +203,10 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -191,7 +215,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -200,7 +227,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_goto_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -259,7 +289,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'first_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'first_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -268,10 +301,16 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'second_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'second_label'
+                }
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'first_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'first_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -286,7 +325,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'second_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'second_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -366,7 +408,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'second_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'second_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -375,7 +420,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'first_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'first_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -389,7 +437,10 @@ describe('Transpiler "goto" statement test', function () {
                 }
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'second_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'second_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -398,7 +449,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'first_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'first_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -458,7 +512,10 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_GOTO_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
@@ -467,7 +524,10 @@ describe('Transpiler "goto" statement test', function () {
                         }]
                     }, {
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }]
                 }
             }]
@@ -507,7 +567,10 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_GOTO_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
@@ -516,7 +579,10 @@ describe('Transpiler "goto" statement test', function () {
                         }]
                     }, {
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }]
                 }
             }]
@@ -554,7 +620,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_unused_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_unused_label'
+                }
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
@@ -591,7 +660,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label'
+                }
             }, {
                 name: 'N_IF_STATEMENT',
                 condition: {
@@ -608,7 +680,10 @@ describe('Transpiler "goto" statement test', function () {
                         }]
                     }, {
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }]
                 }
             }]
@@ -651,7 +726,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label'
+                }
             }, {
                 name: 'N_IF_STATEMENT',
                 condition: {
@@ -678,7 +756,10 @@ describe('Transpiler "goto" statement test', function () {
                         }]
                     }, {
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }]
                 }
             }]
@@ -723,7 +804,10 @@ describe('Transpiler "goto" statement test', function () {
                 }]
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label'
+                }
             }, {
                 name: 'N_IF_STATEMENT',
                 condition: {
@@ -734,7 +818,10 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
@@ -743,7 +830,10 @@ describe('Transpiler "goto" statement test', function () {
                         }]
                     }, {
                         name: 'N_GOTO_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }]
                 }
             }]
@@ -791,7 +881,10 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_GOTO_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
@@ -800,7 +893,10 @@ describe('Transpiler "goto" statement test', function () {
                         }]
                     }, {
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label'
+                        }
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
@@ -840,32 +936,48 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 8, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_WHILE_STATEMENT',
                 condition: {
                     name: 'N_VARIABLE',
-                    variable: 'myCondition'
+                    variable: 'myCondition',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
-            }]
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in my_module.php on line 8');
     });
 
     it('should throw a fatal error when attempting to jump backwards into a while loop', function () {
@@ -875,30 +987,46 @@ describe('Transpiler "goto" statement test', function () {
                 name: 'N_WHILE_STATEMENT',
                 condition: {
                     name: 'N_VARIABLE',
-                    variable: 'myCondition'
+                    variable: 'myCondition',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 6, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in my_module.php on line 6');
     });
 
     it('should throw a fatal error when attempting to jump forwards into a do..while loop', function () {
@@ -906,32 +1034,48 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 7, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_DO_WHILE_STATEMENT',
                 condition: {
                     name: 'N_VARIABLE',
-                    variable: 'myCondition'
+                    variable: 'myCondition',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
-            }]
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'your_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in your_module.php on line 7');
     });
 
     it('should throw a fatal error when attempting to jump backwards into a do..while loop', function () {
@@ -941,30 +1085,46 @@ describe('Transpiler "goto" statement test', function () {
                 name: 'N_DO_WHILE_STATEMENT',
                 condition: {
                     name: 'N_VARIABLE',
-                    variable: 'myCondition'
+                    variable: 'myCondition',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 4, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in my_module.php on line 4');
     });
 
     it('should throw a fatal error when attempting to jump forwards into a for loop', function () {
@@ -972,40 +1132,58 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 12, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_FOR_STATEMENT',
                 initializer: {
                     name: 'N_COMMA_EXPRESSION',
-                    expressions: []
+                    expressions: [],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 condition: {
                     name: 'N_COMMA_EXPRESSION',
-                    expressions: []
+                    expressions: [],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 update: {
                     name: 'N_COMMA_EXPRESSION',
-                    expressions: []
+                    expressions: [],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
-            }]
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'their_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in their_module.php on line 12');
     });
 
     it('should throw a fatal error when attempting to jump backwards into a for loop', function () {
@@ -1015,38 +1193,56 @@ describe('Transpiler "goto" statement test', function () {
                 name: 'N_FOR_STATEMENT',
                 initializer: {
                     name: 'N_COMMA_EXPRESSION',
-                    expressions: []
+                    expressions: [],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 condition: {
                     name: 'N_COMMA_EXPRESSION',
-                    expressions: []
+                    expressions: [],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 update: {
                     name: 'N_COMMA_EXPRESSION',
-                    expressions: []
+                    expressions: [],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 3, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in my_module.php on line 3');
     });
 
     it('should throw a fatal error when attempting to jump forwards into a foreach loop', function () {
@@ -1054,39 +1250,57 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 7, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_FOREACH_STATEMENT',
                 array: {
                     name: 'N_VARIABLE',
-                    variable: 'myArray'
+                    variable: 'myArray',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 value: {
                     name: 'N_REFERENCE',
                     operand: {
                         name: 'N_VARIABLE',
-                        variable: 'item'
-                    }
+                        variable: 'item',
+                        bounds: {start: {line: 1, column: 1}}
+                    },
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
-            }]
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'your_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in your_module.php on line 7');
     });
 
     it('should throw a fatal error when attempting to jump backwards into a foreach loop', function () {
@@ -1096,37 +1310,55 @@ describe('Transpiler "goto" statement test', function () {
                 name: 'N_FOREACH_STATEMENT',
                 array: {
                     name: 'N_VARIABLE',
-                    variable: 'myArray'
+                    variable: 'myArray',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 value: {
                     name: 'N_REFERENCE',
                     operand: {
                         name: 'N_VARIABLE',
-                        variable: 'item'
-                    }
+                        variable: 'item',
+                        bounds: {start: {line: 1, column: 1}}
+                    },
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
-                    }]
-                }
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 7, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'your_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in your_module.php on line 7');
     });
 
     it('should throw a fatal error when attempting to jump forwards into a switch statement', function () {
@@ -1134,52 +1366,73 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 6, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_SWITCH_STATEMENT',
                 expression: {
                     name: 'N_EXPRESSION',
                     left: {
                         name: 'N_INTEGER',
-                        number: 21
+                        number: 21,
+                        bounds: {start: {line: 1, column: 1}}
                     },
                     right: [{
                         operator: '+',
                         operand: {
                             name: 'N_INTEGER',
-                            number: 6
+                            number: 6,
+                            bounds: {start: {line: 1, column: 1}}
                         }
-                    }]
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 cases: [{
                     name: 'N_CASE',
                     expression: {
                         name: 'N_INTEGER',
-                        number: 27
+                        number: 27,
+                        bounds: {start: {line: 1, column: 1}}
                     },
                     body: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_BREAK_STATEMENT',
                         levels: {
                             name: 'N_INTEGER',
-                            number: '1'
-                        }
-                    }]
-                }]
-            }]
+                            number: '1',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                }],
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in my_module.php on line 6');
     });
 
     it('should throw a fatal error when attempting to jump backwards into a switch statement', function () {
@@ -1191,48 +1444,69 @@ describe('Transpiler "goto" statement test', function () {
                     name: 'N_EXPRESSION',
                     left: {
                         name: 'N_INTEGER',
-                        number: 21
+                        number: 21,
+                        bounds: {start: {line: 1, column: 1}}
                     },
                     right: [{
                         operator: '+',
                         operand: {
                             name: 'N_INTEGER',
-                            number: 6
+                            number: 6,
+                            bounds: {start: {line: 1, column: 1}}
                         }
-                    }]
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 cases: [{
                     name: 'N_CASE',
                     expression: {
                         name: 'N_INTEGER',
-                        number: 27
+                        number: 27,
+                        bounds: {start: {line: 1, column: 1}}
                     },
                     body: [{
                         name: 'N_LABEL_STATEMENT',
-                        label: 'my_label'
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_label',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_INTEGER',
-                            number: '4'
-                        }]
+                            number: '4',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_BREAK_STATEMENT',
                         levels: {
                             name: 'N_INTEGER',
-                            number: '1'
-                        }
-                    }]
-                }]
+                            number: '1',
+                            bounds: {start: {line: 1, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                }],
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 8, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed');
+            phpToJS.transpile(ast, {path: 'the_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' into loop or switch statement is disallowed in the_module.php on line 8');
     });
 
     it('should throw a fatal error when the target label of the goto does not exist outside any function', function () {
@@ -1242,17 +1516,25 @@ describe('Transpiler "goto" statement test', function () {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
                     name: 'N_STRING_LITERAL',
-                    string: 'start'
-                }]
+                    string: 'start',
+                    bounds: {start: {line: 1, column: 1}}
+                }],
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_GOTO_STATEMENT',
-                label: 'my_undefined_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_undefined_label',
+                    bounds: {start: {line: 7, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' to undefined label \'my_undefined_label\'');
+            phpToJS.transpile(ast, {path: 'your_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' to undefined label \'my_undefined_label\' in your_module.php on line 7');
     });
 
     it('should throw a fatal error when the target label of the goto does not exist inside a function', function () {
@@ -1262,7 +1544,8 @@ describe('Transpiler "goto" statement test', function () {
                 name: 'N_FUNCTION_STATEMENT',
                 func: {
                     name: 'N_STRING',
-                    string: 'my_function'
+                    string: 'my_function',
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 args: [],
                 body: {
@@ -1271,19 +1554,29 @@ describe('Transpiler "goto" statement test', function () {
                         name: 'N_ECHO_STATEMENT',
                         expressions: [{
                             name: 'N_STRING_LITERAL',
-                            string: 'start'
-                        }]
+                            string: 'start',
+                            bounds: {start: {line: 1, column: 1}}
+                        }],
+                        bounds: {start: {line: 1, column: 1}}
                     }, {
                         name: 'N_GOTO_STATEMENT',
-                        label: 'my_undefined_label'
-                    }]
-                }
-            }]
+                        label: {
+                            name: 'N_STRING',
+                            string: 'my_undefined_label',
+                            bounds: {start: {line: 4, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'goto\' to undefined label \'my_undefined_label\'');
+            phpToJS.transpile(ast, {path: 'my_module.php'});
+        }).to.throw(PHPFatalError, '\'goto\' to undefined label \'my_undefined_label\' in my_module.php on line 4');
     });
 
     it('should throw a fatal error when attempting to define a label twice', function () {
@@ -1291,21 +1584,35 @@ describe('Transpiler "goto" statement test', function () {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_label'
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_ECHO_STATEMENT',
                 expressions: [{
                     name: 'N_STRING_LITERAL',
-                    string: 'Hello world'
-                }]
+                    string: 'Hello world',
+                    bounds: {start: {line: 1, column: 1}}
+                }],
+                bounds: {start: {line: 1, column: 1}}
             }, {
                 name: 'N_LABEL_STATEMENT',
-                label: 'my_label'
-            }]
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_label',
+                    bounds: {start: {line: 9, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
+        // NB: The line number quoted should be that of the second label found, not the first
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, 'Label \'my_label\' already defined');
+            phpToJS.transpile(ast, {path: '/path/to/their_module.php'});
+        }).to.throw(PHPFatalError, 'Label \'my_label\' already defined in /path/to/their_module.php on line 9');
     });
 });

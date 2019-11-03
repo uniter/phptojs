@@ -239,38 +239,44 @@ describe('Transpiler "break" statement test', function () {
         );
     });
 
-    it('should throw a fatal error when zero is given as the break level', function () {
+    it('should throw a compile time fatal error when zero is given as the break level', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_BREAK_STATEMENT',
                 levels: {
                     name: 'N_INTEGER',
-                    number: 0
-                }
-            }]
+                    number: 0,
+                    bounds: {start: {line: 4, column: 10}}
+                },
+                bounds: {start: {line: 2, column: 4}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers');
+            phpToJS.transpile(ast, {path: '/path/to/module.php', lineNumbers: true});
+        }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers in /path/to/module.php on line 4');
     });
 
-    it('should throw a fatal error when negative one is given as the break level', function () {
+    it('should throw a compile time fatal error when negative one is given as the break level', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_BREAK_STATEMENT',
                 levels: {
                     name: 'N_INTEGER',
-                    number: -1
-                }
-            }]
+                    number: -1,
+                    bounds: {start: {line: 5, column: 10}}
+                },
+                bounds: {start: {line: 2, column: 4}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers');
+            phpToJS.transpile(ast, {path: '/path/to/another.php', lineNumbers: true});
+        }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers in /path/to/another.php on line 5');
     });
 
     it('should throw a runtime fatal error when not inside a looping structure for 1 level', function () {
