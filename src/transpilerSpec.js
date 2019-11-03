@@ -1737,7 +1737,7 @@ module.exports = {
             );
         },
         'N_RETURN_STATEMENT': function (node, interpret, context) {
-            var expression = interpret(node.expression);
+            var expression = node.expression ? interpret(node.expression) : null;
 
             return context.createStatementSourceNode(
                 ['return '].concat(expression ? expression : 'tools.valueFactory.createNull()', ';'),
