@@ -10,8 +10,7 @@
 'use strict';
 
 var expect = require('chai').expect,
-    phpToJS = require('../../../..'),
-    PHPFatalError = require('phpcommon').PHPFatalError;
+    phpToJS = require('../../../..');
 
 describe('Transpiler "const" declaration statement test', function () {
     it('should correctly transpile multiple constant declarations in one statement', function () {

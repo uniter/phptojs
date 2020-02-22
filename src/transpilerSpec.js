@@ -119,7 +119,7 @@ function buildExtraFunctionDefinitionArgChunks(argSpecs) {
 
     // NB: If there are some optional args left at the end, omit them
 
-    return argChunks.map(function (argChunk, index) {
+    return argChunks.map(function (argChunk) {
         return [', '].concat(argChunk);
     });
 }
@@ -269,10 +269,9 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
  *
  * @param {Object[]} argNodes
  * @param {Function} interpret
- * @param {Object} context
  * @return {Array}
  */
-function interpretFunctionArgs(argNodes, interpret, context) {
+function interpretFunctionArgs(argNodes, interpret) {
     var allArgCodeChunks = [];
 
     _.each(argNodes, function (argNode, argIndex) {
@@ -693,7 +692,7 @@ module.exports = {
             var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context),
                 extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                     {
-                        value: interpretFunctionArgs(node.args, interpret, context),
+                        value: interpretFunctionArgs(node.args, interpret),
                         emptyValue: '[]'
                     },
                     {
@@ -1151,7 +1150,7 @@ module.exports = {
             func = interpretFunction(node.func, node.args, null, node.body, interpret, context);
             extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                 {
-                    value: interpretFunctionArgs(node.args, interpret, context),
+                    value: interpretFunctionArgs(node.args, interpret),
                     emptyValue: '[]'
                 },
                 {
@@ -1503,7 +1502,7 @@ module.exports = {
             var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                 {
                     name: 'args',
-                    value: interpretFunctionArgs(node.args, interpret, context),
+                    value: interpretFunctionArgs(node.args, interpret),
                     emptyValue: '[]'
                 },
                 {
@@ -1983,7 +1982,7 @@ module.exports = {
             var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                 {
                     name: 'args',
-                    value: interpretFunctionArgs(node.args, interpret, context),
+                    value: interpretFunctionArgs(node.args, interpret),
                     emptyValue: '[]'
                 },
                 {
