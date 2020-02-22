@@ -19,6 +19,19 @@ var _ = require('microdash'),
     SOURCE_MAP = 'sourceMap',
     SUFFIX = 'suffix',
     SYNC = 'sync',
+    TRANSLATOR = 'translator',
+
+    BREAK_OR_CONTINUE_IN_WRONG_CONTEXT = 'core.break_or_continue_in_wrong_context',
+    BREAK_OR_CONTINUE_NON_INTEGER_OPERAND = 'core.break_or_continue_non_integer_operand',
+    CANNOT_BREAK_OR_CONTINUE = 'core.cannot_break_or_continue',
+    EXPECT_EXACTLY_ONE_ARG = 'core.expect_exactly_one_arg',
+    GOTO_DISALLOWED = 'core.goto_disallowed',
+    GOTO_TO_UNDEFINED_LABEL = 'core.goto_to_undefined_label',
+    INTERFACE_METHOD_BODY_NOT_ALLOWED = 'core.interface_method_body_not_allowed',
+    INTERFACE_PROPERTY_NOT_ALLOWED = 'core.interface_property_not_allowed',
+    LABEL_ALREADY_DEFINED = 'core.label_already_defined',
+    OPERATOR_REQUIRES_POSITIVE_INTEGER = 'core.operator_requires_positive_integer',
+
     binaryOperatorToMethod = {
         '+': 'add',
         '-': 'subtract',
@@ -57,8 +70,10 @@ var _ = require('microdash'),
         }
     },
     hasOwn = {}.hasOwnProperty,
+    phpCommon = require('phpcommon'),
     sourceMap = require('source-map'),
     sourceMapToComment = require('source-map-to-comment'),
+    transpilerMessages = require('./builtin/messages/transpiler'),
     unaryOperatorToMethod = {
         prefix: {
             '+': 'toPositive',
@@ -74,8 +89,40 @@ var _ = require('microdash'),
         }
     },
     LabelRepository = require('./LabelRepository'),
-    PHPFatalError = require('phpcommon').PHPFatalError,
-    SourceNode = sourceMap.SourceNode;
+    PHPFatalError = phpCommon.PHPFatalError,
+    SourceNode = sourceMap.SourceNode,
+    Translator = phpCommon.Translator;
+
+/**
+ * Builds chunks for the optional extra arguments that may need to be passed
+ * when defining a function, method or closure. These include the parameter
+ * spec data, line number and whether the method or closure is static.
+ *
+ * @param {Object[]} argSpecs
+ * @return {Array}
+ */
+function buildExtraFunctionDefinitionArgChunks(argSpecs) {
+    var argChunks = [],
+        optionalChunks = [];
+
+    _.each(argSpecs, function (argSpec) {
+        var prefix = argSpec.name ? [argSpec.name + ': '] : [];
+
+        if (argSpec.value && argSpec.value.length) {
+            [].push.apply(argChunks, optionalChunks);
+            optionalChunks = [];
+            argChunks.push(prefix.concat(argSpec.value));
+        } else {
+            optionalChunks.push(prefix.concat(argSpec.emptyValue));
+        }
+    });
+
+    // NB: If there are some optional args left at the end, omit them
+
+    return argChunks.map(function (argChunk) {
+        return [', '].concat(argChunk);
+    });
+}
 
 function hoistDeclarations(statements) {
     var declarations = [],
@@ -98,6 +145,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         bindingAssignmentChunks = [],
         labelRepository = new LabelRepository(),
         labels,
+        pendingLabelGotoNode,
         subContext = {
             // This sub-context will be merged with the parent one,
             // so we need to override any value for the `assignment` and `getValue` options
@@ -114,8 +162,10 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     if (labelRepository.hasPending()) {
         // After processing the body of the function, one or more gotos were found targetting labels
         // that were never defined, so throw a compile-time fatal error
-        throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
-            'label': labelRepository.getPendingLabels()[0]
+        pendingLabelGotoNode = labelRepository.getFirstPendingLabelGotoNode();
+
+        context.raiseError(GOTO_TO_UNDEFINED_LABEL, pendingLabelGotoNode.label, {
+            'label': pendingLabelGotoNode.label.string
         });
     }
 
@@ -162,33 +212,24 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     _.each(argNodes, function (argNode, index) {
         var isReference = argNode.variable.name === 'N_REFERENCE',
             variableNode = isReference ? argNode.variable.operand : argNode.variable,
-            valueCodeChunks = ['$'],
             variable = variableNode.variable;
-
-        valueCodeChunks.push(variable);
 
         if (isReference) {
             if (argNode.value) {
+                // Either a reference could be passed or the default value could be provided
                 argumentAssignmentChunks.push(
-                    'if (', valueCodeChunks.slice(), ') {' +
-                    'scope.getVariable("' + variable + '").setReference(', valueCodeChunks.slice(), '.getReference());' +
-                    '} else {' +
-                    'scope.getVariable("' + variable + '").setValue(', interpret(argNode.value, subContext), ');' +
-                    '}'
+                    'scope.getVariable("' + variable + '").setReferenceOrValue($', variable, ');'
                 );
             } else {
+                // Only a reference could be passed as no default value is defined for this parameter
                 argumentAssignmentChunks.push(
-                    'scope.getVariable("' + variable + '").setReference(', valueCodeChunks.slice(), '.getReference());'
+                    'scope.getVariable("' + variable + '").setReference($', variable, '.getReference());'
                 );
             }
         } else {
-            if (argNode.value) {
-                valueCodeChunks.push(' ? ', valueCodeChunks.slice(), '.getValue() : ', interpret(argNode.value, subContext));
-            } else {
-                valueCodeChunks.push('.getValue()');
-            }
-
-            argumentAssignmentChunks.push('scope.getVariable("' + variable + '").setValue(', valueCodeChunks.slice(), ');');
+            argumentAssignmentChunks.push(
+                'scope.getVariable("' + variable + '").setValue($', variable, '.getValue());'
+            );
         }
 
         args[index] = '$' + variable;
@@ -223,6 +264,61 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
 }
 
 /**
+ * Produces an array or object literal containing all the information about
+ * the parameters to a function, closure or static/instance method.
+ *
+ * @param {Object[]} argNodes
+ * @param {Function} interpret
+ * @return {Array}
+ */
+function interpretFunctionArgs(argNodes, interpret) {
+    var allArgCodeChunks = [];
+
+    _.each(argNodes, function (argNode, argIndex) {
+        var argCodeChunks = ['{'].concat(
+                argNode.type ?
+                interpret(argNode.type).concat(',') :
+                // NB: Omit the type for "mixed" to save on bundle space
+                []
+            ),
+            isReference = argNode.variable.name === 'N_REFERENCE';
+
+        argCodeChunks.push('"name":', JSON.stringify(
+            isReference ?
+                argNode.variable.operand.variable :
+                argNode.variable.variable
+        ));
+
+        if (isReference) {
+            argCodeChunks.push(',"ref":true');
+        }
+
+        if (argNode.value) {
+            argCodeChunks.push(
+                ',"value":',
+                'function () { return ',
+                interpret(argNode.value, {isConstantOrProperty: true}),
+                '; }'
+            );
+        }
+
+        argCodeChunks.push('}');
+
+        if (argIndex > 0) {
+            allArgCodeChunks.push(',');
+        }
+
+        [].push.apply(allArgCodeChunks, argCodeChunks);
+    });
+
+    // TODO: To optimise bundle size, when not all parameters' info is needed (when a flag is set),
+    //       output the array literal with the omitted parameters left blank eg. `[{},,,,{},,]`
+    return allArgCodeChunks.length > 0 ?
+        ['['].concat(allArgCodeChunks, ']') :
+        [];
+}
+
+/**
  * Transpiles the list of statements given, recording all labels and gotos within each one
  *
  * @param {object[]} statements
@@ -236,12 +332,12 @@ function transpileWithLabelsAndGotos(statements, interpret, context, labelReposi
         labels,
         statementDatas = [];
 
-    function onGoto(label) {
-        gotos[label] = true;
+    function onGoto(gotoNode) {
+        gotos[gotoNode.label.string] = true;
     }
 
-    function onFoundLabel(label) {
-        labels[label] = true;
+    function onFoundLabel(labelNode) {
+        labels[labelNode.label.string] = true;
     }
 
     labelRepository.on('goto label', onGoto);
@@ -443,6 +539,9 @@ module.exports = {
 
             return context.createExpressionSourceNode(['tools.valueFactory.createArray(['].concat(elementValueChunks, '])'), node);
         },
+        'N_ARRAY_TYPE': function () {
+            return '"type":"array"';
+        },
         'N_BINARY_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(interpret(node.value, {getValue: true}).concat('.coerceToString()'), node);
         },
@@ -469,19 +568,37 @@ module.exports = {
                 targetLevel = context.blockContexts.length - (levels - 1);
 
             // Invalid target levels throw a compile-time fatal error
-            if (node.levels.number <= 0) {
-                throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
+            if (node.levels.number === 0) {
+                context.raiseError(OPERATOR_REQUIRES_POSITIVE_INTEGER, node.levels, {
                     'operator': 'break'
+                });
+            } else if (node.levels.number < 0) {
+                context.raiseError(BREAK_OR_CONTINUE_NON_INTEGER_OPERAND, node.levels, {
+                    'operator': 'break'
+                });
+            }
+
+            if (context.blockContexts.length === 0) {
+                // We're not inside a loop or switch statement, so any break is invalid
+                context.raiseError(BREAK_OR_CONTINUE_IN_WRONG_CONTEXT, node.levels, {
+                    'operator': 'break',
+                    'levels': levels
                 });
             }
 
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return context.createStatementSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
+                context.raiseError(CANNOT_BREAK_OR_CONTINUE, node.levels, {
+                    'operator': 'break',
+                    'levels': levels
+                });
             }
 
             return context.createStatementSourceNode(['break block_' + targetLevel + ';'], node);
+        },
+        'N_CALLABLE_TYPE': function () {
+            return '"type":"callable"';
         },
         'N_CASE': function (node, interpret, context) {
             var bodyChunks = [];
@@ -568,11 +685,30 @@ module.exports = {
                 node
             );
         },
+        'N_CLASS_TYPE': function (node) {
+            return '"type":"class","className":' + JSON.stringify(node.className);
+        },
         'N_CLOSURE': function (node, interpret, context) {
-            var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context);
+            var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context),
+                extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                    {
+                        value: interpretFunctionArgs(node.args, interpret),
+                        emptyValue: '[]'
+                    },
+                    {
+                        value: node.static ? 'true' : null,
+                        emptyValue: 'false'
+                    },
+                    {
+                        value: context.lineNumbers ?
+                            ['' + node.bounds.start.line] :
+                            null,
+                        emptyValue: 'null'
+                    }
+                ]);
 
             return context.createExpressionSourceNode(
-                ['tools.createClosure('].concat(func, ', scope)'),
+                ['tools.createClosure('].concat(func, ', scope, namespaceScope', extraArgChunks, ')'),
                 node
             );
         },
@@ -601,22 +737,50 @@ module.exports = {
                 )
             };
         },
+        'N_CONSTANT_STATEMENT': function (node, interpret, context) {
+            var codeChunks = [];
+
+            _.each(node.constants, function (constant) {
+                codeChunks.push(
+                    'namespace.defineConstant(' + JSON.stringify(constant.constant) + ', ',
+                    interpret(constant.value),
+                    ');'
+                );
+            });
+
+            return context.createStatementSourceNode(codeChunks, node);
+        },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
             var levels = node.levels.number,
                 statement,
                 targetLevel = context.blockContexts.length - (levels - 1);
 
             // Invalid target levels throw a compile-time fatal error
-            if (node.levels.number <= 0) {
-                throw new PHPFatalError(PHPFatalError.OPERATOR_REQUIRES_POSITIVE_NUMBER, {
+            if (node.levels.number === 0) {
+                context.raiseError(OPERATOR_REQUIRES_POSITIVE_INTEGER, node.levels, {
                     'operator': 'continue'
+                });
+            } else if (node.levels.number < 0) {
+                context.raiseError(BREAK_OR_CONTINUE_NON_INTEGER_OPERAND, node.levels, {
+                    'operator': 'continue'
+                });
+            }
+
+            if (context.blockContexts.length === 0) {
+                // We're not inside a loop or switch statement, so any break is invalid
+                context.raiseError(BREAK_OR_CONTINUE_IN_WRONG_CONTEXT, node.levels, {
+                    'operator': 'continue',
+                    'levels': levels
                 });
             }
 
             // When the target level is not available it will actually
             // throw a fatal error at runtime rather than compile-time
             if (targetLevel < 1) {
-                return context.createStatementSourceNode(['tools.throwCannotBreakOrContinue(' + levels + ');'], node);
+                context.raiseError(CANNOT_BREAK_OR_CONTINUE, node.levels, {
+                    'operator': 'continue',
+                    'levels': levels
+                });
             }
 
             statement = context.blockContexts[targetLevel - 1] === 'switch' ? 'break' : 'continue';
@@ -650,13 +814,15 @@ module.exports = {
                 codeChunks,
                 conditionChunks = interpret(node.condition, subContext);
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this do..while loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -666,11 +832,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this do..while loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -838,13 +1006,15 @@ module.exports = {
                 initializerCodeChunks = interpret(node.initializer, subContext),
                 updateCodeChunks = interpret(node.update, subContext);
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this for loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -854,11 +1024,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this for loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -929,13 +1101,15 @@ module.exports = {
                 codeChunks.push(key, '.setValue(' + iteratorVariable + '.getCurrentKey());');
             }
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this foreach loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -945,11 +1119,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this foreach loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -958,12 +1134,35 @@ module.exports = {
             return context.createStatementSourceNode(codeChunks, node);
         },
         'N_FUNCTION_STATEMENT': function (node, interpret, context) {
-            var func;
+            var extraArgChunks,
+                func;
+
+            if (
+                context.currentNamespace === '' && // Magic __autoload function can only exist in the root namespace
+                node.func.string.toLowerCase() === '__autoload' &&
+                node.args.length !== 1
+            ) {
+                context.raiseError(EXPECT_EXACTLY_ONE_ARG, node, {
+                    name: node.func.string.toLowerCase()
+                });
+            }
 
             func = interpretFunction(node.func, node.args, null, node.body, interpret, context);
+            extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                {
+                    value: interpretFunctionArgs(node.args, interpret),
+                    emptyValue: '[]'
+                },
+                {
+                    value: context.lineNumbers ?
+                        ['' + node.bounds.start.line] :
+                        null,
+                    emptyValue: 'null'
+                }
+            ]);
 
             return context.createStatementSourceNode(
-                ['namespace.defineFunction(' + JSON.stringify(node.func.string) + ', '].concat(func, ', namespaceScope);'),
+                ['namespace.defineFunction(' + JSON.stringify(node.func.string) + ', '].concat(func, ', namespaceScope', extraArgChunks, ');'),
                 node
             );
         },
@@ -999,9 +1198,9 @@ module.exports = {
         },
         'N_GOTO_STATEMENT': function (node, interpret, context) {
             var code = '',
-                label = node.label;
+                label = node.label.string;
 
-            context.labelRepository.addGoto(label);
+            context.labelRepository.addGoto(node);
 
             code += 'goingToLabel_' + label + ' = true;';
 
@@ -1039,7 +1238,9 @@ module.exports = {
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 gotosJumpingIn[label] = true;
             }
 
@@ -1096,6 +1297,7 @@ module.exports = {
                 value: context.createInternalSourceNode(
                     // Output a function that can be called to create the property's value,
                     // so that each instance gets a separate array object (if one is used as the value)
+                    // FIXME: Why does this func not take a currentClass arg when N_STATIC_PROPERTY_DEFINITION does??
                     ['function () { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'], '; }'),
                     node
                 )
@@ -1126,9 +1328,11 @@ module.exports = {
                 var data = interpret(member);
 
                 if (member.name === 'N_INSTANCE_PROPERTY_DEFINITION' || member.name === 'N_STATIC_PROPERTY_DEFINITION') {
-                    throw new PHPFatalError(PHPFatalError.INTERFACE_PROPERTY_NOT_ALLOWED);
+                    // NB: The line number must actually be that of the variable name itself if spanning multiple lines
+                    context.raiseError(INTERFACE_PROPERTY_NOT_ALLOWED, member.variable);
                 } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
-                    throw new PHPFatalError(PHPFatalError.INTERFACE_METHOD_BODY_NOT_ALLOWED, {
+                    // NB: The line number must actually be that of the function keyword itself if spanning multiple lines
+                    context.raiseError(INTERFACE_METHOD_BODY_NOT_ALLOWED, member, {
                         className: node.interfaceName,
                         methodName: member.func ? member.func.string : member.method.string
                     });
@@ -1199,6 +1403,9 @@ module.exports = {
                 node
             );
         },
+        'N_ITERABLE_TYPE': function () {
+            return '"type":"iterable"';
+        },
         'N_KEY_VALUE_PAIR': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 ['tools.createKeyValuePair('].concat(interpret(node.key), ', ', interpret(node.value), ')'),
@@ -1206,16 +1413,18 @@ module.exports = {
             );
         },
         'N_LABEL_STATEMENT': function (node, interpret, context) {
-            var label = node.label;
+            var label = node.label.string;
 
             if (context.labelRepository.hasBeenFound(label)) {
                 // This is an attempt to redefine the label, so throw a compile-time fatal error
-                throw new PHPFatalError(PHPFatalError.LABEL_ALREADY_DEFINED, {
+                // (NB: when spanning multiple lines, it is the label itself whose line should be reported,
+                // not the label statement)
+                context.raiseError(LABEL_ALREADY_DEFINED, node.label, {
                     'label': label
                 });
             }
 
-            context.labelRepository.found(label);
+            context.labelRepository.found(node);
 
             return [
                 // Once we've reached the label, reset the flag that indicates we were going to it
@@ -1290,11 +1499,27 @@ module.exports = {
             );
         },
         'N_METHOD_DEFINITION': function (node, interpret, context) {
+            var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                {
+                    name: 'args',
+                    value: interpretFunctionArgs(node.args, interpret),
+                    emptyValue: '[]'
+                },
+                {
+                    name: 'line',
+                    value: context.lineNumbers ?
+                        ['' + node.bounds.start.line] :
+                        null,
+                    emptyValue: 'null'
+                }
+            ]);
+
             return {
                 name: node.func.string,
                 body: context.createInternalSourceNode(
                     ['{isStatic: false, method: '].concat(
                         interpretFunction(node.func, node.args, null, node.body, interpret, context),
+                        extraArgChunks,
                         '}'
                     ),
                     node
@@ -1305,7 +1530,7 @@ module.exports = {
             var bodyChunks = [];
 
             _.each(hoistDeclarations(node.statements), function (statement) {
-                [].push.apply(bodyChunks, interpret(statement));
+                [].push.apply(bodyChunks, interpret(statement, {currentNamespace: node.namespace}));
             });
 
             if (node.namespace === '') {
@@ -1343,7 +1568,7 @@ module.exports = {
 
             return context.createExpressionSourceNode(
                 ['tools.createInstance(namespaceScope, '].concat(
-                    interpret(node.className, {allowBareword: true}),
+                    interpret(node.className, {allowBareword: true, getValue: true}),
                     ', [',
                     argChunks,
                     '])'
@@ -1430,6 +1655,7 @@ module.exports = {
                 createSpecificSourceNode,
                 filePath = options ? options[PATH] : null,
                 labelRepository = new LabelRepository(),
+                translator,
                 context = {
                     // Whether source map is to be built will be set later based on options
                     blockContexts: [],
@@ -1438,13 +1664,28 @@ module.exports = {
                     createExpressionSourceNode: null,
                     createInternalSourceNode: null,
                     createStatementSourceNode: null,
+                    currentNamespace: '', // We're in the global namespace by default
                     labelRepository: labelRepository,
                     lineNumbers: null,
+                    /**
+                     * Raises a PHPFatalError for the given translation key, variables and AST node
+                     *
+                     * @param {string} translationKey
+                     * @param {object} node
+                     * @param {Object.<String, string>=} placeholderVariables
+                     */
+                    raiseError: function (translationKey, node, placeholderVariables) {
+                        var message = translator.translate(translationKey, placeholderVariables),
+                            lineNumber = node.bounds ? node.bounds.start.line : null;
+
+                        throw new PHPFatalError(message, filePath, lineNumber);
+                    },
                     tick: null,
                     variableMap: {}
                 },
                 labels,
                 name,
+                pendingLabelGotoNode,
                 sourceMap,
                 sourceMapOptions;
 
@@ -1457,6 +1698,12 @@ module.exports = {
             sourceMapOptions = options[SOURCE_MAP] ?
                 (options[SOURCE_MAP] === true ? {} : options[SOURCE_MAP]) :
                 null;
+
+            translator = options[TRANSLATOR] || new Translator();
+            // Add our transpilation-related messages to the translator
+            // (note that these may be overridden later by an external library)
+            translator.addTranslations(transpilerMessages);
+
             context.buildingSourceMap = !!sourceMapOptions;
             context.lineNumbers = !!options.lineNumbers;
             context.tick = !!options.tick;
@@ -1597,8 +1844,10 @@ module.exports = {
             if (labelRepository.hasPending()) {
                 // After processing the root body of the program, one or more gotos were found targetting labels
                 // that were never defined, so throw a compile-time fatal error
-                throw new PHPFatalError(PHPFatalError.GOTO_TO_UNDEFINED_LABEL, {
-                    'label': labelRepository.getPendingLabels()[0]
+                pendingLabelGotoNode = labelRepository.getFirstPendingLabelGotoNode();
+
+                context.raiseError(GOTO_TO_UNDEFINED_LABEL, pendingLabelGotoNode.label, {
+                    'label': pendingLabelGotoNode.label.string
                 });
             }
 
@@ -1681,7 +1930,7 @@ module.exports = {
             );
         },
         'N_RETURN_STATEMENT': function (node, interpret, context) {
-            var expression = interpret(node.expression);
+            var expression = node.expression ? interpret(node.expression) : null;
 
             return context.createStatementSourceNode(
                 ['return '].concat(expression ? expression : 'tools.valueFactory.createNull()', ';'),
@@ -1730,11 +1979,27 @@ module.exports = {
             );
         },
         'N_STATIC_METHOD_DEFINITION': function (node, interpret, context) {
+            var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                {
+                    name: 'args',
+                    value: interpretFunctionArgs(node.args, interpret),
+                    emptyValue: '[]'
+                },
+                {
+                    name: 'line',
+                    value: context.lineNumbers ?
+                        ['' + node.bounds.start.line] :
+                        null,
+                    emptyValue: 'null'
+                }
+            ]);
+
             return {
                 name: node.method.string,
                 body: context.createInternalSourceNode(
                     ['{isStatic: true, method: '].concat(
                         interpretFunction(node.method, node.args, null, node.body, interpret, context),
+                        extraArgChunks,
                         '}'
                     ),
                     node
@@ -1763,6 +2028,7 @@ module.exports = {
                 name: node.variable.variable,
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
+                    // TODO: Is this currentClass param needed?
                     ['function (currentClass) { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['tools.valueFactory.createNull()'], '; }'),
                     node
                 )
@@ -1860,13 +2126,15 @@ module.exports = {
                 ' switchMatched_' + blockContexts.length + ' = false;'
             );
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this switch (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -1878,11 +2146,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this switch (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 
@@ -2006,6 +2276,14 @@ module.exports = {
         'N_VARIABLE': function (node, interpret, context) {
             context.variableMap[node.variable] = true;
 
+            /*
+             * TODO: To optimize bundle size, detect whether the current function ever sets
+             *       a local variable's reference (or if a parameter, whether it is by-reference).
+             *       If so then we need to access it via scope.getVariable(...), but otherwise
+             *       (as should be the case in 90% of cases) we can use a JS local variable
+             *       with a closure at the end to register with the runtime for fetching the variable
+             *       as required by variable-variables for example.
+             */
             return context.createExpressionSourceNode(
                 ['scope.getVariable("' + node.variable + '")' + (context.getValue !== false ? '.getValue()' : '')],
                 node,
@@ -2038,13 +2316,15 @@ module.exports = {
                 conditionChunks = interpret(node.condition, subContext),
                 codeChunks;
 
-            function onFoundLabel(label) {
+            function onFoundLabel(labelNode) {
+                var label = labelNode.label.string;
+
                 labelsInsideLoopHash[label] = true;
 
-                if (priorPendingLabelsHash[label] === true) {
+                if (hasOwn.call(priorPendingLabelsHash, label)) {
                     // A goto above this while loop (but within the same function)
                     // is attempting to jump forward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, priorPendingLabelsHash[label].label);
                 }
             }
 
@@ -2054,11 +2334,13 @@ module.exports = {
 
             labelRepository.off('found label', onFoundLabel);
 
-            labelRepository.on('goto label', function (label) {
+            labelRepository.on('goto label', function (gotoNode) {
+                var label = gotoNode.label.string;
+
                 if (labelsInsideLoopHash[label] === true) {
                     // A goto below this while loop (but within the same function)
                     // is attempting to jump backward into it
-                    throw new PHPFatalError(PHPFatalError.GOTO_DISALLOWED);
+                    context.raiseError(GOTO_DISALLOWED, gotoNode.label);
                 }
             });
 

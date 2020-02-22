@@ -10,6 +10,7 @@
 'use strict';
 
 var _ = require('microdash'),
+    hasOwn = {}.hasOwnProperty,
     Set = require('es6-set'),
     /**
      * Emits an event for the LabelRepository
@@ -49,7 +50,7 @@ function LabelRepository() {
      */
     this.listenersByEvent = {};
     /**
-     * @type {Object.<string, boolean>}
+     * @type {Object.<string, object>}
      */
     this.pendingLabels = {};
 }
@@ -59,40 +60,58 @@ _.extend(LabelRepository.prototype, {
      * Adds a goto to the repository. If the label has not yet been found, it will be marked as "pending"
      * as this means it has a goto that refers to it so it must be defined at some point
      *
-     * @param {string} label
+     * @param {object} gotoNode
      */
-    addGoto: function (label) {
-        var repository = this;
+    addGoto: function (gotoNode) {
+        var label = gotoNode.label.string,
+            repository = this;
 
         repository.labels[label] = true;
 
         if (!repository.hasBeenFound(label)) {
             // Label has not yet been found, so mark it as pending -
             // if it _has_ already been found, _do not_ mark it as pending
-            repository.pendingLabels[label] = true;
+            repository.pendingLabels[label] = gotoNode;
         }
 
-        emit(repository, 'goto label', label);
+        emit(repository, 'goto label', gotoNode);
     },
 
     /**
      * Marks a label as being defined. If it was previously marked as pending, this will remove that flag
      *
-     * @param {string} label
+     * @param {object} labelNode
      */
-    found: function (label) {
-        var repository = this;
+    found: function (labelNode) {
+        var label = labelNode.label.string,
+            repository = this;
 
         repository.foundLabels[label] = true;
         repository.labels[label] = true;
         delete repository.pendingLabels[label];
-        emit(repository, 'found label', label);
+        emit(repository, 'found label', labelNode);
+    },
+
+    /**
+     * Fetches the AST node of the first goto whose label is pending
+     *
+     * @returns {object}
+     * @throws {Error} Throws when there are no pending labels
+     */
+    getFirstPendingLabelGotoNode: function () {
+        var pendingLabelGotoNodes = this.getPendingLabelGotoNodes();
+
+        if (pendingLabelGotoNodes.length === 0) {
+            throw new Error('There are no pending labels');
+        }
+
+        return pendingLabelGotoNodes[0];
     },
 
     /**
      * Fetches the names of all labels that have been mentioned thus far (both pending and found labels)
      *
-     * @return {string[]}
+     * @returns {string[]}
      */
     getLabels: function () {
         return Object.keys(this.labels);
@@ -102,17 +121,32 @@ _.extend(LabelRepository.prototype, {
      * Fetches the names of all pending labels. A pending label is one that has a goto
      * but where the label statement has not yet been found
      *
-     * @return {string[]}
+     * @returns {string[]}
      */
     getPendingLabels: function () {
         return Object.keys(this.pendingLabels);
     },
 
     /**
+     * Fetches an array of all goto nodes that we do not yet have a matching label for
+     *
+     * @returns {object[]}
+     */
+    getPendingLabelGotoNodes: function () {
+        var nodes = [];
+
+        _.forOwn(this.pendingLabels, function (node) {
+            nodes.push(node);
+        });
+
+        return nodes;
+    },
+
+    /**
      * Fetches an object with one property for each pending label with the value true.
      * Used for optimised lookups of whether a label is pending
      *
-     * @return {Object.<string, boolean>}
+     * @returns {Object.<string, object>}
      */
     getPendingLabelsHash: function () {
         return Object.assign({}, this.pendingLabels);
@@ -122,7 +156,7 @@ _.extend(LabelRepository.prototype, {
      * Determines whether a label has been found
      *
      * @param {string} label
-     * @return {boolean}
+     * @returns {boolean}
      */
     hasBeenFound: function (label) {
         var repository = this;
@@ -133,7 +167,7 @@ _.extend(LabelRepository.prototype, {
     /**
      * Determines whether one or more pending labels (gotos) have been found
      *
-     * @return {boolean}
+     * @returns {boolean}
      */
     hasPending: function () {
         return Object.keys(this.pendingLabels).length > 0;
@@ -143,10 +177,10 @@ _.extend(LabelRepository.prototype, {
      * Determines whether the given label has a goto but has not yet been found
      *
      * @param {string} label
-     * @return {boolean}
+     * @returns {boolean}
      */
     isPending: function (label) {
-        return this.pendingLabels[label] === true;
+        return hasOwn.call(this.pendingLabels, label);
     },
 
     /**

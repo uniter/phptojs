@@ -239,69 +239,84 @@ describe('Transpiler "break" statement test', function () {
         );
     });
 
-    it('should throw a fatal error when zero is given as the break level', function () {
+    it('should throw a compile time fatal error when zero is given as the break level', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_BREAK_STATEMENT',
                 levels: {
                     name: 'N_INTEGER',
-                    number: 0
-                }
-            }]
+                    number: 0,
+                    bounds: {start: {line: 4, column: 10}}
+                },
+                bounds: {start: {line: 2, column: 4}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
         expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers');
-    });
-
-    it('should throw a fatal error when negative one is given as the break level', function () {
-        var ast = {
-            name: 'N_PROGRAM',
-            statements: [{
-                name: 'N_BREAK_STATEMENT',
-                levels: {
-                    name: 'N_INTEGER',
-                    number: -1
-                }
-            }]
-        };
-
-        expect(function () {
-            phpToJS.transpile(ast);
-        }).to.throw(PHPFatalError, '\'break\' operator accepts only positive numbers');
-    });
-
-    it('should throw a runtime fatal error when not inside a looping structure for 1 level', function () {
-        var ast = {
-            name: 'N_PROGRAM',
-            statements: [{
-                name: 'N_BREAK_STATEMENT',
-                levels: {
-                    name: 'N_INTEGER',
-                    number: 1
-                }
-            }]
-        };
-
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.throwCannotBreakOrContinue(1);' +
-            'return tools.valueFactory.createNull();' +
-            '});'
+            phpToJS.transpile(ast, {path: '/path/to/module.php'});
+        }).to.throw(
+            PHPFatalError,
+            'PHP Fatal error: \'break\' operator accepts only positive integers in /path/to/module.php on line 4'
         );
     });
 
-    it('should throw a runtime fatal error when code is not enough levels deep', function () {
+    it('should throw a compile time fatal error when negative one is given as the break level', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_BREAK_STATEMENT',
+                levels: {
+                    name: 'N_INTEGER',
+                    number: -1,
+                    bounds: {start: {line: 5, column: 10}}
+                },
+                bounds: {start: {line: 2, column: 4}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
+        };
+
+        expect(function () {
+            phpToJS.transpile(ast, {path: '/path/to/another.php'});
+        }).to.throw(
+            PHPFatalError,
+            'PHP Fatal error: \'break\' operator with non-integer operand is no longer supported'
+        );
+    });
+
+    it('should throw a compile time fatal error when not inside a looping structure for 1 level', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_BREAK_STATEMENT',
+                levels: {
+                    name: 'N_INTEGER',
+                    number: 1,
+                    bounds: {start: {line: 9, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
+        };
+
+        expect(function () {
+            phpToJS.transpile(ast, {path: '/my/my_module.php'});
+        }).to.throw(
+            PHPFatalError,
+            'PHP Fatal error: \'break\' not in the \'loop\' or \'switch\' context in /my/my_module.php on line 9'
+        );
+    });
+
+    it('should throw a compile time fatal error when code is not enough levels deep', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_WHILE_STATEMENT',
                 condition: {
                     name: 'N_INTEGER',
-                    number: 21
+                    number: 21,
+                    bounds: {start: {line: 1, column: 1}}
                 },
                 body: {
                     name: 'N_COMPOUND_STATEMENT',
@@ -309,21 +324,23 @@ describe('Transpiler "break" statement test', function () {
                         name: 'N_BREAK_STATEMENT',
                         levels: {
                             name: 'N_INTEGER',
-                            number: 2
-                        }
-                    }]
-                }
-            }]
+                            number: 2,
+                            bounds: {start: {line: 6, column: 1}}
+                        },
+                        bounds: {start: {line: 1, column: 1}}
+                    }],
+                    bounds: {start: {line: 1, column: 1}}
+                },
+                bounds: {start: {line: 1, column: 1}}
+            }],
+            bounds: {start: {line: 1, column: 1}}
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_1: while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative()) {' +
-            'tools.throwCannotBreakOrContinue(2);' +
-            '}' +
-            'return tools.valueFactory.createNull();' +
-            '});'
+        expect(function () {
+            phpToJS.transpile(ast, {path: '/your/your_module.php'});
+        }).to.throw(
+            PHPFatalError,
+            'PHP Fatal error: Cannot \'break\' 2 levels in /your/your_module.php on line 6'
         );
     });
 });

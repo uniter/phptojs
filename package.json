@@ -25,7 +25,7 @@
   "dependencies": {
     "es6-set": "^0.1.5",
     "microdash": "~1",
-    "phpcommon": "^1.13.0",
+    "phpcommon": "^2.0.0",
     "source-map": "^0.5.6",
     "source-map-to-comment": "^1.1.0",
     "transpiler": "~1.2"

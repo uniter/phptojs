@@ -333,7 +333,9 @@ describe('Transpiler line numbers test', function () {
                         visibility: 'public',
                         args: [{
                             name: 'N_ARGUMENT',
-                            type: 'array',
+                            type: {
+                                name: 'N_ARRAY_TYPE'
+                            },
                             variable: {
                                 name: 'N_VARIABLE',
                                 variable: 'myBodyArgs',
@@ -459,7 +461,7 @@ describe('Transpiler line numbers test', function () {
             'var scope = this;' +
             'var line;tools.instrument(function () {return line;});' +
             'line = 8;return (line = 8, scope.getVariable("myFunctionVar").getValue());' +
-            '}, namespaceScope);' +
+            '}, namespaceScope, [], 3);' +
             'line = 2;(function () {var currentClass = namespace.defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"myMethod": {' +
@@ -467,7 +469,7 @@ describe('Transpiler line numbers test', function () {
             'var scope = this;' +
             'var line;tools.instrument(function () {return line;});' +
             'line = 8;return (line = 10, scope.getVariable("myMethodVar").getValue());' +
-            '}' +
+            '}, args: [], line: 11' +
             '}}, constants: {}}, namespaceScope);}());' +
             'line = 8;return (line = 1, scope.getVariable("myGlobalCodeVar").getValue());' +
             'line = 3;(function () {var currentClass = namespace.defineClass("MyThingInterface", {' +
@@ -487,7 +489,9 @@ describe('Transpiler line numbers test', function () {
             'scope.getVariable("myArgVar").setValue($myArgVar.getValue());' +
             'scope.getVariable("myBoundVar").setValue(parentScope.getVariable("myBoundVar").getValue());' +
             'line = 8;return (line = 11, scope.getVariable("myClosureVar").getValue());' +
-            '}; }(scope)), scope));' +
+            '}; }(scope)), scope, namespaceScope, [' +
+            '{"name":"myArgVar"}' +
+            '], false, 12));' +
             'return tools.valueFactory.createNull();' +
             '});'
         );

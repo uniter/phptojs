@@ -306,14 +306,16 @@ describe('Transpiler source map test', function () {
             'scope.getVariable("myBoundVar").setValue(parentScope.getVariable("myBoundVar").getValue());' +
             'var $myBoundVar = tools.createDebugVar(scope, "myBoundVar");' +
             'return scope.getVariable("myClosureVar").getValue();' +
-            '}; }(scope)), scope);' +
+            '}; }(scope)), scope, namespaceScope, [' +
+            '{"name":"myArgVar"}' +
+            ']);' +
             'return tools.valueFactory.createNull();' +
             '});' +
             '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15X21' +
             'vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIsIiRteUds' +
             'b2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2UUFFSyw0Q0FBQUEsT' +
             '0FBQSx1SUFLSSxPQUFVQyw2Q0FBVixDQUxKLG1CQURJLGlLQVNJLG1DQUxORCxTQUtNLG1JQUhNLE9BQUFFLDJDQUFBLE' +
-            'NBR04sRUFUSix3Q0FNQSxPQUFVQywrQ0FBVixDQUFVLHVhQUFBQyxXQUFBLG9EQUFBQyw0Q0FBQSxzQiIsInNvdXJjZXN' +
+            'NBR04sRUFUSix3Q0FNQSxPQUFVQywrQ0FBVixDQUFVLHVhQUFBQyxXQUFBLG9EQUFBQyw0Q0FBQSw2RCIsInNvdXJjZXN' +
             'Db250ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
             '\n'
         );
