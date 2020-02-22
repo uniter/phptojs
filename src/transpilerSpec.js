@@ -738,6 +738,19 @@ module.exports = {
                 )
             };
         },
+        'N_CONSTANT_STATEMENT': function (node, interpret, context) {
+            var codeChunks = [];
+
+            _.each(node.constants, function (constant) {
+                codeChunks.push(
+                    'namespace.defineConstant(' + JSON.stringify(constant.constant) + ', ',
+                    interpret(constant.value),
+                    ');'
+                );
+            });
+
+            return context.createStatementSourceNode(codeChunks, node);
+        },
         'N_CONTINUE_STATEMENT': function (node, interpret, context) {
             var levels = node.levels.number,
                 statement,
