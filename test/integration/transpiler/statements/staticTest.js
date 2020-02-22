@@ -24,6 +24,9 @@ describe('Transpiler static variable scope statement test', function () {
                 },
                 args: [{
                     name: 'N_ARGUMENT',
+                    type: {
+                        name: 'N_CALLABLE_TYPE'
+                    },
                     variable: {
                         name: 'N_VARIABLE',
                         variable: 'myArg'
@@ -61,7 +64,9 @@ describe('Transpiler static variable scope statement test', function () {
             'scope.getVariable("myArg").setValue($myArg.getValue());' +
             'scope.importStatic("firstVar");' +
             'scope.importStatic("secondVar", tools.valueFactory.createInteger(101));' +
-            '}, namespaceScope);' +
+            '}, namespaceScope, [' +
+            '{"type":"callable","name":"myArg"}' +
+            ']);' +
             'return tools.valueFactory.createNull();' +
             '});'
         );

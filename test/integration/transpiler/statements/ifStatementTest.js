@@ -96,7 +96,7 @@ describe('Transpiler if statement test', function () {
             '(tools.valueFactory.createBarewordString("myFunc").call([' +
             'tools.createClosure(function () {var scope = this;' +
             'if (scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue().coerceToBoolean().getNative()) {}' +
-            '}, scope)' +
+            '}, scope, namespaceScope)' +
             '], namespaceScope) || tools.valueFactory.createNull());' +
             'return tools.valueFactory.createNull();}'
         );

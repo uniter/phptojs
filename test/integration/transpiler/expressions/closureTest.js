@@ -28,6 +28,9 @@ describe('Transpiler closure expression test', function () {
                         }
                     }, {
                         name: 'N_ARGUMENT',
+                        type: {
+                            name: 'N_ARRAY_TYPE'
+                        },
                         variable: {
                             name: 'N_REFERENCE',
                             operand: {
@@ -79,13 +82,17 @@ describe('Transpiler closure expression test', function () {
             'var scope = this;' +
             'scope.getVariable("arg1").setValue($arg1.getValue());' +
             'scope.getVariable("arg2").setReference($arg2.getReference());' +
-            'scope.getVariable("arg3").setValue($arg3 ? $arg3.getValue() : tools.valueFactory.createInteger(21));' +
+            'scope.getVariable("arg3").setValue($arg3.getValue());' +
             'scope.getVariable("bound1").setValue(parentScope.getVariable("bound1").getValue());' +
             'scope.getVariable("bound2").setReference(parentScope.getVariable("bound2").getReference());' +
             'stdout.write(tools.valueFactory.createInteger(21).coerceToString().getNative());' +
             '}; ' +
             '}(scope)), ' +
-            'scope);' +
+            'scope, namespaceScope, [' +
+            '{"name":"arg1"},' +
+            '{"type":"array","name":"arg2","ref":true},' +
+            '{"name":"arg3","value":function () { return tools.valueFactory.createInteger(21); }}' +
+            ']);' +
             'return tools.valueFactory.createNull();' +
             '}'
         );
@@ -133,14 +140,42 @@ describe('Transpiler closure expression test', function () {
             'return tools.createClosure(' +
             'function ($myArg) {' +
             'var scope = this;' +
-            'if ($myArg) {' +
-            'scope.getVariable("myArg").setReference($myArg.getReference());' +
-            '} else {' +
-            'scope.getVariable("myArg").setValue(tools.valueFactory.createInteger(27));' +
-            '}' +
+            'scope.getVariable("myArg").setReferenceOrValue($myArg);' +
             'stdout.write(tools.valueFactory.createInteger(21).coerceToString().getNative());' +
             '}, ' +
-            'scope);' +
+            'scope, namespaceScope, [' +
+            '{"name":"myArg","ref":true,"value":function () { return tools.valueFactory.createInteger(27); }}' +
+            ']);' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return of an empty static closure', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_CLOSURE',
+                    static: true,
+                    args: [],
+                    bindings: [],
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: []
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return tools.createClosure(' +
+            'function () {' +
+            'var scope = this;' +
+            '}, scope, namespaceScope, [], true);' +
             'return tools.valueFactory.createNull();' +
             '}'
         );

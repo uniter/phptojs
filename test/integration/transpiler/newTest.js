@@ -46,4 +46,37 @@ describe('Transpiler new expression test', function () {
             '});'
         );
     });
+
+    it('should correctly transpile a new expression in function call argument in default (async) mode', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myFunc'
+                    },
+                    args: [{
+                        name: 'N_NEW_EXPRESSION',
+                        className: {
+                            name: 'N_VARIABLE',
+                            variable: 'myClassName'
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            '(tools.valueFactory.createBarewordString("myFunc").call([' +
+            'tools.createInstance(namespaceScope, scope.getVariable("myClassName").getValue(), [])' +
+            '], namespaceScope) || tools.valueFactory.createNull());' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
 });

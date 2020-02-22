@@ -26,7 +26,19 @@ describe('Transpiler class statement with method definitions test', function () 
                         name: 'N_STRING',
                         string: 'myInstanceMethod'
                     },
-                    args: [],
+                    args: [{
+                        name: 'N_ARGUMENT',
+                        type: {
+                            name: 'N_ARRAY_TYPE'
+                        },
+                        variable: {
+                            name: 'N_REFERENCE',
+                            operand: {
+                                name: 'N_VARIABLE',
+                                variable: 'myByRefArrayArg'
+                            }
+                        }
+                    }],
                     body: {
                         name: 'N_COMPOUND_STATEMENT',
                         statements: [{
@@ -45,7 +57,16 @@ describe('Transpiler class statement with method definitions test', function () 
                         name: 'N_STRING',
                         string: 'myStaticMethod'
                     },
-                    args: [],
+                    args: [{
+                        name: 'N_ARGUMENT',
+                        type: {
+                            name: 'N_ARRAY_TYPE'
+                        },
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'myCallableArg'
+                        }
+                    }],
                     body: {
                         name: 'N_COMPOUND_STATEMENT',
                         statements: [{
@@ -71,15 +92,21 @@ describe('Transpiler class statement with method definitions test', function () 
             'properties: {}, ' +
             'methods: {' +
             '"myInstanceMethod": {' +
-            'isStatic: false, method: function _myInstanceMethod() {' +
+            'isStatic: false, method: function _myInstanceMethod($myByRefArrayArg) {' +
             'var scope = this;' +
+            'scope.getVariable("myByRefArrayArg").setReference($myByRefArrayArg.getReference());' +
             'return tools.valueFactory.createInteger(21);' +
-            '}}, ' +
+            '}, args: [' +
+            '{"type":"array","name":"myByRefArrayArg","ref":true}' +
+            ']}, ' +
             '"myStaticMethod": {' +
-            'isStatic: true, method: function _myStaticMethod() {' +
+            'isStatic: true, method: function _myStaticMethod($myCallableArg) {' +
             'var scope = this;' +
+            'scope.getVariable("myCallableArg").setValue($myCallableArg.getValue());' +
             'return tools.valueFactory.createInteger(101);' +
-            '}}' +
+            '}, args: [' +
+            '{"type":"array","name":"myCallableArg"}' +
+            ']}' +
             '}, ' +
             'constants: {}' +
             '}, namespaceScope);' +
