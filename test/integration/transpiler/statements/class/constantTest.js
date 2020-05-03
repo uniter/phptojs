@@ -22,22 +22,33 @@ describe('Transpiler class statement with constants test', function () {
                 members: [
                     {
                         name: 'N_CONSTANT_DEFINITION',
-                        constant: 'MY_CONST',
-                        value: {
-                            name: 'N_INTEGER',
-                            number: 1001
-                        }
+                        constants: [{
+                            constant: 'MY_CONST',
+                            value: {
+                                name: 'N_INTEGER',
+                                number: 1001
+                            }
+                        }]
                     },
                     {
                         name: 'N_CONSTANT_DEFINITION',
-                        constant: 'ANOTHER_ONE',
-                        value: {
-                            name: 'N_CLASS_CONSTANT',
-                            className: {
-                                name: 'N_SELF'
-                            },
-                            constant: 'MY_CONST'
-                        }
+                        constants: [{
+                            constant: 'ANOTHER_ONE',
+                            value: {
+                                name: 'N_CLASS_CONSTANT',
+                                className: {
+                                    name: 'N_SELF'
+                                },
+                                constant: 'MY_CONST'
+                            }
+                        }, {
+                            // Also test one statement with two declarations (would be comma-separated)
+                            constant: 'YET_ANOTHER_ONE',
+                            value: {
+                                name: 'N_INTEGER',
+                                number: '1234'
+                            }
+                        }]
                     }
                 ]
             }]
@@ -59,6 +70,9 @@ describe('Transpiler class statement with constants test', function () {
             '}, ' +
             '"ANOTHER_ONE": function () { ' +
             'return currentClass.getConstantByName("MY_CONST", namespaceScope); ' +
+            '}, ' +
+            '"YET_ANOTHER_ONE": function () { ' +
+            'return tools.valueFactory.createInteger(1234); ' +
             '}' +
             '}' +
             '}, namespaceScope);' +

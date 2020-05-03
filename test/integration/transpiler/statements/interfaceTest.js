@@ -27,11 +27,20 @@ describe('Transpiler interface statement test', function () {
                 ],
                 members: [{
                     name: 'N_CONSTANT_DEFINITION',
-                    constant: 'SHAPE',
-                    value: {
-                        name: 'N_STRING_LITERAL',
-                        string: 'sphere'
-                    }
+                    constants: [{
+                        constant: 'SHAPE_ONE',
+                        value: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'sphere'
+                        }
+                    }, {
+                        // Also test one statement with two declarations (would be comma-separated)
+                        constant: 'SHAPE_TWO',
+                        value: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'circle'
+                        }
+                    }]
                 }, {
                     name: 'N_STATIC_INTERFACE_METHOD_DEFINITION',
                     method: {
@@ -84,7 +93,8 @@ describe('Transpiler interface statement test', function () {
             '"doSomethingElse": {isStatic: false, abstract: true}' +
             '}, ' +
             'constants: {' +
-            '"SHAPE": function () { return tools.valueFactory.createString("sphere"); }' +
+            '"SHAPE_ONE": function () { return tools.valueFactory.createString("sphere"); }, ' +
+            '"SHAPE_TWO": function () { return tools.valueFactory.createString("circle"); }' +
             '}' +
             '}, namespaceScope);' +
             '}());' +

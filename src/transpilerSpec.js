@@ -659,11 +659,13 @@ module.exports = {
 
                     methodCodeChunks.push('"' + data.name + '": ', data.body);
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
-                    if (constantCodeChunks.length > 0) {
-                        constantCodeChunks.push(', ');
-                    }
+                    _.each(data, function (constant) {
+                        if (constantCodeChunks.length > 0) {
+                            constantCodeChunks.push(', ');
+                        }
 
-                    constantCodeChunks.push('"' + data.name + '": ', data.value);
+                        constantCodeChunks.push('"' + constant.name + '": ', constant.value);
+                    });
                 }
             });
 
@@ -729,13 +731,15 @@ module.exports = {
             return context.createInternalSourceNode(processBlock(node.statements, interpret, context), node);
         },
         'N_CONSTANT_DEFINITION': function (node, interpret, context) {
-            return {
-                name: node.constant,
-                value: context.createInternalSourceNode(
-                    ['function () { return '].concat(interpret(node.value, {isConstantOrProperty: true}), '; }'),
-                    node
-                )
-            };
+            return node.constants.map(function (constant) {
+                return {
+                    name: constant.constant,
+                    value: context.createInternalSourceNode(
+                        ['function () { return '].concat(interpret(constant.value, {isConstantOrProperty: true}), '; }'),
+                        constant
+                    )
+                };
+            });
         },
         'N_CONSTANT_STATEMENT': function (node, interpret, context) {
             var codeChunks = [];
@@ -1343,11 +1347,18 @@ module.exports = {
 
                     methodCodeChunks.push(context.createInternalSourceNode(['"' + data.name + '": '].concat(data.body), member));
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
-                    if (constantCodeChunks.length > 0) {
-                        constantCodeChunks.push(', ');
-                    }
+                    _.each(data, function (constant) {
+                        if (constantCodeChunks.length > 0) {
+                            constantCodeChunks.push(', ');
+                        }
 
-                    constantCodeChunks.push(context.createInternalSourceNode(['"' + data.name + '": '].concat(data.value), member));
+                        constantCodeChunks.push(
+                            context.createInternalSourceNode(
+                                ['"' + constant.name + '": '].concat(constant.value),
+                                member
+                            )
+                        );
+                    });
                 }
             });
 

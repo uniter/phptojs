@@ -48,14 +48,16 @@ describe('Transpiler parent:: construct expression test', function () {
                 className: 'MyClass',
                 members: [{
                     name: 'N_CONSTANT_DEFINITION',
-                    constant: 'MY_CONST',
-                    value: {
-                        name: 'N_CLASS_CONSTANT',
-                        className: {
-                            name: 'N_PARENT'
-                        },
-                        constant: 'PARENT_CONST'
-                    }
+                    constants: [{
+                        constant: 'MY_CONST',
+                        value: {
+                            name: 'N_CLASS_CONSTANT',
+                            className: {
+                                name: 'N_PARENT'
+                            },
+                            constant: 'PARENT_CONST'
+                        }
+                    }]
                 }]
             }]
         };
