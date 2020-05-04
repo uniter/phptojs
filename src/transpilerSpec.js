@@ -1684,6 +1684,7 @@ module.exports = {
                      * @param {string} translationKey
                      * @param {object} node
                      * @param {Object.<String, string>=} placeholderVariables
+                     * @throws {PHPFatalError}
                      */
                     raiseError: function (translationKey, node, placeholderVariables) {
                         var message = translator.translate(translationKey, placeholderVariables),
