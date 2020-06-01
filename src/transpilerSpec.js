@@ -690,6 +690,12 @@ module.exports = {
         'N_CLASS_TYPE': function (node) {
             return '"type":"class","className":' + JSON.stringify(node.className);
         },
+        'N_CLONE_EXPRESSION': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                [interpret(node.operand, {getValue: true}), '.clone()'],
+                node
+            );
+        },
         'N_CLOSURE': function (node, interpret, context) {
             var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context),
                 extraArgChunks = buildExtraFunctionDefinitionArgChunks([
