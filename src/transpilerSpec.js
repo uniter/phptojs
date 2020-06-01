@@ -14,6 +14,7 @@ var _ = require('microdash'),
     MODE = 'mode',
     PATH = 'path',
     PREFIX = 'prefix',
+    RETURN_SOURCE_MAP = 'returnMap',
     RUNTIME_PATH = 'runtimePath',
     SOURCE_CONTENT = 'sourceContent',
     SOURCE_MAP = 'sourceMap',
@@ -1918,9 +1919,20 @@ module.exports = {
                     sourceMap.setSourceContent(filePath, sourceMapOptions[SOURCE_CONTENT]);
                 }
 
+                compiledSourceMap = sourceMap.toStringWithSourceMap();
+
+                if (sourceMapOptions[RETURN_SOURCE_MAP]) {
+                    // Return the source map data object rather than embedding it in a comment,
+                    // much more efficient when we need to hand the source map data off
+                    // to the next processor in a chain, eg. for Webpack when used with PHPify
+                    return {
+                        code: compiledSourceMap.code,
+                        map: compiledSourceMap.map.toJSON() // Data object, not actually stringified to JSON
+                    };
+                }
+
                 // Append a source map comment containing the entire source map data as a data: URI,
                 // in the form `//# sourceMappingURL=data:application/json;base64,...`
-                compiledSourceMap = sourceMap.toStringWithSourceMap();
                 compiledBody = compiledSourceMap.code + '\n\n' +
                     sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
             } else {
