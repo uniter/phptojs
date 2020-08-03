@@ -124,11 +124,13 @@ describe('Transpiler class statement with properties test', function () {
                 members: [
                     {
                         name: 'N_CONSTANT_DEFINITION',
-                        constant: 'MY_CONST',
-                        value: {
-                            name: 'N_INTEGER',
-                            number: 1001
-                        }
+                        constants: [{
+                            constant: 'MY_CONST',
+                            value: {
+                                name: 'N_INTEGER',
+                                number: 1001
+                            }
+                        }]
                     },
                     {
                         name: 'N_INSTANCE_PROPERTY_DEFINITION',
@@ -184,11 +186,13 @@ describe('Transpiler class statement with properties test', function () {
                 members: [
                     {
                         name: 'N_CONSTANT_DEFINITION',
-                        constant: 'MY_CONST',
-                        value: {
-                            name: 'N_INTEGER',
-                            number: 1001
-                        }
+                        constants: [{
+                            constant: 'MY_CONST',
+                            value: {
+                                name: 'N_INTEGER',
+                                number: 1001
+                            }
+                        }]
                     },
                     {
                         name: 'N_STATIC_PROPERTY_DEFINITION',

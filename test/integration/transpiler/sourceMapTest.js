@@ -62,6 +62,63 @@ describe('Transpiler source map test', function () {
         );
     });
 
+    it('should correctly transpile a simple return statement in default (async) mode wih returnMap option', function () {
+        var ast = {
+                name: 'N_PROGRAM',
+                statements: [{
+                    name: 'N_RETURN_STATEMENT',
+                    expression: {
+                        name: 'N_INTEGER',
+                        number: '4',
+                        bounds: {
+                            start: {
+                                line: 8,
+                                column: 20
+                            }
+                        }
+                    },
+                    bounds: {
+                        start: {
+                            line: 8,
+                            column: 10
+                        }
+                    }
+                }],
+                bounds: {
+                    start: {
+                        line: 4,
+                        column: 6
+                    }
+                }
+            },
+            options = {
+                path: 'my_module.php',
+                sourceMap: {
+                    returnMap: true,
+                    sourceContent: '<?php $this = "is my source PHP";'
+                }
+            };
+
+        expect(phpToJS.transpile(ast, options)).to.deep.equal({
+            code: 'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return tools.valueFactory.createInteger(4);' +
+            'return tools.valueFactory.createNull();' +
+            '});',
+            map: {
+                mappings: 'uMAOS,OAAU,mCAAV,C',
+                names: [],
+                sources: [
+                    'my_module.php'
+                ],
+                sourcesContent: [
+                    '<?php $this = "is my source PHP";'
+                ],
+                version: 3
+            }
+        });
+    });
+
     it('should correctly transpile global code, functions, methods and closures with debug vars in default (async) mode', function () {
         var ast = {
                 name: 'N_PROGRAM',

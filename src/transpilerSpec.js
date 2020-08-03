@@ -14,6 +14,7 @@ var _ = require('microdash'),
     MODE = 'mode',
     PATH = 'path',
     PREFIX = 'prefix',
+    RETURN_SOURCE_MAP = 'returnMap',
     RUNTIME_PATH = 'runtimePath',
     SOURCE_CONTENT = 'sourceContent',
     SOURCE_MAP = 'sourceMap',
@@ -659,11 +660,13 @@ module.exports = {
 
                     methodCodeChunks.push('"' + data.name + '": ', data.body);
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
-                    if (constantCodeChunks.length > 0) {
-                        constantCodeChunks.push(', ');
-                    }
+                    _.each(data, function (constant) {
+                        if (constantCodeChunks.length > 0) {
+                            constantCodeChunks.push(', ');
+                        }
 
-                    constantCodeChunks.push('"' + data.name + '": ', data.value);
+                        constantCodeChunks.push('"' + constant.name + '": ', constant.value);
+                    });
                 }
             });
 
@@ -687,6 +690,12 @@ module.exports = {
         },
         'N_CLASS_TYPE': function (node) {
             return '"type":"class","className":' + JSON.stringify(node.className);
+        },
+        'N_CLONE_EXPRESSION': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                [interpret(node.operand, {getValue: true}), '.clone()'],
+                node
+            );
         },
         'N_CLOSURE': function (node, interpret, context) {
             var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context),
@@ -729,13 +738,15 @@ module.exports = {
             return context.createInternalSourceNode(processBlock(node.statements, interpret, context), node);
         },
         'N_CONSTANT_DEFINITION': function (node, interpret, context) {
-            return {
-                name: node.constant,
-                value: context.createInternalSourceNode(
-                    ['function () { return '].concat(interpret(node.value, {isConstantOrProperty: true}), '; }'),
-                    node
-                )
-            };
+            return node.constants.map(function (constant) {
+                return {
+                    name: constant.constant,
+                    value: context.createInternalSourceNode(
+                        ['function () { return '].concat(interpret(constant.value, {isConstantOrProperty: true}), '; }'),
+                        constant
+                    )
+                };
+            });
         },
         'N_CONSTANT_STATEMENT': function (node, interpret, context) {
             var codeChunks = [];
@@ -1343,11 +1354,18 @@ module.exports = {
 
                     methodCodeChunks.push(context.createInternalSourceNode(['"' + data.name + '": '].concat(data.body), member));
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
-                    if (constantCodeChunks.length > 0) {
-                        constantCodeChunks.push(', ');
-                    }
+                    _.each(data, function (constant) {
+                        if (constantCodeChunks.length > 0) {
+                            constantCodeChunks.push(', ');
+                        }
 
-                    constantCodeChunks.push(context.createInternalSourceNode(['"' + data.name + '": '].concat(data.value), member));
+                        constantCodeChunks.push(
+                            context.createInternalSourceNode(
+                                ['"' + constant.name + '": '].concat(constant.value),
+                                member
+                            )
+                        );
+                    });
                 }
             });
 
@@ -1673,6 +1691,7 @@ module.exports = {
                      * @param {string} translationKey
                      * @param {object} node
                      * @param {Object.<String, string>=} placeholderVariables
+                     * @throws {PHPFatalError}
                      */
                     raiseError: function (translationKey, node, placeholderVariables) {
                         var message = translator.translate(translationKey, placeholderVariables),
@@ -1900,9 +1919,20 @@ module.exports = {
                     sourceMap.setSourceContent(filePath, sourceMapOptions[SOURCE_CONTENT]);
                 }
 
+                compiledSourceMap = sourceMap.toStringWithSourceMap();
+
+                if (sourceMapOptions[RETURN_SOURCE_MAP]) {
+                    // Return the source map data object rather than embedding it in a comment,
+                    // much more efficient when we need to hand the source map data off
+                    // to the next processor in a chain, eg. for Webpack when used with PHPify
+                    return {
+                        code: compiledSourceMap.code,
+                        map: compiledSourceMap.map.toJSON() // Data object, not actually stringified to JSON
+                    };
+                }
+
                 // Append a source map comment containing the entire source map data as a data: URI,
                 // in the form `//# sourceMappingURL=data:application/json;base64,...`
-                compiledSourceMap = sourceMap.toStringWithSourceMap();
                 compiledBody = compiledSourceMap.code + '\n\n' +
                     sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
             } else {
