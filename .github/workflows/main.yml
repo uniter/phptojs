@@ -2,13 +2,14 @@ name: CI
 
 on: [push, pull_request]
 
-strategy:
-    matrix:
-        node-version: [8.x, 10.x, 12.x]
-
 jobs:
     build:
         runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                node-version: [8.x, 10.x, 12.x]
+
         steps:
             # Check out the repository under $GITHUB_WORKSPACE, so this job can access it
             - uses: actions/checkout@v2
