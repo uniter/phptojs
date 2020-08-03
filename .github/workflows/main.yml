@@ -1,0 +1,25 @@
+name: CI
+
+on: [push, pull_request]
+
+strategy:
+    matrix:
+        node-version: [8.x, 10.x, 12.x]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            # Check out the repository under $GITHUB_WORKSPACE, so this job can access it
+            - uses: actions/checkout@v2
+
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v1
+              with:
+                  node-version: ${{ matrix.node-version }}
+
+            - name: Install NPM dependencies
+              run: npm ci
+
+            - name: Run tests
+              run: npm test
