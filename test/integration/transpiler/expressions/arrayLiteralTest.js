@@ -128,4 +128,51 @@ describe('Transpiler array literal expression test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a return of array with key=>value and key=>reference pairs', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ARRAY_LITERAL',
+                    elements: [{
+                        name: 'N_KEY_VALUE_PAIR',
+                        key: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'myKeyForVal'
+                        },
+                        value: {
+                            name: 'N_VARIABLE',
+                            variable: 'myVarByVal'
+                        }
+                    }, {
+                        name: 'N_KEY_VALUE_PAIR',
+                        key: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'myKeyForRef'
+                        },
+                        value: {
+                            name: 'N_REFERENCE',
+                            operand: {
+                                name: 'N_VARIABLE',
+                                variable: 'myVarByRef'
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return tools.valueFactory.createArray([' +
+            'tools.createKeyValuePair(tools.valueFactory.createString("myKeyForVal"), scope.getVariable("myVarByVal").getValue()), ' +
+            'tools.createKeyReferencePair(tools.valueFactory.createString("myKeyForRef"), scope.getVariable("myVarByRef").getReference())' +
+            ']);' +
+            'return tools.valueFactory.createNull();' +
+            '}'
+        );
+    });
 });

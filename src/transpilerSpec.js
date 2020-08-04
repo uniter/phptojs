@@ -1425,8 +1425,10 @@ module.exports = {
             return '"type":"iterable"';
         },
         'N_KEY_VALUE_PAIR': function (node, interpret, context) {
+            var isReference = node.value.name === 'N_REFERENCE';
+
             return context.createExpressionSourceNode(
-                ['tools.createKeyValuePair('].concat(interpret(node.key), ', ', interpret(node.value), ')'),
+                ['tools.createKey' + (isReference ? 'Reference' : 'Value') + 'Pair('].concat(interpret(node.key), ', ', interpret(node.value), ')'),
                 node
             );
         },
