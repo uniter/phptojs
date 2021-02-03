@@ -11,7 +11,9 @@
 
 var _ = require('microdash'),
     BARE = 'bare',
+    FUNCTION_STACK_MARKER = '__uniterFunctionStackMarker__',
     MODE = 'mode',
+    MODULE_STACK_MARKER = '__uniterModuleStackMarker__',
     PATH = 'path',
     PREFIX = 'prefix',
     RETURN_SOURCE_MAP = 'returnMap',
@@ -249,6 +251,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     body = [
         'function ',
         nameNode ? context.createInternalSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
+        context.stackCleaning ? FUNCTION_STACK_MARKER : '',
         '(' + args.join(', ') + ') {',
         'var scope = this;',
         // Add instrumentation code for fetching the current line number for this call if enabled
@@ -1727,6 +1730,7 @@ module.exports = {
 
             context.buildingSourceMap = !!sourceMapOptions;
             context.lineNumbers = !!options.lineNumbers;
+            context.stackCleaning = !!options.stackCleaning;
             context.tick = !!options.tick;
 
             // Define optimized SourceNode factory, depending on mode
@@ -1890,7 +1894,11 @@ module.exports = {
             body.push('return tools.valueFactory.createNull();');
 
             // Wrap program in function for passing to runtime
-            body = ['function (stdin, stdout, stderr, tools, namespace) {'].concat(body, '}');
+            body = [
+                'function ',
+                context.stackCleaning ? MODULE_STACK_MARKER : '',
+                '(stdin, stdout, stderr, tools, namespace) {'
+            ].concat(body, '}');
 
             if (!bareMode) {
                 body = ['require(\'' + name + '\').compile('].concat(body, ')');
