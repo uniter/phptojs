@@ -39,6 +39,35 @@ describe('Transpiler isset(...) construct expression test', function () {
         );
     });
 
+    it('should correctly transpile a return statement with multiple expressions', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ISSET',
+                    variables: [{
+                        name: 'N_VARIABLE',
+                        variable: 'a_var'
+                    }, {
+                        name: 'N_VARIABLE',
+                        variable: 'another_var'
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
+            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'return (function (scope) {scope.suppressOwnErrors();' +
+            'var result = tools.valueFactory.createBoolean(scope.getVariable("a_var").isSet() && scope.getVariable("another_var").isSet());' +
+            'scope.unsuppressOwnErrors(); return result;}(scope));' +
+            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
     it('should correctly transpile a return statement with array element access', function () {
         var ast = {
             name: 'N_PROGRAM',
