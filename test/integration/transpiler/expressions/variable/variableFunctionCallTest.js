@@ -10,9 +10,9 @@
 'use strict';
 
 var expect = require('chai').expect,
-    phpToJS = require('../../..');
+    phpToJS = require('../../../../../index');
 
-describe('Transpiler function call expression test', function () {
+describe('Transpiler variable function call expression test', function () {
     it('should correctly transpile a call with no arguments', function () {
         var ast = {
             name: 'N_PROGRAM',
@@ -21,8 +21,8 @@ describe('Transpiler function call expression test', function () {
                 expression: {
                     name: 'N_FUNCTION_CALL',
                     func: {
-                        name: 'N_STRING',
-                        string: 'myFunc'
+                        name: 'N_VARIABLE',
+                        variable: 'myFuncNameVar'
                     },
                     args: []
                 }
@@ -30,15 +30,14 @@ describe('Transpiler function call expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var callVariableFunction = core.callVariableFunction, getVariable = core.getVariable;' +
+            'callVariableFunction(getVariable("myFuncNameVar"));' +
             '}'
         );
     });
 
-    it('should correctly transpile a call having arguments with simple values', function () {
+    it('should correctly transpile a call to variable function name having arguments with simple values', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -46,8 +45,8 @@ describe('Transpiler function call expression test', function () {
                 expression: {
                     name: 'N_FUNCTION_CALL',
                     func: {
-                        name: 'N_STRING',
-                        string: 'myFunc'
+                        name: 'N_VARIABLE',
+                        variable: 'myFuncNameVar'
                     },
                     args: [{
                         name: 'N_STRING_LITERAL',
@@ -64,14 +63,13 @@ describe('Transpiler function call expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([' +
-            'tools.valueFactory.createString("My string"), ' +
-            'tools.valueFactory.createInteger(21), ' +
-            'tools.valueFactory.createFloat(101.4)' +
-            '], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var callVariableFunction = core.callVariableFunction, createFloat = core.createFloat, createInteger = core.createInteger, createString = core.createString, getVariable = core.getVariable;' +
+            'callVariableFunction(getVariable("myFuncNameVar"), [' +
+            'createString("My string"), ' +
+            'createInteger(21), ' +
+            'createFloat(101.4)' +
+            ']);' +
             '}'
         );
     });
@@ -84,8 +82,8 @@ describe('Transpiler function call expression test', function () {
                 expression: {
                     name: 'N_FUNCTION_CALL',
                     func: {
-                        name: 'N_STRING',
-                        string: 'myFunc'
+                        name: 'N_VARIABLE',
+                        variable: 'myFuncNameVar'
                     },
                     args: [{
                         name: 'N_ARRAY_LITERAL',
@@ -111,12 +109,10 @@ describe('Transpiler function call expression test', function () {
                                     name: 'N_VARIABLE',
                                     variable: 'myObject'
                                 },
-                                properties: [{
-                                    property: {
-                                        name: 'N_STRING',
-                                        string: 'myProp'
-                                    }
-                                }]
+                                property: {
+                                    name: 'N_STRING',
+                                    string: 'myProp'
+                                }
                             }
                         }, {
                             name: 'N_VARIABLE',
@@ -145,27 +141,27 @@ describe('Transpiler function call expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([' +
-            'tools.valueFactory.createArray([' +
-            'tools.createKeyValuePair(' +
-            'tools.valueFactory.createString("myVarElement"), ' +
-            'scope.getVariable("myVarInNamedElement").getValue()' +
+            'function (core) {' +
+            'var callVariableFunction = core.callVariableFunction, createArray = core.createArray, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getConstant = core.getConstant, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, ternary = core.ternary;' +
+            'callVariableFunction(getVariable("myFuncNameVar"), [' +
+            'createArray([' +
+            'createKeyValuePair(' +
+            'createString("myVarElement"), ' +
+            'getVariable("myVarInNamedElement")' +
             '), ' +
-            'tools.createKeyValuePair(' +
-            'tools.valueFactory.createString("myPropertyElement"), ' +
-            'scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue()' +
+            'createKeyValuePair(' +
+            'createString("myPropertyElement"), ' +
+            'getInstanceProperty(getVariable("myObject"), "myProp")' +
             '), ' +
-            'scope.getVariable("myVarInIndexedElement").getValue()' +
+            'getVariable("myVarInIndexedElement")' +
             ']), ' +
-            'scope.getVariable("myVarAsArg")' + // Should not `.getValue()`, in case parameter is by-reference
+            'getVariable("myVarAsArg")' +
             ', ' +
-            '(scope.getVariable("myVarAsCondition").getValue().coerceToBoolean().getNative() ? ' +
-            'namespaceScope.getConstant("show me if truthy") : ' +
-            'namespaceScope.getConstant("show me if falsy")' +
-            ')], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();' +
+            '(ternary(getVariable("myVarAsCondition")) ? ' +
+            'getConstant("show me if truthy") : ' +
+            'getConstant("show me if falsy")' +
+            ')' +
+            ']);' +
             '}'
         );
     });

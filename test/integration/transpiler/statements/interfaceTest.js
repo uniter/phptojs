@@ -80,10 +80,10 @@ describe('Transpiler interface statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, defineInterface = core.defineInterface;' +
             '(function () {' +
-            'var currentClass = namespace.defineClass("Thing", {' +
+            'var currentClass = defineInterface("Thing", {' +
             'superClass: null, ' +
             'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
             'staticProperties: {}, ' +
@@ -93,12 +93,11 @@ describe('Transpiler interface statement test', function () {
             '"doSomethingElse": {isStatic: false, abstract: true}' +
             '}, ' +
             'constants: {' +
-            '"SHAPE_ONE": function () { return tools.valueFactory.createString("sphere"); }, ' +
-            '"SHAPE_TWO": function () { return tools.valueFactory.createString("circle"); }' +
+            '"SHAPE_ONE": function () { return createString("sphere"); }, ' +
+            '"SHAPE_TWO": function () { return createString("circle"); }' +
             '}' +
-            '}, namespaceScope);' +
+            '});' +
             '}());' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

@@ -13,7 +13,37 @@ var expect = require('chai').expect,
     phpToJS = require('../../../../..');
 
 describe('Transpiler loose inequality comparison operator test', function () {
-    it('should correctly transpile a return with a comparison between two integers', function () {
+    it('should correctly transpile a return with a comparison using "!=" between two integers', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_INTEGER',
+                        number: 21
+                    },
+                    right: [{
+                        operator: '!=',
+                        operand: {
+                            name: 'N_INTEGER',
+                            number: 32
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createInteger = core.createInteger, isNotEqual = core.isNotEqual;' +
+            'return isNotEqual(createInteger(21), createInteger(32));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return with a comparison using "<>" between two integers', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -36,10 +66,9 @@ describe('Transpiler loose inequality comparison operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(21).isNotEqualTo(tools.valueFactory.createInteger(32));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger, isNotEqual = core.isNotEqual;' +
+            'return isNotEqual(createInteger(21), createInteger(32));' +
             '}'
         );
     });

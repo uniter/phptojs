@@ -29,12 +29,9 @@ describe('Transpiler isset(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();' +
-            'var result = tools.valueFactory.createBoolean(scope.getVariable("a_var").isSet());' +
-            'scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, isSet = core.isSet;' +
+            'return isSet()(getVariable("a_var"));' +
             '});'
         );
     });
@@ -58,12 +55,9 @@ describe('Transpiler isset(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();' +
-            'var result = tools.valueFactory.createBoolean(scope.getVariable("a_var").isSet() && scope.getVariable("another_var").isSet());' +
-            'scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, isSet = core.isSet;' +
+            'return isSet()(getVariable("a_var"), getVariable("another_var"));' +
             '});'
         );
     });
@@ -81,24 +75,19 @@ describe('Transpiler isset(...) construct expression test', function () {
                             name: 'N_VARIABLE',
                             variable: 'myArray'
                         },
-                        indices: [{
-                            index: {
-                                name: 'N_INTEGER',
-                                number: 21
-                            }
-                        }]
+                        index: {
+                            name: 'N_INTEGER',
+                            number: 21
+                        }
                     }]
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();var result = tools.valueFactory.createBoolean(' +
-            'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).isSet()' +
-            ');scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getElement = core.getElement, getVariable = core.getVariable, isSet = core.isSet;' +
+            'return isSet()(getElement(getVariable("myArray"), 21));' +
             '});'
         );
     });

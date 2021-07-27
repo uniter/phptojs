@@ -12,7 +12,7 @@
 var expect = require('chai').expect,
     phpToJS = require('../../..');
 
-describe('Transpiler "return" statement test', function () {
+describe('Transpiler "runtimePath" option test', function () {
     it('should correctly transpile a return statement with an operand of 4 in default (async) mode', function () {
         var ast = {
             name: 'N_PROGRAM',
@@ -26,10 +26,9 @@ describe('Transpiler "return" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {runtimePath: '/path/to/runtime'})).to.equal(
-            'require(\'/path/to/runtime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(4);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'/path/to/runtime\').compile(function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(4);' +
             '});'
         );
     });
@@ -47,10 +46,9 @@ describe('Transpiler "return" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {sync: true, runtimePath: '/path/to/runtime'})).to.equal(
-            'require(\'/path/to/runtime/sync\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(6);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'/path/to/runtime/sync\').compile(function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(6);' +
             '});'
         );
     });
@@ -68,10 +66,9 @@ describe('Transpiler "return" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {mode: 'sync', runtimePath: '/path/to/runtime'})).to.equal(
-            'require(\'/path/to/runtime/sync\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(6);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'/path/to/runtime/sync\').compile(function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(6);' +
             '});'
         );
     });

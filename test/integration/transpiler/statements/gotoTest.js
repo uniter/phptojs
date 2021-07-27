@@ -52,24 +52,23 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'break_my_goto_label: {' +
                 'if (!goingToLabel_my_goto_label) {' +
-                    'stdout.write(tools.valueFactory.createString("Let us begin...").coerceToString().getNative());' +
+                    'echo(createString("Let us begin..."));' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
                     'goingToLabel_my_goto_label = true; ' +
                     'break break_my_goto_label;' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
-                    'stdout.write(tools.valueFactory.createString("... continue...").coerceToString().getNative());' +
+                    'echo(createString("... continue..."));' +
                 '}' +
             '}' +
             'goingToLabel_my_goto_label = false;' +
-            'stdout.write(tools.valueFactory.createString("... and let us finish").coerceToString().getNative());' +
-            'return tools.valueFactory.createNull();' +
+            'echo(createString("... and let us finish"));' +
             '});'
         );
     });
@@ -111,20 +110,19 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'continue_my_goto_label: do {' +
                 'if (!goingToLabel_my_goto_label) {' +
-                    'stdout.write(tools.valueFactory.createString("Let us begin...").coerceToString().getNative());' +
+                    'echo(createString("Let us begin..."));' +
                 '}' +
                 'goingToLabel_my_goto_label = false;' +
-                'stdout.write(tools.valueFactory.createString("... continue...").coerceToString().getNative());' +
+                'echo(createString("... continue..."));' +
                 'goingToLabel_my_goto_label = true; ' +
                 'continue continue_my_goto_label;' +
-                'stdout.write(tools.valueFactory.createString("... and let us finish").coerceToString().getNative());' +
+                'echo(createString("... and let us finish"));' +
             '} while (goingToLabel_my_goto_label);' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -172,8 +170,8 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'break_my_goto_label: {' +
                 'if (!goingToLabel_my_goto_label) {' +
@@ -181,19 +179,18 @@ describe('Transpiler "goto" statement test', function () {
                     'break break_my_goto_label;' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
-                    'stdout.write(tools.valueFactory.createString("I am in between...").coerceToString().getNative());' +
+                    'echo(createString("I am in between..."));' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
                     'goingToLabel_my_goto_label = true; ' +
                     'break break_my_goto_label;' +
                 '}' +
                 'if (!goingToLabel_my_goto_label) {' +
-                    'stdout.write(tools.valueFactory.createString("... I am also...").coerceToString().getNative());' +
+                    'echo(createString("... I am also..."));' +
                 '}' +
             '}' +
             'goingToLabel_my_goto_label = false;' +
-            'stdout.write(tools.valueFactory.createString("... and we are done").coerceToString().getNative());' +
-            'return tools.valueFactory.createNull();' +
+            'echo(createString("... and we are done"));' +
             '});'
         );
     });
@@ -241,20 +238,19 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'continue_my_goto_label: do {' +
                 'goingToLabel_my_goto_label = false;' +
-                'stdout.write(tools.valueFactory.createString("I am in between...").coerceToString().getNative());' +
+                'echo(createString("I am in between..."));' +
                 'goingToLabel_my_goto_label = true; ' +
                 'continue continue_my_goto_label;' +
-                'stdout.write(tools.valueFactory.createString("... I am also...").coerceToString().getNative());' +
+                'echo(createString("... I am also..."));' +
                 'goingToLabel_my_goto_label = true; ' +
                 'continue continue_my_goto_label;' +
-                'stdout.write(tools.valueFactory.createString("... and we are done").coerceToString().getNative());' +
+                'echo(createString("... and we are done"));' +
             '} while (goingToLabel_my_goto_label);' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -339,20 +335,20 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-                'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+                'var createString = core.createString, echo = core.echo;' +
                 'var goingToLabel_first_label = false, goingToLabel_second_label = false;' +
                 'break_second_label: {' +
                     'break_first_label: {' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
-                            'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                            'echo(createString("first"));' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'goingToLabel_first_label = true; ' +
                             'break break_first_label;' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
-                            'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+                            'echo(createString("second"));' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'goingToLabel_second_label = true; ' +
@@ -363,15 +359,14 @@ describe('Transpiler "goto" statement test', function () {
                         'goingToLabel_first_label = false;' +
                     '}' +
                     'if (!goingToLabel_second_label) {' +
-                        'stdout.write(tools.valueFactory.createString("third").coerceToString().getNative());' +
+                        'echo(createString("third"));' +
                     '}' +
                     'if (!goingToLabel_second_label) {' +
-                        'stdout.write(tools.valueFactory.createString("fourth").coerceToString().getNative());' +
+                        'echo(createString("fourth"));' +
                     '}' +
                 '}' +
                 'goingToLabel_second_label = false;' +
-                'stdout.write(tools.valueFactory.createString("fifth").coerceToString().getNative());' +
-                'return tools.valueFactory.createNull();' +
+                'echo(createString("fifth"));' +
             '});'
         );
     });
@@ -463,38 +458,37 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-                'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+                'var createString = core.createString, echo = core.echo, nullValue = core.nullValue;' +
                 'var goingToLabel_second_label = false, goingToLabel_first_label = false;' +
                 'continue_first_label: do {' +
                     'break_second_label: {' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
-                            'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                            'echo(createString("first"));' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
                             'goingToLabel_second_label = true; ' +
                             'break break_second_label;' +
                         '}' +
                         'if (!goingToLabel_first_label && !goingToLabel_second_label) {' +
-                            'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+                            'echo(createString("second"));' +
                         '}' +
                         'if (!goingToLabel_second_label) {' +
                             'goingToLabel_first_label = false;' +
                         '}' +
                         'if (!goingToLabel_second_label) {' +
-                            'stdout.write(tools.valueFactory.createString("third").coerceToString().getNative());' +
+                            'echo(createString("third"));' +
                         '}' +
                         'if (!goingToLabel_second_label) {' +
-                            'return tools.valueFactory.createNull();' +
+                            'return nullValue;' +
                         '}' +
                     '}' +
                     'goingToLabel_second_label = false;' +
-                    'stdout.write(tools.valueFactory.createString("fourth").coerceToString().getNative());' +
+                    'echo(createString("fourth"));' +
                     'goingToLabel_first_label = true; ' +
                     'continue continue_first_label;' +
-                    'stdout.write(tools.valueFactory.createString("fifth").coerceToString().getNative());' +
+                    'echo(createString("fifth"));' +
                 '} while (goingToLabel_first_label);' +
-                'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -534,22 +528,21 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, loop = core.loop;' +
             'var goingToLabel_my_label = false;' +
-            'block_1: while (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative()) {' +
+            'block_1: while (loop(0, getVariable("myCondition"))) {' +
                 'break_my_label: {' +
                     'if (!goingToLabel_my_label) {' +
                         'goingToLabel_my_label = true; ' +
                         'break break_my_label;' +
                     '}' +
                     'if (!goingToLabel_my_label) {' +
-                        'stdout.write(tools.valueFactory.createInteger(4).coerceToString().getNative());' +
+                        'echo(createInteger(4));' +
                     '}' +
                 '}' +
                 'goingToLabel_my_label = false;' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -589,8 +582,8 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, loop = core.loop;' +
             'var goingToLabel_my_label = false;' +
             'block_1: do {' +
                 'break_my_label: {' +
@@ -599,12 +592,11 @@ describe('Transpiler "goto" statement test', function () {
                         'break break_my_label;' +
                     '}' +
                     'if (!goingToLabel_my_label) {' +
-                        'stdout.write(tools.valueFactory.createInteger(4).coerceToString().getNative());' +
+                        'echo(createInteger(4));' +
                     '}' +
                 '}' +
                 'goingToLabel_my_label = false;' +
-            '} while (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative());' +
-            'return tools.valueFactory.createNull();' +
+            '} while (loop(0, getVariable("myCondition")));' +
             '});'
         );
     });
@@ -636,15 +628,14 @@ describe('Transpiler "goto" statement test', function () {
         // TODO: Improve this - unused labels _could_ just be completely removed.
         //       Perhaps one to solve with a compiler pass once we have an IR stage?
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_unused_label = false;' +
             'if (!goingToLabel_my_unused_label) {' +
-                'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                'echo(createString("first"));' +
             '}' +
             'goingToLabel_my_unused_label = false;' +
-            'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
-            'return tools.valueFactory.createNull();' +
+            'echo(createString("second"));' +
             '});'
         );
     });
@@ -690,12 +681,12 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, if_ = core.if_;' +
             'var goingToLabel_my_label = false;' +
             'break_my_label: {' +
                 'if (!goingToLabel_my_label) {' +
-                    'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                    'echo(createString("first"));' +
                 '}' +
                 'if (!goingToLabel_my_label) {' +
                     'goingToLabel_my_label = true; ' +
@@ -704,13 +695,12 @@ describe('Transpiler "goto" statement test', function () {
             '}' +
             // The if statement's condition must allow execution to pass if we need to jump to a label
             // that is inside its consequent clause's body
-            'if (goingToLabel_my_label || (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative())) {' +
+            'if (goingToLabel_my_label || (if_(getVariable("myCondition")))) {' +
                 'if (!goingToLabel_my_label) {' +
-                    'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+                    'echo(createString("second"));' +
                 '}' +
                 'goingToLabel_my_label = false;' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -766,12 +756,12 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, if_ = core.if_;' +
             'var goingToLabel_my_label = false;' +
             'break_my_label: {' +
                 'if (!goingToLabel_my_label) {' +
-                    'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                    'echo(createString("first"));' +
                 '}' +
                 'if (!goingToLabel_my_label) {' +
                     'goingToLabel_my_label = true; ' +
@@ -780,15 +770,14 @@ describe('Transpiler "goto" statement test', function () {
             '}' +
             // The if statement's condition must _not_ allow execution to pass if we need to jump to a label
             // that is inside its alternate clause's body
-            'if (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative()) {' +
-                'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+            'if (if_(getVariable("myCondition"))) {' +
+                'echo(createString("second"));' +
             '} else {' +
                 'if (!goingToLabel_my_label) {' +
-                    'stdout.write(tools.valueFactory.createString("third").coerceToString().getNative());' +
+                    'echo(createString("third"));' +
                 '}' +
                 'goingToLabel_my_label = false;' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -840,12 +829,12 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, if_ = core.if_;' +
             'var goingToLabel_my_label = false;' +
             'break_my_label: {' +
                 'if (!goingToLabel_my_label) {' +
-                    'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                    'echo(createString("first"));' +
                 '}' +
                 'if (!goingToLabel_my_label) {' +
                     'goingToLabel_my_label = true; ' +
@@ -854,15 +843,14 @@ describe('Transpiler "goto" statement test', function () {
             '}' +
             // The if statement's condition must allow execution to pass if we need to jump to a label
             // that is inside its consequent clause's body
-            'if (goingToLabel_my_label || (scope.getVariable("myCondition").getValue().coerceToBoolean().getNative())) {' +
+            'if (goingToLabel_my_label || (if_(getVariable("myCondition")))) {' +
                 'continue_my_label: do {' +
                     'goingToLabel_my_label = false;' +
-                    'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
+                    'echo(createString("second"));' +
                     'goingToLabel_my_label = true; ' +
                     'continue continue_my_label;' +
                 '} while (goingToLabel_my_label);' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -909,10 +897,9 @@ describe('Transpiler "goto" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("myFunc", function _myFunc() {' +
-                'var scope = this;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, defineFunction = core.defineFunction, echo = core.echo;' +
+            'defineFunction("myFunc", function _myFunc() {' +
                 'var goingToLabel_my_label = false;' +
                 'break_my_label: {' +
                     'if (!goingToLabel_my_label) {' +
@@ -920,13 +907,12 @@ describe('Transpiler "goto" statement test', function () {
                         'break break_my_label;' +
                     '}' +
                     'if (!goingToLabel_my_label) {' +
-                        'stdout.write(tools.valueFactory.createString("first").coerceToString().getNative());' +
+                        'echo(createString("first"));' +
                     '}' +
                 '}' +
                 'goingToLabel_my_label = false;' +
-                'stdout.write(tools.valueFactory.createString("second").coerceToString().getNative());' +
-            '}, namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+                'echo(createString("second"));' +
+            '});' +
             '});'
         );
     });

@@ -31,10 +31,9 @@ describe('Transpiler logical "not" operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").getValue().logicalNot();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getVariable = core.getVariable, logicalNot = core.logicalNot;' +
+            'return logicalNot(getVariable("myVar"));' +
             '}'
         );
     });
@@ -67,10 +66,9 @@ describe('Transpiler logical "not" operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("leftVar").getValue().logicalNot().isNotIdenticalTo(scope.getVariable("rightVar").getValue());' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getVariable = core.getVariable, isNotIdentical = core.isNotIdentical, logicalNot = core.logicalNot;' +
+            'return isNotIdentical(logicalNot(getVariable("leftVar")), getVariable("rightVar"));' +
             '}'
         );
     });

@@ -36,10 +36,9 @@ describe('Transpiler subtraction assignment operator "-=" test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").decrementBy(tools.valueFactory.createInteger(21));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, decrementBy = core.decrementBy, getVariable = core.getVariable;' +
+            'return decrementBy(getVariable("myVar"), createInteger(21));' +
             '});'
         );
     });

@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler array literal expression test', function () {
-    it('should correctly transpile a return of array with immediate integer and variable reference', function () {
+    it('should correctly transpile a return of array with immediate integer, variable and variable reference', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -38,19 +38,18 @@ describe('Transpiler array literal expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createArray([' +
-            'tools.valueFactory.createInteger(21), ' +
-            'scope.getVariable("myVarByVal").getValue(), ' +
-            'scope.getVariable("myVarByRef").getReference()' +
+            'function (core) {' +
+            'var createArray = core.createArray, createInteger = core.createInteger, getReference = core.getReference, getVariable = core.getVariable;' +
+            'return createArray([' +
+            'createInteger(21), ' +
+            'getVariable("myVarByVal"), ' +
+            'getReference(getVariable("myVarByRef"))' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '}'
         );
     });
 
-    it('should correctly transpile an assignment array with immediate integer, variable, array element and object property references', function () {
+    it('should correctly transpile an assignment of array with immediate integer, variable, array element and object property references', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -85,12 +84,10 @@ describe('Transpiler array literal expression test', function () {
                                         name: 'N_VARIABLE',
                                         variable: 'myArray'
                                     },
-                                    indices: [{
-                                        index: {
-                                            name: 'N_STRING_LITERAL',
-                                            string: 'myElementByRef'
-                                        }
-                                    }]
+                                    index: {
+                                        name: 'N_STRING_LITERAL',
+                                        string: 'myElementByRef'
+                                    }
                                 }
                             }, {
                                 name: 'N_REFERENCE',
@@ -100,12 +97,10 @@ describe('Transpiler array literal expression test', function () {
                                         name: 'N_VARIABLE',
                                         variable: 'myObject'
                                     },
-                                    properties: [{
-                                        property: {
-                                            name: 'N_STRING',
-                                            string: 'myElementByRef'
-                                        }
-                                    }]
+                                    property: {
+                                        name: 'N_STRING',
+                                        string: 'myPropertyByRef'
+                                    }
                                 }
                             }]
                         }
@@ -115,16 +110,15 @@ describe('Transpiler array literal expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("myTarget").setValue(tools.valueFactory.createArray([' +
-            'tools.valueFactory.createInteger(21), ' +
-            'scope.getVariable("myVarByVal").getValue(), ' +
-            'scope.getVariable("myVarByRef").getReference(), ' +
-            'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createString("myElementByRef")).getReference(), ' +
-            'scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myElementByRef")).getReference()' +
+            'function (core) {' +
+            'var createArray = core.createArray, createInteger = core.createInteger, getElement = core.getElement, getInstanceProperty = core.getInstanceProperty, getReference = core.getReference, getVariable = core.getVariable, setValue = core.setValue;' +
+            'setValue(getVariable("myTarget"), createArray([' +
+            'createInteger(21), ' +
+            'getVariable("myVarByVal"), ' +
+            'getReference(getVariable("myVarByRef")), ' +
+            'getReference(getElement(getVariable("myArray"), "myElementByRef")), ' +
+            'getReference(getInstanceProperty(getVariable("myObject"), "myPropertyByRef"))' +
             ']));' +
-            'return tools.valueFactory.createNull();' +
             '}'
         );
     });
@@ -165,13 +159,12 @@ describe('Transpiler array literal expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createArray([' +
-            'tools.createKeyValuePair(tools.valueFactory.createString("myKeyForVal"), scope.getVariable("myVarByVal").getValue()), ' +
-            'tools.createKeyReferencePair(tools.valueFactory.createString("myKeyForRef"), scope.getVariable("myVarByRef").getReference())' +
+            'function (core) {' +
+            'var createArray = core.createArray, createKeyReferencePair = core.createKeyReferencePair, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getVariable = core.getVariable;' +
+            'return createArray([' +
+            'createKeyValuePair(createString("myKeyForVal"), getVariable("myVarByVal")), ' +
+            'createKeyReferencePair(createString("myKeyForRef"), getVariable("myVarByRef"))' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '}'
         );
     });

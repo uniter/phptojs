@@ -21,19 +21,17 @@ describe('Transpiler "print" expression test', function () {
                 expression: {
                     name: 'N_PRINT_EXPRESSION',
                     operand: {
-                        name: 'N_STRING',
-                        string: 'hello'
+                        name: 'N_STRING_LITERAL',
+                        string: 'hello world'
                     }
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(stdout.write(namespaceScope.getConstant("hello").coerceToString().getNative()), ' +
-            'tools.valueFactory.createInteger(1));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, print = core.print;' +
+            'print(createString("hello world"));' +
             '});'
         );
     });

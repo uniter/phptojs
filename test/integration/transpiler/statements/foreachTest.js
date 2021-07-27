@@ -37,16 +37,14 @@ describe('Transpiler "foreach" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '' +
-            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
-            'iterator_1.isNotFinished(); ' +
-            'iterator_1.advance()) {' +
-            'scope.getVariable("item").setValue(iterator_1.getCurrentElementValue());' +
-            'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var advance = core.advance, createInteger = core.createInteger, echo = core.echo, getCurrentElementValue = core.getCurrentElementValue, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setValue = core.setValue;' +
+            'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
+            'isNotFinished(0, iterator_1); ' +
+            'advance(iterator_1)) {' +
+            'setValue(getVariable("item"), getCurrentElementValue(iterator_1));' +
+            'echo(createInteger(1));' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -78,15 +76,14 @@ describe('Transpiler "foreach" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
-            'iterator_1.isNotFinished(); ' +
-            'iterator_1.advance()) {' +
-            'scope.getVariable("item").setReference(iterator_1.getCurrentElementReference());' +
-            'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var advance = core.advance, createInteger = core.createInteger, echo = core.echo, getCurrentElementReference = core.getCurrentElementReference, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setReference = core.setReference;' +
+            'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
+            'isNotFinished(0, iterator_1); ' +
+            'advance(iterator_1)) {' +
+            'setReference(getVariable("item"), getCurrentElementReference(iterator_1));' +
+            'echo(createInteger(1));' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -119,16 +116,15 @@ describe('Transpiler "foreach" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
-            'iterator_1.isNotFinished(); ' +
-            'iterator_1.advance()) {' +
-            'scope.getVariable("item").setValue(iterator_1.getCurrentElementValue());' +
-            'scope.getVariable("theKey").setValue(iterator_1.getCurrentKey());' +
-            'stdout.write(tools.valueFactory.createInteger(1).coerceToString().getNative());' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var advance = core.advance, createInteger = core.createInteger, echo = core.echo, getCurrentElementValue = core.getCurrentElementValue, getCurrentKey = core.getCurrentKey, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setValue = core.setValue;' +
+            'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
+            'isNotFinished(0, iterator_1); ' +
+            'advance(iterator_1)) {' +
+            'setValue(getVariable("item"), getCurrentElementValue(iterator_1));' +
+            'setValue(getVariable("theKey"), getCurrentKey(iterator_1));' +
+            'echo(createInteger(1));' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

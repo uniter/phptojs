@@ -29,12 +29,9 @@ describe('Transpiler empty(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();' +
-            'var result = tools.valueFactory.createBoolean(scope.getVariable("a_var").isEmpty());' +
-            'scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, isEmpty = core.isEmpty;' +
+            'return isEmpty()(getVariable("a_var"));' +
             '});'
         );
     });
@@ -52,29 +49,24 @@ describe('Transpiler empty(...) construct expression test', function () {
                             name: 'N_VARIABLE',
                             variable: 'myArray'
                         },
-                        indices: [{
-                            index: {
-                                name: 'N_INTEGER',
-                                number: 21
-                            }
-                        }]
+                        index: {
+                            name: 'N_INTEGER',
+                            number: 21
+                        }
                     }
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();var result = tools.valueFactory.createBoolean(' +
-            'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).isEmpty()' +
-            ');scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getElement = core.getElement, getVariable = core.getVariable, isEmpty = core.isEmpty;' +
+            'return isEmpty()(getElement(getVariable("myArray"), 21));' +
             '});'
         );
     });
 
-    it('should correctly transpile a return statement with array element access', function () {
+    it('should correctly transpile a return statement with instance property access', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -82,29 +74,24 @@ describe('Transpiler empty(...) construct expression test', function () {
                 expression: {
                     name: 'N_EMPTY',
                     variable: {
-                        name: 'N_ARRAY_INDEX',
-                        array: {
+                        name: 'N_OBJECT_PROPERTY',
+                        object: {
                             name: 'N_VARIABLE',
-                            variable: 'myArray'
+                            variable: 'myObject'
                         },
-                        indices: [{
-                            index: {
-                                name: 'N_INTEGER',
-                                number: 21
-                            }
-                        }]
+                        property: {
+                            name: 'N_STRING',
+                            string: 'myProp'
+                        }
                     }
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();var result = tools.valueFactory.createBoolean(' +
-            'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).isEmpty()' +
-            ');scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, isEmpty = core.isEmpty;' +
+            'return isEmpty()(getInstanceProperty(getVariable("myObject"), "myProp"));' +
             '});'
         );
     });
@@ -131,12 +118,9 @@ describe('Transpiler empty(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressOwnErrors();var result = tools.valueFactory.createBoolean(' +
-            'scope.getClassNameOrThrow().getStaticPropertyByName(tools.valueFactory.createBarewordString("myProp"), namespaceScope).isEmpty()' +
-            ');scope.unsuppressOwnErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getClassNameOrThrow = core.getClassNameOrThrow, getStaticProperty = core.getStaticProperty, isEmpty = core.isEmpty;' +
+            'return isEmpty()(getStaticProperty(getClassNameOrThrow(), "myProp"));' +
             '});'
         );
     });

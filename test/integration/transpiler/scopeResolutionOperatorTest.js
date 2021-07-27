@@ -30,10 +30,9 @@ describe('Transpiler scope resolution operator test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createBarewordString("MyClass").getConstantByName("MY_CONST", namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createBareword = core.createBareword, getClassConstant = core.getClassConstant;' +
+            'return getClassConstant(createBareword("MyClass"), "MY_CONST");' +
             '});'
         );
     });

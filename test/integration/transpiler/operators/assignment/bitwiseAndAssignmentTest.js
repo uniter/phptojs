@@ -36,10 +36,9 @@ describe('Transpiler bitwise AND assignment operator "&=" test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").bitwiseAndWith(tools.valueFactory.createInteger(27));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var bitwiseAndWith = core.bitwiseAndWith, createInteger = core.createInteger, getVariable = core.getVariable;' +
+            'return bitwiseAndWith(getVariable("myVar"), createInteger(27));' +
             '});'
         );
     });

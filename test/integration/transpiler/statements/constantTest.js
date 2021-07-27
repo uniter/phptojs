@@ -35,11 +35,10 @@ describe('Transpiler "const" declaration statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineConstant("FIRST_CONST", tools.valueFactory.createInteger(101));' +
-            'namespace.defineConstant("SECOND_CONST", tools.valueFactory.createString("hello world!"));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, createString = core.createString, defineConstant = core.defineConstant;' +
+            'defineConstant("FIRST_CONST", createInteger(101));' +
+            'defineConstant("SECOND_CONST", createString("hello world!"));' +
             '});'
         );
     });

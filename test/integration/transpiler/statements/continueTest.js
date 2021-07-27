@@ -79,16 +79,15 @@ describe('Transpiler "continue" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, getVariable = core.getVariable, isLessThan = core.isLessThan, loop = core.loop, postIncrement = core.postIncrement, setValue = core.setValue;' +
             'block_1: for (' +
-            'scope.getVariable("i").setValue(tools.valueFactory.createInteger(0));' +
-            'scope.getVariable("i").getValue().isLessThan(tools.valueFactory.createInteger(2)).coerceToBoolean().getNative();' +
-            'scope.getVariable("i").postIncrement()' +
+            'setValue(getVariable("i"), createInteger(0));' +
+            'loop(0, isLessThan(getVariable("i"), createInteger(2)));' +
+            'postIncrement(getVariable("i"))' +
             ') {' +
             'continue block_1;' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -117,16 +116,15 @@ describe('Transpiler "continue" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var advance = core.advance, getCurrentElementValue = core.getCurrentElementValue, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setValue = core.setValue;' +
             '' +
-            'block_1: for (var iterator_1 = scope.getVariable("myArray").getValue().getIterator(); ' +
-            'iterator_1.isNotFinished(); ' +
-            'iterator_1.advance()) {' +
-            'scope.getVariable("item").setValue(iterator_1.getCurrentElementValue());' +
+            'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
+            'isNotFinished(0, iterator_1); ' +
+            'advance(iterator_1)) {' +
+            'setValue(getVariable("item"), getCurrentElementValue(iterator_1));' +
             'continue block_1;' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -154,12 +152,11 @@ describe('Transpiler "continue" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_1: while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative()) {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, loop = core.loop;' +
+            'block_1: while (loop(0, createInteger(21))) {' +
             'continue block_1;' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -187,12 +184,11 @@ describe('Transpiler "continue" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, loop = core.loop;' +
             'block_1: do {' +
             'continue block_1;' +
-            '} while (tools.valueFactory.createInteger(21).coerceToBoolean().getNative());' +
-            'return tools.valueFactory.createNull();' +
+            '} while (loop(0, createInteger(21)));' +
             '});'
         );
     });
@@ -225,17 +221,16 @@ describe('Transpiler "continue" statement test', function () {
 
         // In PHP, `continue` inside a `switch` should behave the save as a `break`
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, switchCase = core.switchCase, switchOn = core.switchOn;' +
             'block_1: {' +
-            'var switchExpression_1 = tools.valueFactory.createInteger(21), ' +
+            'var switchExpression_1 = switchOn(createInteger(21)), ' +
             'switchMatched_1 = false;' +
-            'if (switchMatched_1 || switchExpression_1.isEqualTo(tools.valueFactory.createInteger(21)).getNative()) {' +
+            'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(21))) {' +
             'switchMatched_1 = true; ' +
             'break block_1;' +
             '}' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

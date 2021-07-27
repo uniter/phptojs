@@ -49,7 +49,7 @@ describe('Transpiler custom statement test', function () {
                 nodes: {
                     'N_CUSTOM_TRAP_IT': function (node, interpret, context) {
                         return context.createStatementSourceNode(
-                            ['stdout.write("Trapped: " + ', interpret(node.arg, {getValue: true}), '.getNative());'],
+                            [context.useCoreSymbol('printRaw'), '("Trapped: " + ', context.useCoreSymbol('getNative'), '(', interpret(node.arg, {getValue: true}), '));'],
                             node
                         );
                     }
@@ -57,12 +57,11 @@ describe('Transpiler custom statement test', function () {
             };
 
         expect(phpToJS.transpile(ast, {}, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(tools.valueFactory.createBarewordString("firstFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
-            'stdout.write("Trapped: " + tools.valueFactory.createInteger(21).getNative());' +
-            '(tools.valueFactory.createBarewordString("secondFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, createInteger = core.createInteger, getNative = core.getNative, printRaw = core.printRaw;' +
+            'callFunction("firstFunc");' +
+            'printRaw("Trapped: " + getNative(createInteger(21)));' +
+            'callFunction("secondFunc");' +
             '});'
         );
     });

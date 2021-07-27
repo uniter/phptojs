@@ -74,26 +74,24 @@ describe('Transpiler closure expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.createClosure(' +
+            'function (core) {' +
+            'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, getVariableForScope = core.getVariableForScope, scope = core.scope, setReference = core.setReference, setValue = core.setValue;' +
+            'return createClosure(' +
             '(function (parentScope) { ' +
             'return function ($arg1, $arg2, $arg3) {' +
-            'var scope = this;' +
-            'scope.getVariable("arg1").setValue($arg1.getValue());' +
-            'scope.getVariable("arg2").setReference($arg2.getReference());' +
-            'scope.getVariable("arg3").setValue($arg3.getValue());' +
-            'scope.getVariable("bound1").setValue(parentScope.getVariable("bound1").getValue());' +
-            'scope.getVariable("bound2").setReference(parentScope.getVariable("bound2").getReference());' +
-            'stdout.write(tools.valueFactory.createInteger(21).coerceToString().getNative());' +
+            'setValue(getVariable("arg1"), $arg1);' +
+            'setReference(getVariable("arg2"), $arg2);' +
+            'setValue(getVariable("arg3"), $arg3);' +
+            'setValue(getVariable("bound1"), getVariableForScope("bound1", parentScope));' +
+            'setReference(getVariable("bound2"), getVariableForScope("bound2", parentScope));' +
+            'echo(createInteger(21));' +
             '}; ' +
             '}(scope)), ' +
-            'scope, namespaceScope, [' +
+            '[' +
             '{"name":"arg1"},' +
             '{"type":"array","name":"arg2","ref":true},' +
-            '{"name":"arg3","value":function () { return tools.valueFactory.createInteger(21); }}' +
+            '{"name":"arg3","value":function () { return createInteger(21); }}' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '}'
         );
     });
@@ -135,18 +133,16 @@ describe('Transpiler closure expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.createClosure(' +
+            'function (core) {' +
+            'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, setReferenceOrValue = core.setReferenceOrValue;' +
+            'return createClosure(' +
             'function ($myArg) {' +
-            'var scope = this;' +
-            'scope.getVariable("myArg").setReferenceOrValue($myArg);' +
-            'stdout.write(tools.valueFactory.createInteger(21).coerceToString().getNative());' +
+            'setReferenceOrValue(getVariable("myArg"), $myArg);' +
+            'echo(createInteger(21));' +
             '}, ' +
-            'scope, namespaceScope, [' +
-            '{"name":"myArg","ref":true,"value":function () { return tools.valueFactory.createInteger(27); }}' +
+            '[' +
+            '{"name":"myArg","ref":true,"value":function () { return createInteger(27); }}' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '}'
         );
     });
@@ -170,13 +166,11 @@ describe('Transpiler closure expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.createClosure(' +
+            'function (core) {' +
+            'var createClosure = core.createClosure;' +
+            'return createClosure(' +
             'function () {' +
-            'var scope = this;' +
-            '}, scope, namespaceScope, [], true);' +
-            'return tools.valueFactory.createNull();' +
+            '}, [], true);' +
             '}'
         );
     });

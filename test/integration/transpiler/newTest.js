@@ -39,10 +39,9 @@ describe('Transpiler new expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("object").setValue(tools.createInstance(namespaceScope, tools.valueFactory.createBarewordString("Worker"), []));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createBareword = core.createBareword, createInstance = core.createInstance, getVariable = core.getVariable, setValue = core.setValue;' +
+            'setValue(getVariable("object"), createInstance(createBareword("Worker"), []));' +
             '});'
         );
     });
@@ -70,12 +69,11 @@ describe('Transpiler new expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([' +
-            'tools.createInstance(namespaceScope, scope.getVariable("myClassName").getValue(), [])' +
-            '], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, createInstance = core.createInstance, getVariable = core.getVariable;' +
+            'callFunction("myFunc", [' +
+            'createInstance(getVariable("myClassName"), [])' +
+            ']);' +
             '});'
         );
     });

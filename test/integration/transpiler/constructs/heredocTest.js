@@ -38,15 +38,14 @@ describe('Transpiler "heredoc" statement test', function () {
             };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString(' +
-            'tools.valueFactory.createString("Increase ").coerceToString().getNative() + ' +
-            'scope.getVariable("firstVar").getValue().coerceToString().getNative() + ' +
-            'tools.valueFactory.createString(" with ").coerceToString().getNative() + ' +
-            'scope.getVariable("secondVar").getValue().coerceToString().getNative()' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, interpolate = core.interpolate;' +
+            'return interpolate(' +
+            '"Increase ", ' +
+            'getVariable("firstVar"), ' +
+            '" with ", ' +
+            'getVariable("secondVar")' +
             ');' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

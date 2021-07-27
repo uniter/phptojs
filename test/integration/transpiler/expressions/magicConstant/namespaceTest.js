@@ -25,10 +25,9 @@ describe('Transpiler __NAMESPACE__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return namespaceScope.getNamespaceName();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getNamespaceName = core.getNamespaceName;' +
+            'return getNamespaceName();' +
             '}'
         );
     });
@@ -67,17 +66,17 @@ describe('Transpiler __NAMESPACE__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'function (core) {' +
+            'var defineClass = core.defineClass, getNamespaceName = core.getNamespaceName;' +
             '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
+            'var currentClass = defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
-            'method: function _getClass() {var scope = this;' +
-            'return namespaceScope.getNamespaceName();' +
+            'method: function _getClass() {' +
+            'return getNamespaceName();' +
             '}}' +
-            '}, constants: {}}, namespaceScope);}());' +
-            'return tools.valueFactory.createNull();}'
+            '}, constants: {}});}());' +
+            '}'
         );
     });
 });

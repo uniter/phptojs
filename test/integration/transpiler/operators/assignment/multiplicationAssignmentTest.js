@@ -36,10 +36,9 @@ describe('Transpiler multiplication assignment operator "*=" test', function () 
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").multiplyBy(tools.valueFactory.createInteger(21));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, getVariable = core.getVariable, multiplyBy = core.multiplyBy;' +
+            'return multiplyBy(getVariable("myVar"), createInteger(21));' +
             '});'
         );
     });

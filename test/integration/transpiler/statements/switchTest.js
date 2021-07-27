@@ -85,22 +85,21 @@ describe('Transpiler "switch" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, switchCase = core.switchCase, switchOn = core.switchOn;' +
             'block_1: {' +
-            'var switchExpression_1 = tools.valueFactory.createInteger(21).add(tools.valueFactory.createInteger(6)), ' +
+            'var switchExpression_1 = switchOn(add(createInteger(21), createInteger(6))), ' +
             'switchMatched_1 = false;' +
-            'if (switchMatched_1 || switchExpression_1.isEqualTo(tools.valueFactory.createInteger(27)).getNative()) {' +
+            'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(27))) {' +
             'switchMatched_1 = true; ' +
-            'scope.getVariable("a").setValue(tools.valueFactory.createInteger(7));' +
+            'setValue(getVariable("a"), createInteger(7));' +
             'break block_1;' +
             '}' +
             'if (!switchMatched_1) {' +
             'switchMatched_1 = true; ' +
-            'scope.getVariable("a").setValue(tools.valueFactory.createInteger(8));' +
+            'setValue(getVariable("a"), createInteger(8));' +
             '}' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

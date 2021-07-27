@@ -36,10 +36,9 @@ describe('Transpiler logical "or" operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createBoolean(tools.valueFactory.createString("first").coerceToBoolean().getNative() || (tools.valueFactory.createString("second").coerceToBoolean().getNative()));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createBoolean = core.createBoolean, createString = core.createString, logicalTerm = core.logicalTerm;' +
+            'return createBoolean(logicalTerm(createString("first")) || logicalTerm(createString("second")));' +
             '}'
         );
     });
@@ -77,15 +76,9 @@ describe('Transpiler logical "or" operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createBoolean(' +
-            'tools.valueFactory.createInteger(21).coerceToBoolean().getNative() || (' +
-            'tools.valueFactory.createBoolean(tools.valueFactory.createInteger(27).coerceToBoolean().getNative() || (' +
-            'tools.valueFactory.createInteger(101).coerceToBoolean().getNative())).coerceToBoolean().getNative()' +
-            ')' +
-            ');' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createBoolean = core.createBoolean, createInteger = core.createInteger, logicalTerm = core.logicalTerm;' +
+            'return createBoolean(logicalTerm(createInteger(21)) || logicalTerm(createBoolean(logicalTerm(createInteger(27)) || logicalTerm(createInteger(101)))));' +
             '}'
         );
     });
@@ -113,10 +106,9 @@ describe('Transpiler logical "or" operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createBoolean(tools.valueFactory.createString("first").coerceToBoolean().getNative() || (tools.valueFactory.createString("second").coerceToBoolean().getNative()));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createBoolean = core.createBoolean, createString = core.createString, logicalTerm = core.logicalTerm;' +
+            'return createBoolean(logicalTerm(createString("first")) || logicalTerm(createString("second")));' +
             '}'
         );
     });

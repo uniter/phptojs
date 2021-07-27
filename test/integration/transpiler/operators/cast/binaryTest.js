@@ -39,13 +39,12 @@ describe('Transpiler binary cast operator test', function () {
         };
 
         // For now, just treat binary string and string values as identical,
-        // as Zend's engine doesn't seem to recognise the difference yet anyway
+        // as the reference engine doesn't seem to recognise the difference yet anyway
         // (was slated for PHP v6.)
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("myVar").getValue().add(tools.valueFactory.createInteger(21)).coerceToString();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var add = core.add, coerceToString = core.coerceToString, createInteger = core.createInteger, getVariable = core.getVariable;' +
+            'coerceToString(add(getVariable("myVar"), createInteger(21)));' +
             '}'
         );
     });

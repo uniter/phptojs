@@ -36,10 +36,9 @@ describe('Transpiler string concatenation assignment operator ".=" test', functi
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").concatWith(tools.valueFactory.createString("my string here"));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var concatWith = core.concatWith, createString = core.createString, getVariable = core.getVariable;' +
+            'return concatWith(getVariable("myVar"), createString("my string here"));' +
             '});'
         );
     });

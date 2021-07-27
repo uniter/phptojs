@@ -58,17 +58,17 @@ describe('Transpiler statement hoisting test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespaceScope.use("Your\\\\Class", "YourImportedClass");' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
+            'useClass("Your\\\\Class", "YourImportedClass");' +
             '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
-            'superClass: namespaceScope.getClass("YourImportedClass"), ' +
-            'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}}, namespaceScope);' +
+            'var currentClass = defineClass("MyClass", {' +
+            'superClass: "YourImportedClass", ' +
+            // TODO: Don't output these properties in this object literal when they are empty
+            'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             '}());' +
-            'namespace.defineFunction("aFinalFunc", function _aFinalFunc() {var scope = this;}, namespaceScope);' +
-            'scope.getVariable("myVar").setValue(tools.valueFactory.createInteger(21));' +
-            'return tools.valueFactory.createNull();' +
+            'defineFunction("aFinalFunc", function _aFinalFunc() {});' +
+            'setValue(getVariable("myVar"), createInteger(21));' +
             '});'
         );
     });

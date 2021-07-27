@@ -39,10 +39,9 @@ describe('Transpiler "include_once" expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("map").setValue(tools.includeOnce(tools.valueFactory.createString("abc.php").getNative(), scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, getVariable = core.getVariable, includeOnce = core.includeOnce, setValue = core.setValue;' +
+            'setValue(getVariable("map"), includeOnce(createString("abc.php")));' +
             '});'
         );
     });

@@ -36,10 +36,9 @@ describe('Transpiler bitwise left-shift assignment operator "<<=" test', functio
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").shiftLeftBy(tools.valueFactory.createInteger(12));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, getVariable = core.getVariable, shiftLeftBy = core.shiftLeftBy;' +
+            'return shiftLeftBy(getVariable("myVar"), createInteger(12));' +
             '});'
         );
     });

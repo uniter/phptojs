@@ -36,10 +36,9 @@ describe('Transpiler logical "xor" operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createBoolean(tools.valueFactory.createString("first").coerceToBoolean().getNative() !== (tools.valueFactory.createString("second").coerceToBoolean().getNative()));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createString = core.createString, logicalXor = core.logicalXor;' +
+            'return logicalXor(createString("first"), createString("second"));' +
             '}'
         );
     });

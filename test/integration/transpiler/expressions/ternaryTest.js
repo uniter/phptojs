@@ -47,17 +47,16 @@ describe('Transpiler ternary expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(scope.getVariable("myVar").getValue().isEqualTo(tools.valueFactory.createInteger(21)).coerceToBoolean().getNative() ? ' +
-            'tools.valueFactory.createInteger(22) : ' +
-            'tools.valueFactory.createInteger(23));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger, getVariable = core.getVariable, isEqual = core.isEqual, ternary = core.ternary;' +
+            '(ternary(isEqual(getVariable("myVar"), createInteger(21))) ? ' +
+            'createInteger(22) : ' +
+            'createInteger(23));' +
             '}'
         );
     });
 
-    it('should correctly transpile a shorthand ternary', function () {
+    it('should correctly transpile a shorthand ternary at the top level', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -88,12 +87,65 @@ describe('Transpiler ternary expression test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '((tools.ternaryCondition = scope.getVariable("myVar").getValue().isEqualTo(tools.valueFactory.createInteger(21))).coerceToBoolean().getNative() ? ' +
-            'tools.ternaryCondition : ' +
-            'tools.valueFactory.createInteger(23));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger, getVariable = core.getVariable, isEqual = core.isEqual, ternary = core.ternary, ternaryCondition;' +
+            '(ternary(ternaryCondition = isEqual(getVariable("myVar"), createInteger(21))) ? ' +
+            'ternaryCondition : ' +
+            'createInteger(23));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a shorthand ternary inside function', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_FUNCTION_STATEMENT',
+                func: {
+                    name: 'N_STRING',
+                    string: 'myFunc'
+                },
+                args: [],
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_EXPRESSION_STATEMENT',
+                        expression: {
+                            name: 'N_TERNARY',
+                            condition: {
+                                name: 'N_EXPRESSION',
+                                left: {
+                                    name: 'N_VARIABLE',
+                                    variable: 'myVar'
+                                },
+                                right: [{
+                                    operator: '==',
+                                    operand: {
+                                        name: 'N_INTEGER',
+                                        number: '21'
+                                    }
+                                }]
+                            },
+                            consequent: null,
+                            alternate: {
+                                name: 'N_INTEGER',
+                                number: '23'
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createInteger = core.createInteger, defineFunction = core.defineFunction, getVariable = core.getVariable, isEqual = core.isEqual, ternary = core.ternary;' +
+            'defineFunction("myFunc", function _myFunc() {' +
+            'var ternaryCondition;' +
+            '(ternary(ternaryCondition = isEqual(getVariable("myVar"), createInteger(21))) ? ' +
+            'ternaryCondition : ' +
+            'createInteger(23));' +
+            '});' +
             '}'
         );
     });

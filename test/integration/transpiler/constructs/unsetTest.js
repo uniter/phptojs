@@ -26,10 +26,9 @@ describe('Transpiler unset(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("a_var").unset();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, unset = core.unset;' +
+            'unset(getVariable("a_var"));' +
             '});'
         );
     });
@@ -50,10 +49,9 @@ describe('Transpiler unset(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("first_var").unset(); scope.getVariable("second_var").unset();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, unset = core.unset;' +
+            'unset(getVariable("first_var"), getVariable("second_var"));' +
             '});'
         );
     });
@@ -69,21 +67,18 @@ describe('Transpiler unset(...) construct expression test', function () {
                         name: 'N_VARIABLE',
                         variable: 'myArray'
                     },
-                    indices: [{
-                        index: {
-                            name: 'N_INTEGER',
-                            number: 21
-                        }
-                    }]
+                    index: {
+                        name: 'N_INTEGER',
+                        number: 21
+                    }
                 }]
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("myArray").getValue().getElementByKey(tools.valueFactory.createInteger(21)).unset();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getElement = core.getElement, getVariable = core.getVariable, unset = core.unset;' +
+            'unset(getElement(getVariable("myArray"), 21));' +
             '});'
         );
     });
@@ -99,21 +94,18 @@ describe('Transpiler unset(...) construct expression test', function () {
                         name: 'N_VARIABLE',
                         variable: 'an_object'
                     },
-                    properties: [{
-                        property: {
-                            name: 'N_STRING',
-                            string: 'prop'
-                        }
-                    }]
+                    property: {
+                        name: 'N_STRING',
+                        string: 'prop'
+                    }
                 }]
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("an_object").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("prop")).unset();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, unset = core.unset;' +
+            'unset(getInstanceProperty(getVariable("an_object"), "prop"));' +
             '});'
         );
     });

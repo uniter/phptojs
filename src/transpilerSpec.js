@@ -45,8 +45,8 @@ var _ = require('microdash'),
         '&': 'bitwiseAnd',
         '|': 'bitwiseOr',
         '^': 'bitwiseXor',
-        '<<': 'shiftLeftBy',
-        '>>': 'shiftRightBy',
+        '<<': 'shiftLeft',
+        '>>': 'shiftRight',
         '+=': 'incrementBy',
         '-=': 'decrementBy',
         '*=': 'multiplyBy',
@@ -58,11 +58,11 @@ var _ = require('microdash'),
         '^=': 'bitwiseXorWith',
         '<<=': 'shiftLeftBy',
         '>>=': 'shiftRightBy',
-        '==': 'isEqualTo',
-        '!=': 'isNotEqualTo',
-        '<>': 'isNotEqualTo',
-        '===': 'isIdenticalTo',
-        '!==': 'isNotIdenticalTo',
+        '==': 'isEqual',
+        '!=': 'isNotEqual',
+        '<>': 'isNotEqual',
+        '===': 'isIdentical',
+        '!==': 'isNotIdentical',
         '<': 'isLessThan',
         '<=': 'isLessThanOrEqual',
         '>': 'isGreaterThan',
@@ -70,7 +70,8 @@ var _ = require('microdash'),
         '=': {
             'false': 'setValue',
             'true': 'setReference'
-        }
+        },
+        'xor': 'logicalXor'
     },
     hasOwn = {}.hasOwnProperty,
     phpCommon = require('phpcommon'),
@@ -79,8 +80,8 @@ var _ = require('microdash'),
     transpilerMessages = require('./builtin/messages/transpiler'),
     unaryOperatorToMethod = {
         prefix: {
-            '+': 'toPositive',
-            '-': 'toNegative',
+            '+': 'identity',
+            '-': 'negate',
             '++': 'preIncrement',
             '--': 'preDecrement',
             '~': 'onesComplement',
@@ -146,9 +147,28 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     var args = [],
         argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
+        coreSymbolsUsed = {},
+        coreSymbolDeclarators = [],
         labelRepository = new LabelRepository(),
         labels,
+        loopIndex = 0,
+        parentScopeUsed = false,
         pendingLabelGotoNode,
+        useCoreSymbol = function (name) {
+            if (name === 'line' || name === 'scope' || name === 'ternaryCondition') {
+                coreSymbolsUsed[name] = true;
+
+                return name;
+            }
+
+            if (name === 'parentScope') {
+                parentScopeUsed = true;
+
+                return name;
+            }
+
+            return context.useCoreSymbol(name);
+        },
         subContext = {
             // This sub-context will be merged with the parent one,
             // so we need to override any value for the `assignment` and `getValue` options
@@ -156,6 +176,10 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
             blockContexts: [],
             getValue: undefined,
             labelRepository: labelRepository,
+            nextLoopIndex: function () {
+                return loopIndex++;
+            },
+            useCoreSymbol: useCoreSymbol,
             variableMap: {
                 'this': true
             }
@@ -181,8 +205,16 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
 
     if (context.buildingSourceMap) {
         _.forOwn(subContext.variableMap, function (t, name) {
-            bindingAssignmentChunks.push('var $' + name + ' = tools.createDebugVar(scope, "' + name + '");');
+            bindingAssignmentChunks.push(
+                'var $' + name + ' = ',
+                useCoreSymbol('createDebugVar'),
+                '("' + name + '");'
+            );
         });
+    }
+
+    if (context.lineNumbers) {
+        useCoreSymbol('line');
     }
 
     _.each(bindingNodes, function (bindingNode) {
@@ -191,11 +223,19 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
             variableName = isReference ? bindingNode.operand.variable : bindingNode.variable;
 
         bindingAssignmentChunks.push(
-            'scope.getVariable("' +
-            variableName +
-            '").set' + methodSuffix +
-            '(parentScope.getVariable("' + variableName +
-            '").get' + methodSuffix + '());'
+            useCoreSymbol('set' + methodSuffix),
+            '(',
+            useCoreSymbol('getVariable'),
+            '(',
+            JSON.stringify(variableName),
+            '), ',
+            useCoreSymbol('getVariableForScope'),
+            '(',
+            JSON.stringify(variableName),
+            ', ',
+            useCoreSymbol('parentScope'),
+            ')',
+            ');'
         );
 
         if (context.buildingSourceMap) {
@@ -206,7 +246,9 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
                     isReference ? bindingNode.operand : bindingNode,
                     '$' + variableName
                 ),
-                ' = tools.createDebugVar(scope, "' + variableName + '");'
+                ' = ',
+                useCoreSymbol('createDebugVar'),
+                '("' + variableName + '");'
             );
         }
     });
@@ -221,17 +263,41 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
             if (argNode.value) {
                 // Either a reference could be passed or the default value could be provided
                 argumentAssignmentChunks.push(
-                    'scope.getVariable("' + variable + '").setReferenceOrValue($', variable, ');'
+                    useCoreSymbol('setReferenceOrValue'),
+                    '(',
+                    useCoreSymbol('getVariable'),
+                    '(',
+                    JSON.stringify(variable),
+                    '), ',
+                    '$',
+                    variable,
+                    ');'
                 );
             } else {
                 // Only a reference could be passed as no default value is defined for this parameter
                 argumentAssignmentChunks.push(
-                    'scope.getVariable("' + variable + '").setReference($', variable, '.getReference());'
+                    useCoreSymbol('setReference'),
+                    '(',
+                    useCoreSymbol('getVariable'),
+                    '(',
+                    JSON.stringify(variable),
+                    '), ',
+                    '$',
+                    variable,
+                    ');'
                 );
             }
         } else {
             argumentAssignmentChunks.push(
-                'scope.getVariable("' + variable + '").setValue($', variable, '.getValue());'
+                useCoreSymbol('setValue'),
+                '(',
+                useCoreSymbol('getVariable'),
+                '(',
+                JSON.stringify(variable),
+                '), ',
+                '$',
+                variable,
+                ');'
             );
         }
 
@@ -239,7 +305,9 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
 
         if (context.buildingSourceMap) {
             argumentAssignmentChunks.push(
-                'var $' + variable + ' = tools.createDebugVar(scope, "' + variable + '");'
+                'var $' + variable + ' = ',
+                useCoreSymbol('createDebugVar'),
+                '("' + variable + '");'
             );
         }
     });
@@ -247,21 +315,38 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     // Prepend parts in correct order
     body = [argumentAssignmentChunks, bindingAssignmentChunks].concat(body);
 
+    _.each(Object.keys(coreSymbolsUsed).sort(), function (name) {
+        var declarator = name;
+
+        if (name === 'scope') {
+            // Inside a function, its Scope is exposed via "this"
+            declarator += ' = this';
+        } else if (name !== 'line' && name !== 'ternaryCondition') {
+            declarator += ' = core.' + name;
+        }
+
+        coreSymbolDeclarators.push(declarator);
+    });
+
     // Build function expression
     body = [
         'function ',
         nameNode ? context.createInternalSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
         context.stackCleaning ? FUNCTION_STACK_MARKER : '',
         '(' + args.join(', ') + ') {',
-        'var scope = this;',
+        coreSymbolDeclarators.length > 0 ?
+            'var ' + coreSymbolDeclarators.join(', ') + ';' :
+            '',
         // Add instrumentation code for fetching the current line number for this call if enabled
-        context.lineNumbers ? 'var line;tools.instrument(function () {return line;});' : '',
+        context.lineNumbers ?
+            [useCoreSymbol('instrument'), '(function () {return ', useCoreSymbol('line'), ';});'] :
+            '',
         body,
         '}'
     ];
 
-    if (bindingNodes && bindingNodes.length > 0) {
-        body = ['(function (parentScope) { return '].concat(body, '; }(scope))');
+    if (parentScopeUsed) {
+        body = ['(function (parentScope) { return ', body, '; }(', context.useCoreSymbol('scope'), '))'];
     }
 
     return body;
@@ -471,64 +556,39 @@ module.exports = {
         },
         'N_ARRAY_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.value, {getValue: true}).concat('.coerceToArray()'),
+                [context.useCoreSymbol('coerceToArray'), '(', interpret(node.value, {getValue: true}), ')'],
                 node
             );
         },
         'N_ARRAY_INDEX': function (node, interpret, context) {
-            var arrayVariableChunks = [],
-                indexValueChunks = [],
-                suffix = '';
+            var indexNative = null;
 
-            if (node.indices !== true) {
-                _.each(node.indices, function (index, indexIndex) {
-                    if (context.assignment && indexIndex < node.indices.length - 1) {
-                        arrayVariableChunks.unshift('tools.implyArray(');
-                    }
-
-                    if (indexIndex > 0) {
-                        indexValueChunks.push(
-                            context.assignment ?
-                                ')).getElementByKey(' :
-                                ').getValue().getElementByKey('
-                        );
-                    }
-
-                    indexValueChunks.push(interpret(index.index, {assignment: false, getValue: true}));
-                });
-            }
-
-            if (context.assignment) {
-                arrayVariableChunks.push('tools.implyArray(');
-                [].push.apply(arrayVariableChunks, interpret(node.array, {getValue: false}));
-                arrayVariableChunks.push(')');
-            } else {
-                if (context.getValue !== false) {
-                    suffix = '.getValue()';
+            if (node.index) {
+                if (node.index.name === 'N_STRING_LITERAL') {
+                    indexNative = JSON.stringify(node.index.string);
+                } else if (node.index.name === 'N_INTEGER') {
+                    indexNative = node.index.number;
                 }
-
-                [].push.apply(arrayVariableChunks, interpret(node.array, {getValue: true}));
             }
 
-            if (indexValueChunks.length > 0) {
-                if (context.assignment) {
-                    // _.each(indexValueChunks.slice(0, -1), function () {
-                    //     arrayVariableChunks.unshift('tools.implyArray(');
-                    // });
-
-                    return context.createExpressionSourceNode(
-                        arrayVariableChunks.concat('.getElementByKey(', indexValueChunks, ')' + suffix),
-                        node
-                    );
-                }
-
-                return context.createExpressionSourceNode(
-                    arrayVariableChunks.concat('.getElementByKey(', indexValueChunks, ')' + suffix),
-                    node
-                );
-            }
-
-            return context.createExpressionSourceNode(arrayVariableChunks.concat('.getPushElement()' + suffix), node);
+            return context.createExpressionSourceNode(
+                node.index === null ?
+                    [
+                        context.useCoreSymbol('pushElement'),
+                        '(',
+                        interpret(node.array),
+                        ')'
+                    ] :
+                    [
+                        context.useCoreSymbol(indexNative === null ? 'getVariableElement' : 'getElement'),
+                        '(',
+                        interpret(node.array),
+                        ', ',
+                        indexNative === null ? interpret(node.index) : String(indexNative),
+                        ')'
+                    ],
+                node
+            );
         },
         'N_ARRAY_LITERAL': function (node, interpret, context) {
             var elementValueChunks = [];
@@ -541,29 +601,35 @@ module.exports = {
                 elementValueChunks.push(interpret(element, {getValue: true}));
             });
 
-            return context.createExpressionSourceNode(['tools.valueFactory.createArray(['].concat(elementValueChunks, '])'), node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('createArray'), '([', elementValueChunks, '])'],
+                node
+            );
         },
         'N_ARRAY_TYPE': function () {
             return '"type":"array"';
         },
         'N_BINARY_CAST': function (node, interpret, context) {
-            return context.createExpressionSourceNode(interpret(node.value, {getValue: true}).concat('.coerceToString()'), node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('coerceToString'), '(', interpret(node.value, {getValue: true}), ')'],
+                node
+            );
         },
         'N_BINARY_LITERAL': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createString('].concat(JSON.stringify(node.string), ')'),
+                [context.useCoreSymbol('createString'), '(', JSON.stringify(node.string), ')'],
                 node
             );
         },
         'N_BOOLEAN': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createBoolean('].concat(node.bool.toLowerCase(), ')'),
+                [context.useCoreSymbol(String(node.bool) + 'Value')],
                 node
             );
         },
         'N_BOOLEAN_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.value, {getValue: true}).concat('.coerceToBoolean()'),
+                [context.useCoreSymbol('coerceToBoolean'), '(', interpret(node.value, {getValue: true}), ')'],
                 node
             );
         },
@@ -614,21 +680,33 @@ module.exports = {
             return context.createStatementSourceNode(
                 [
                     'if (switchMatched_' + context.blockContexts.length +
-                    ' || switchExpression_' + context.blockContexts.length + '.isEqualTo('
-                ].concat(
+                    ' || ',
+                    context.useCoreSymbol('switchCase'),
+                    '(',
+                    'switchExpression_' + context.blockContexts.length,
+                    ', ',
                     interpret(node.expression),
-                    ').getNative()) {switchMatched_' + context.blockContexts.length + ' = true; ',
+                    ')) {switchMatched_' + context.blockContexts.length + ' = true; ',
                     bodyChunks,
                     '}'
-                ),
+                ],
                 node
             );
         },
         'N_CLASS_CONSTANT': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.className, {getValue: true, allowBareword: true}).concat(
-                    '.getConstantByName(' + JSON.stringify(node.constant) + ', namespaceScope)'
-                ),
+                [
+                    context.useCoreSymbol(
+                        node.className.name === 'N_SELF' ?
+                            'getCurrentClassConstant' :
+                            'getClassConstant'
+                    ),
+                    '(',
+                    interpret(node.className, {getValue: true, allowBareword: true}),
+                    ', ',
+                    JSON.stringify(node.constant),
+                    ')'
+                ],
                 node
             );
         },
@@ -638,7 +716,7 @@ module.exports = {
                 methodCodeChunks = [],
                 propertyCodeChunks = [],
                 staticPropertyCodeChunks = [],
-                superClass = node.extend ? 'namespaceScope.getClass(' + JSON.stringify(node.extend) + ')' : 'null',
+                superClass = node.extend ? JSON.stringify(node.extend) : 'null',
                 interfaces = JSON.stringify(node.implement || []);
 
             _.each(node.members, function (member) {
@@ -676,18 +754,21 @@ module.exports = {
             codeChunks = [
                 '{superClass: ' + superClass +
                 ', interfaces: ' + interfaces +
-                ', staticProperties: {'
-            ].concat(
+                ', staticProperties: {',
                 staticPropertyCodeChunks,
                 '}, properties: {', propertyCodeChunks,
                 '}, methods: {', methodCodeChunks,
                 '}, constants: {', constantCodeChunks, '}}'
-            );
+            ];
 
             return context.createStatementSourceNode(
                 [
-                    '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.className) + ', '
-                ].concat(codeChunks, ', namespaceScope);}());'),
+                    '(function () {var currentClass = ',
+                    context.useCoreSymbol('defineClass'),
+                    '(' + JSON.stringify(node.className) + ', ',
+                    codeChunks,
+                    ');}());'
+                ],
                 node
             );
         },
@@ -696,7 +777,7 @@ module.exports = {
         },
         'N_CLONE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [interpret(node.operand, {getValue: true}), '.clone()'],
+                [context.useCoreSymbol('clone'), '(', interpret(node.operand, {getValue: true}), ')'],
                 node
             );
         },
@@ -720,7 +801,13 @@ module.exports = {
                 ]);
 
             return context.createExpressionSourceNode(
-                ['tools.createClosure('].concat(func, ', scope, namespaceScope', extraArgChunks, ')'),
+                [
+                    context.useCoreSymbol('createClosure'),
+                    '(',
+                    func,
+                    extraArgChunks,
+                    ')'
+                ],
                 node
             );
         },
@@ -756,7 +843,10 @@ module.exports = {
 
             _.each(node.constants, function (constant) {
                 codeChunks.push(
-                    'namespace.defineConstant(' + JSON.stringify(constant.constant) + ', ',
+                    context.useCoreSymbol('defineConstant'),
+                    '(',
+                    JSON.stringify(constant.constant),
+                    ', ',
                     interpret(constant.value),
                     ');'
                 );
@@ -826,7 +916,8 @@ module.exports = {
                     blockContexts: blockContexts
                 },
                 codeChunks,
-                conditionChunks = interpret(node.condition, subContext);
+                conditionChunks = interpret(node.condition, subContext),
+                loopIndex = context.nextLoopIndex();
 
             function onFoundLabel(labelNode) {
                 var label = labelNode.label.string;
@@ -857,18 +948,23 @@ module.exports = {
             });
 
             return context.createStatementSourceNode(
-                ['block_' + blockContexts.length + ': do {'].concat(
+                [
+                    'block_' + blockContexts.length + ': do {',
                     codeChunks,
                     '} while (',
+                    context.useCoreSymbol('loop'),
+                    '(',
+                    String(loopIndex),
+                    ', ',
                     conditionChunks,
-                    '.coerceToBoolean().getNative());'
-                ),
+                    '));'
+                ],
                 node
             );
         },
         'N_DOUBLE_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.value, {getValue: true}).concat('.coerceToFloat()'),
+                [context.useCoreSymbol('coerceToFloat'), '(', interpret(node.value, {getValue: true}), ')'],
                 node
             );
         },
@@ -877,9 +973,10 @@ module.exports = {
 
             _.each(node.expressions, function (expressionNode) {
                 chunks.push(
-                    'stdout.write(',
+                    context.useCoreSymbol('echo'),
+                    '(',
                     interpret(expressionNode),
-                    '.coerceToString().getNative());'
+                    ');'
                 );
             });
 
@@ -888,122 +985,125 @@ module.exports = {
         'N_EMPTY': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 [
-                    '(function (scope) {scope.suppressOwnErrors();' +
-                    'var result = tools.valueFactory.createBoolean('
-                ].concat(
+                    context.useCoreSymbol('isEmpty'),
+                    '()(',
                     interpret(node.variable, {getValue: false}),
-                    '.isEmpty());' +
-                    'scope.unsuppressOwnErrors(); return result;}(scope))'
-                ),
+                    ')'
+                ],
                 node
             );
         },
         'N_EVAL': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.eval(' + interpret(node.code, {getValue: true}) + '.getNative(), scope)'],
+                [
+                    context.useCoreSymbol('eval'),
+                    '(',
+                    interpret(node.code, {getValue: true}),
+                    ')'
+                ],
                 node
             );
         },
         'N_EXIT': function (node, interpret, context) {
             if (hasOwn.call(node, 'status')) {
                 return context.createExpressionSourceNode(
-                    ['tools.exit('].concat(
-                        interpret(node.status),
-                        ')'
-                    ),
+                    [context.useCoreSymbol('exit'), '(', interpret(node.status), ')'],
                     node
                 );
             }
 
             if (hasOwn.call(node, 'message')) {
                 return context.createExpressionSourceNode(
-                    ['(stdout.write('].concat(
+                    [
+                        '(',
+                        context.useCoreSymbol('print'),
+                        '(',
                         interpret(node.message),
-                        '.getNative()), tools.exit())'
-                    ),
+                        '), ',
+                        context.useCoreSymbol('exit'),
+                        '())'
+                    ],
                     node
                 );
             }
 
-            return context.createStatementSourceNode(['tools.exit()'], node);
+            return context.createExpressionSourceNode([context.useCoreSymbol('exit'), '()'], node);
         },
         'N_EXPRESSION': function (node, interpret, context) {
-            var isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
-                expressionEnd = [],
-                expressionStart = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment});
+            var chunks = [],
+                isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
+                isReference,
+                leftChunks = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment}),
+                operation,
+                method,
+                rightOperand,
+                transpiledRightOperand;
 
-            _.each(node.right, function (operation, index) {
-                var getValueIfApplicable,
-                    isReference = operation.operand.name === 'N_REFERENCE',
-                    method,
-                    rightOperand = isReference ?
-                        operation.operand.operand :
-                        operation.operand,
+            if (node.right.length !== 1) {
+                throw new Error('Deprecated: N_EXPRESSION should have exactly one operation');
+            }
+
+            operation = node.right[0];
+
+            isReference = operation.operand.name === 'N_REFERENCE';
+            rightOperand = isReference ?
+                operation.operand.operand :
+                operation.operand;
+
+            transpiledRightOperand = interpret(rightOperand);
+
+            // Handle logical 'and' specially as it can short-circuit
+            if (operation.operator === '&&' || operation.operator === 'and') {
+                chunks.push(
+                    context.useCoreSymbol('createBoolean'),
+                    '(',
+                    context.useCoreSymbol('logicalTerm'),
+                    '(',
+                    leftChunks,
+                    ') && ',
+                    context.useCoreSymbol('logicalTerm'),
+                    '(',
                     transpiledRightOperand,
-                    valuePostProcess = isReference ? '.getReference()' : '';
+                    '))'
+                );
+            // Handle logical 'or' specially as it can short-circuit
+            } else if (operation.operator === '||' || operation.operator === 'or') {
+                chunks.push(
+                    context.useCoreSymbol('createBoolean'),
+                    '(',
+                    context.useCoreSymbol('logicalTerm'),
+                    '(',
+                    leftChunks,
+                    ') || ',
+                    context.useCoreSymbol('logicalTerm'),
+                    '(',
+                    transpiledRightOperand,
+                    '))'
+                );
+            } else {
+                method = binaryOperatorToMethod[operation.operator];
 
-                getValueIfApplicable = (!isAssignment || index === node.right.length - 1) && !isReference;
-
-                transpiledRightOperand = interpret(rightOperand, {getValue: getValueIfApplicable});
-
-                // Handle logical 'and' specially as it can short-circuit
-                if (operation.operator === '&&' || operation.operator === 'and') {
-                    expressionStart = ['tools.valueFactory.createBoolean('].concat(
-                        expressionStart,
-                        '.coerceToBoolean().getNative() && (',
-                        transpiledRightOperand,
-                        valuePostProcess +
-                        '.coerceToBoolean().getNative()'
-                    );
-                    expressionEnd.push('))');
-                // Handle logical 'or' specially as it can short-circuit
-                } else if (operation.operator === '||' || operation.operator === 'or') {
-                    expressionStart = ['tools.valueFactory.createBoolean('].concat(
-                        expressionStart,
-                        '.coerceToBoolean().getNative() || (',
-                        transpiledRightOperand,
-                        valuePostProcess +
-                        '.coerceToBoolean().getNative()'
-                    );
-                    expressionEnd.push('))');
-                // Xor should be true if LHS is not equal to RHS:
-                // coerce to booleans then compare for inequality
-                } else if (operation.operator === 'xor') {
-                    expressionStart = ['tools.valueFactory.createBoolean('].concat(
-                        expressionStart,
-                        '.coerceToBoolean().getNative() !== (',
-                        transpiledRightOperand,
-                        valuePostProcess +
-                        '.coerceToBoolean().getNative()'
-                    );
-                    expressionEnd.push('))');
-                } else {
-                    method = binaryOperatorToMethod[operation.operator];
-
-                    if (!method) {
-                        throw new Error('Unsupported binary operator "' + operation.operator + '"');
-                    }
-
-                    if (_.isPlainObject(method)) {
-                        method = method[isReference];
-                    }
-
-                    expressionStart.push('.' + method + '(', transpiledRightOperand, valuePostProcess);
-                    expressionEnd.push(')');
+                if (!method) {
+                    throw new Error('Unsupported binary operator "' + operation.operator + '"');
                 }
 
-                if (isReference && context.getValue) {
-                    expressionEnd.push('.getValue()');
+                if (_.isPlainObject(method)) {
+                    method = method[isReference];
                 }
-            });
 
-            return context.createExpressionSourceNode(expressionStart.concat(expressionEnd), node);
+                chunks.push(context.useCoreSymbol(method), '(', leftChunks, ', ', transpiledRightOperand, ')');
+            }
+
+            return context.createExpressionSourceNode(chunks, node);
         },
         'N_EXPRESSION_STATEMENT': function (node, interpret, context) {
             return context.createStatementSourceNode(interpret(node.expression).concat(';'), node);
         },
         'N_FLOAT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['tools.valueFactory.createFloat(' + node.number + ')'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('createFloat'), '(' + node.number + ')'],
+                node
+            );
         },
         'N_FOR_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['for']),
@@ -1018,6 +1118,7 @@ module.exports = {
                 bodyCodeChunks,
                 conditionCodeChunks = interpret(node.condition, subContext),
                 initializerCodeChunks = interpret(node.initializer, subContext),
+                loopIndex = context.nextLoopIndex(),
                 updateCodeChunks = interpret(node.update, subContext);
 
             function onFoundLabel(labelNode) {
@@ -1049,20 +1150,24 @@ module.exports = {
             });
 
             if (conditionCodeChunks.length > 0) {
-                conditionCodeChunks.push('.coerceToBoolean().getNative()');
+                conditionCodeChunks.unshift(', ');
             }
 
             return context.createStatementSourceNode(
-                ['block_' + blockContexts.length + ': for ('].concat(
+                [
+                    'block_' + blockContexts.length + ': for (',
                     initializerCodeChunks,
                     ';',
+                    context.useCoreSymbol('loop'),
+                    '(',
+                    String(loopIndex),
                     conditionCodeChunks || [],
-                    ';',
+                    ');',
                     updateCodeChunks,
                     ') {',
                     bodyCodeChunks,
                     '}'
-                ),
+                ],
                 node
             );
         },
@@ -1082,7 +1187,8 @@ module.exports = {
                 },
                 valueIsReference = node.value.name === 'N_REFERENCE',
                 nodeValue = valueIsReference ? node.value.operand : node.value,
-                value = interpret(nodeValue, {getValue: false});
+                value = interpret(nodeValue, {getValue: false}),
+                loopIndex = context.nextLoopIndex();
 
             iteratorVariable = 'iterator_' + blockContexts.length;
 
@@ -1096,23 +1202,47 @@ module.exports = {
                 // it will be the ObjectValue itself, whereas for instances of IteratorAggregate
                 // it will be the ObjectValue returned from the PHP ->getIterator() method
                 'for (var ' + iteratorVariable + ' = ',
+                context.useCoreSymbol('getIterator'),
+                '(',
                 arrayValue,
-                '.getIterator(); ' + iteratorVariable + '.isNotFinished(); ',
+                '); ',
+                context.useCoreSymbol('isNotFinished'),
+                '(',
+                String(loopIndex),
+                ', ',
+                iteratorVariable,
+                '); ',
                 // Advance iterator to next element at end of loop body as per spec
-                iteratorVariable + '.advance()',
-                ') {'
+                context.useCoreSymbol('advance'),
+                '(',
+                iteratorVariable,
+                ')) {'
             );
 
             // Iterator value variable
-            if (valueIsReference) {
-                codeChunks.push(value, '.setReference(' + iteratorVariable + '.getCurrentElementReference());');
-            } else {
-                codeChunks.push(value, '.setValue(' + iteratorVariable + '.getCurrentElementValue());');
-            }
+            codeChunks.push(
+                context.useCoreSymbol(valueIsReference ? 'setReference' : 'setValue'),
+                '(',
+                value,
+                ', ',
+                context.useCoreSymbol(valueIsReference ? 'getCurrentElementReference' : 'getCurrentElementValue'),
+                '(',
+                iteratorVariable,
+                '));'
+            );
 
             if (key) {
                 // Iterator key variable (if specified)
-                codeChunks.push(key, '.setValue(' + iteratorVariable + '.getCurrentKey());');
+                codeChunks.push(
+                    context.useCoreSymbol('setValue'),
+                    '(',
+                    key,
+                    ', ',
+                    context.useCoreSymbol('getCurrentKey'),
+                    '(',
+                    iteratorVariable,
+                    '));'
+                );
             }
 
             function onFoundLabel(labelNode) {
@@ -1176,12 +1306,18 @@ module.exports = {
             ]);
 
             return context.createStatementSourceNode(
-                ['namespace.defineFunction(' + JSON.stringify(node.func.string) + ', '].concat(func, ', namespaceScope', extraArgChunks, ');'),
+                [
+                    context.useCoreSymbol('defineFunction'), '(' + JSON.stringify(node.func.string) + ', ',
+                    func,
+                    extraArgChunks,
+                    ');'
+                ],
                 node
             );
         },
         'N_FUNCTION_CALL': function (node, interpret, context) {
-            var argChunks = [];
+            var argChunks = [],
+                callChunks;
 
             _.each(node.args, function (arg, index) {
                 if (index > 0) {
@@ -1191,24 +1327,51 @@ module.exports = {
                 argChunks.push(interpret(arg, {getValue: false}));
             });
 
-            return context.createExpressionSourceNode(
-                ['('].concat(
+            if (node.func.name === 'N_STRING') {
+                // Faster case: function call is to a statically-given function name
+
+                callChunks = [
+                    context.useCoreSymbol('callFunction'),
+                    '(',
+                    JSON.stringify(node.func.string),
+
+                    // Only append arguments array if non-empty
+                    argChunks.length > 0 ?
+                        [', [', argChunks, ']'] :
+                        [],
+                    ')'
+                ];
+            } else {
+                // Slower case: function call is to a variable function name
+
+                callChunks = [
+                    context.useCoreSymbol('callVariableFunction'),
+                    '(',
                     interpret(node.func, {getValue: true, allowBareword: true}),
-                    '.call([',
-                    argChunks,
-                    '], namespaceScope) || tools.valueFactory.createNull())'
-                ),
-                node
-            );
+
+                    // Only append arguments array if non-empty
+                    argChunks.length > 0 ?
+                        [', [', argChunks, ']'] :
+                        [],
+                    ')'
+                ];
+            }
+
+            return context.createExpressionSourceNode(callChunks, node);
         },
         'N_GLOBAL_STATEMENT': function (node, interpret, context) {
-            var code = '';
+            var chunks = [];
 
             _.each(node.variables, function (variable) {
-                code += 'scope.importGlobal(' + JSON.stringify(variable.variable) + ');';
+                chunks.push(
+                    context.useCoreSymbol('importGlobal'),
+                    '(',
+                    JSON.stringify(variable.variable),
+                    ');'
+                );
             });
 
-            return context.createStatementSourceNode([code], node);
+            return context.createStatementSourceNode(chunks, node);
         },
         'N_GOTO_STATEMENT': function (node, interpret, context) {
             var code = '',
@@ -1231,14 +1394,20 @@ module.exports = {
 
             _.each(node.parts, function (part, index) {
                 if (index > 0) {
-                    codeChunks.push(' + ');
+                    codeChunks.push(', ');
                 }
 
-                codeChunks.push(interpret(part), '.coerceToString().getNative()');
+                codeChunks.push(
+                    // Handle the common case of string literal fragments specially,
+                    // to save on bundle size
+                    part.name === 'N_STRING_LITERAL' ?
+                        JSON.stringify(part.string) :
+                        interpret(part)
+                );
             });
 
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createString('].concat(codeChunks, ')'),
+                [context.useCoreSymbol('interpolate'), '(', codeChunks, ')'],
                 node
             );
         },
@@ -1247,7 +1416,7 @@ module.exports = {
             // Alternate statements are executed if the condition is falsy
             var alternateCodeChunks,
                 codeChunks,
-                conditionCodeChunks = interpret(node.condition, {getValue: true}).concat('.coerceToBoolean().getNative()'),
+                conditionCodeChunks = [context.useCoreSymbol('if_'), '(', interpret(node.condition, {getValue: true}), ')'],
                 consequentCodeChunks,
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
@@ -1278,29 +1447,32 @@ module.exports = {
         },
         'N_INCLUDE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.include('].concat(interpret(node.path), '.getNative(), scope)'),
+                [context.useCoreSymbol('include'), '(', interpret(node.path), ')'],
                 node
             );
         },
         'N_INCLUDE_ONCE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.includeOnce('].concat(interpret(node.path), '.getNative(), scope)'),
+                [context.useCoreSymbol('includeOnce'), '(', interpret(node.path), ')'],
                 node
             );
         },
         'N_INLINE_HTML_STATEMENT': function (node, interpret, context) {
             return context.createStatementSourceNode(
-                ['stdout.write(' + JSON.stringify(node.html) + ');'],
+                [context.useCoreSymbol('printRaw'), '(' + JSON.stringify(node.html) + ');'],
                 node
             );
         },
         'N_INSTANCE_OF': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.object, {getValue: true}).concat([
-                    '.isAnInstanceOf(',
+                [
+                    context.useCoreSymbol('instanceOf'),
+                    '(',
+                    interpret(node.object, {getValue: true}),
+                    ', ',
                     interpret(node['class'], {allowBareword: true}),
-                    ', namespaceScope)'
-                ]),
+                    ')'
+                ],
                 node
             );
         },
@@ -1311,18 +1483,20 @@ module.exports = {
                 value: context.createInternalSourceNode(
                     // Output a function that can be called to create the property's value,
                     // so that each instance gets a separate array object (if one is used as the value)
-                    // FIXME: Why does this func not take a currentClass arg when N_STATIC_PROPERTY_DEFINITION does??
                     ['function () { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'], '; }'),
                     node
                 )
             };
         },
         'N_INTEGER': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['tools.valueFactory.createInteger(' + node.number + ')'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('createInteger'), '(' + node.number + ')'],
+                node
+            );
         },
         'N_INTEGER_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.value, {getValue: true}).concat('.coerceToInteger()'),
+                [context.useCoreSymbol('coerceToInteger'), '(', interpret(node.value, {getValue: true}), ')'],
                 node
             );
         },
@@ -1377,21 +1551,21 @@ module.exports = {
                 ', interfaces: ' + extend + // Interfaces can extend multiple other interfaces
                 ', staticProperties: {' +
                 '}, properties: {' +
-                '}, methods: {'
-            ].concat(
+                '}, methods: {',
                 methodCodeChunks,
                 '}, constants: {',
                 constantCodeChunks,
                 '}}'
-            );
+            ];
 
             return context.createStatementSourceNode(
                 [
-                    '(function () {var currentClass = namespace.defineClass(' + JSON.stringify(node.interfaceName) + ', '
-                ].concat(
+                    '(function () {var currentClass = ',
+                    context.useCoreSymbol('defineInterface'),
+                    '(' + JSON.stringify(node.interfaceName) + ', ',
                     codeChunks,
-                    ', namespaceScope);}());'
-                ),
+                    ');}());'
+                ],
                 node
             );
         },
@@ -1406,21 +1580,19 @@ module.exports = {
 
             _.each(node.variables, function (variable, index) {
                 if (index > 0) {
-                    issetChunks.push(' && ');
+                    issetChunks.push(', ');
                 }
 
-                issetChunks.push(interpret(variable, {getValue: false}), '.isSet()');
+                issetChunks.push(interpret(variable, {getValue: false}));
             });
 
             return context.createExpressionSourceNode(
                 [
-                    '(function (scope) {scope.suppressOwnErrors();' +
-                    'var result = tools.valueFactory.createBoolean('
-                ].concat(
+                    context.useCoreSymbol('isSet'),
+                    '()(',
                     issetChunks,
-                    ');' +
-                    'scope.unsuppressOwnErrors(); return result;}(scope))'
-                ),
+                    ')'
+                ],
                 node
             );
         },
@@ -1431,7 +1603,15 @@ module.exports = {
             var isReference = node.value.name === 'N_REFERENCE';
 
             return context.createExpressionSourceNode(
-                ['tools.createKey' + (isReference ? 'Reference' : 'Value') + 'Pair('].concat(interpret(node.key), ', ', interpret(node.value), ')'),
+                [
+                    context.useCoreSymbol('createKey' + (isReference ? 'Reference' : 'Value') + 'Pair'),
+                    '(',
+                    interpret(node.key),
+                    ', ',
+                    // No need to wrap references in getReference(), createKeyReferencePair() will handle that
+                    interpret(isReference ? node.value.operand : node.value),
+                    ')'
+                ],
                 node
             );
         },
@@ -1460,64 +1640,85 @@ module.exports = {
 
             _.each(node.elements, function (element, index) {
                 if (index > 0) {
-                    elementsCodeChunks.push(',');
+                    elementsCodeChunks.push(', ');
                 }
 
                 elementsCodeChunks.push(interpret(element, {getValue: false}));
             });
 
             return context.createExpressionSourceNode(
-                ['tools.createList(['].concat(elementsCodeChunks, '])'),
+                [context.useCoreSymbol('createList'), '([', elementsCodeChunks, '])'],
                 node
             );
         },
         'N_MAGIC_CLASS_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['scope.getClassName()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getClassName'), '()'],
+                node
+            );
         },
         'N_MAGIC_DIR_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['tools.getPathDirectory()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getPathDirectory'), '()'],
+                node
+            );
         },
         'N_MAGIC_FILE_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['tools.getPath()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getPath'), '()'],
+                node
+            );
         },
         'N_MAGIC_FUNCTION_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['scope.getFunctionName()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getFunctionName'), '()'],
+                node
+            );
         },
         'N_MAGIC_LINE_CONSTANT': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createInteger(' + node.bounds.start.line + ')'],
+                node.bounds ?
+                    [context.useCoreSymbol('createInteger'), '(', String(node.bounds.start.line), ')'] :
+                    // NB: In the reference implementation, __LINE__ should never be null. However,
+                    //     if we have no bounds information then we cannot give a valid line number.
+                    [context.useCoreSymbol('nullValue')],
                 node
             );
         },
         'N_MAGIC_METHOD_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['scope.getMethodName()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getMethodName'), '()'],
+                node
+            );
         },
         'N_MAGIC_NAMESPACE_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['namespaceScope.getNamespaceName()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getNamespaceName'), '()'],
+                node
+            );
         },
         'N_METHOD_CALL': function (node, interpret, context) {
-            var codeChunks = [];
+            var argChunks = [],
+                isVariable = node.method.name !== 'N_STRING';
 
-            _.each(node.calls, function (call) {
-                var argChunks = [];
+            _.each(node.args, function (argNode, index) {
+                if (index > 0) {
+                    argChunks.push(', ');
+                }
 
-                _.each(call.args, function (arg, index) {
-                    if (index > 0) {
-                        argChunks.push(', ');
-                    }
-
-                    argChunks.push(interpret(arg, {getValue: false}));
-                });
-
-                codeChunks.push('.callMethod(');
-                [].push.apply(codeChunks, interpret(call.func, {allowBareword: true}));
-                codeChunks.push('.getNative(), [');
-                [].push.apply(codeChunks, argChunks);
-                codeChunks.push('])');
+                argChunks.push(interpret(argNode, {getValue: false}));
             });
 
             return context.createExpressionSourceNode(
-                interpret(node.object, {getValue: true}).concat(codeChunks),
+                [
+                    context.useCoreSymbol(isVariable ? 'callVariableInstanceMethod' : 'callInstanceMethod'),
+                    '(',
+                    interpret(node.object, {getValue: true}),
+                    ', ',
+                    isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
+                    argChunks.length > 0 ? [', ['].concat(argChunks, ']') : [],
+                    ')'
+                ],
                 node
             );
         },
@@ -1556,24 +1757,21 @@ module.exports = {
                 [].push.apply(bodyChunks, interpret(statement, {currentNamespace: node.namespace}));
             });
 
-            if (node.namespace === '') {
-                // Global namespace
-                return context.createStatementSourceNode(bodyChunks, node);
-            }
-
-            if (context.buildingSourceMap) {
-                _.forOwn(context.variableMap, function (t, name) {
-                    bodyChunks.unshift('var $' + name + ' = tools.createDebugVar(scope, "' + name + '");');
-                });
-            }
-
             return context.createStatementSourceNode(
                 [
-                    'if (namespaceResult = (function (globalNamespace) {var namespace = globalNamespace.getDescendant(' +
-                    JSON.stringify(node.namespace) +
-                    '), namespaceScope = tools.createNamespaceScope(namespace);',
-                    bodyChunks,
-                    '}(namespace))) { return namespaceResult; }'
+                    node.namespace === '' ?
+                        [
+                            context.useCoreSymbol('useGlobalNamespaceScope'),
+                            '()'
+                        ] :
+                        [
+                            context.useCoreSymbol('useDescendantNamespaceScope'),
+                            '(',
+                            JSON.stringify(node.namespace),
+                            ')'
+                        ],
+                    ';',
+                    bodyChunks
                 ],
                 node
             );
@@ -1590,81 +1788,104 @@ module.exports = {
             });
 
             return context.createExpressionSourceNode(
-                ['tools.createInstance(namespaceScope, '].concat(
+                [
+                    context.useCoreSymbol('createInstance'),
+                    '(',
                     interpret(node.className, {allowBareword: true, getValue: true}),
                     ', [',
                     argChunks,
                     '])'
-                ),
+                ],
                 node
             );
         },
         'N_NOWDOC': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createString(', JSON.stringify(node.string), ')'],
+                [context.useCoreSymbol('createString'), '(', JSON.stringify(node.string), ')'],
                 node
             );
         },
         'N_NULL': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['tools.valueFactory.createNull()'], node);
+            return context.createExpressionSourceNode([context.useCoreSymbol('nullValue')], node);
+        },
+        'N_NULL_COALESCE': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                [
+                    context.useCoreSymbol('nullCoalesce'),
+                    '()(',
+                    interpret(node.left, {getValue: false}),
+                    ', ',
+                    interpret(node.right, {getValue: false}),
+                    ')'
+                ],
+                node
+            );
         },
         'N_OBJECT_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.value, {getValue: true}).concat('.coerceToObject()'),
+                [context.useCoreSymbol('coerceToObject'), '(', interpret(node.value, {getValue: true}), ')'],
                 node
             );
         },
         'N_OBJECT_PROPERTY': function (node, interpret, context) {
             var objectVariableCodeChunks,
-                propertyCodeChunks = [],
-                suffix = '';
+                property,
+                propertyCodeChunks = [];
 
             if (context.assignment) {
                 objectVariableCodeChunks = [
-                    'tools.implyObject(',
-                    interpret(node.object, {getValue: false}),
-                    ')'
+                    interpret(node.object, {getValue: false})
                 ];
             } else {
-                if (context.getValue !== false) {
-                    suffix = '.getValue()';
-                }
-
                 objectVariableCodeChunks = interpret(node.object, {getValue: true});
             }
 
-            _.each(node.properties, function (property, index) {
-                var nameValue = interpret(property.property, {assignment: false, getValue: true, allowBareword: true});
+            property = node.property;
 
-                propertyCodeChunks.push('.getInstancePropertyByName(', nameValue, ')');
+            if (property.name === 'N_STRING') {
+                propertyCodeChunks.push(
+                    context.useCoreSymbol('getInstanceProperty'),
+                    '(',
+                    objectVariableCodeChunks,
+                    ', ',
+                    JSON.stringify(property.string),
+                    ')'
+                );
+            } else {
+                propertyCodeChunks.push(
+                    context.useCoreSymbol('getVariableInstanceProperty'),
+                    '(',
+                    objectVariableCodeChunks,
+                    ', ',
+                    interpret(property, {assignment: false, getValue: true, allowBareword: true}),
+                    ')'
+                );
+            }
 
-                if (index < node.properties.length - 1) {
-                    propertyCodeChunks.push('.getValue()');
-                }
-            });
-
-            return context.createExpressionSourceNode(
-                [objectVariableCodeChunks, propertyCodeChunks, suffix],
-                node
-            );
+            return context.createExpressionSourceNode(propertyCodeChunks, node);
         },
         'N_PARENT': function (node, interpret, context) {
             if (context.isConstantOrProperty) {
-                // Wrap in a tools method call, so that a fatal error can be thrown if the class has no parent
+                // Wrap in an opcode, so that a fatal error can be thrown if the class has no parent
                 return context.createExpressionSourceNode(
-                    ['tools.getParentClassName(currentClass)'],
+                    [context.useCoreSymbol('getSuperClassName'), '(currentClass)'],
                     node
                 );
             }
 
-            return context.createExpressionSourceNode(['scope.getParentClassNameOrThrow()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getSuperClassNameOrThrow'), '()'],
+                node
+            );
         },
         'N_PRINT_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 [
-                    '(stdout.write(',
+                    context.useCoreSymbol('print'),
+                    '(',
                     interpret(node.operand, {getValue: true}),
-                    '.coerceToString().getNative()), tools.valueFactory.createInteger(1))'
+                    ')'
+                    // Note that core.print(...) will return int(1) as the result of the expression
                 ],
                 node
             );
@@ -1674,11 +1895,19 @@ module.exports = {
                 body = [],
                 compiledBody,
                 compiledSourceMap,
+                coreSymbolDeclarators = [],
+                coreSymbolsUsed = {},
                 createSourceNode,
                 createSpecificSourceNode,
                 filePath = options ? options[PATH] : null,
                 labelRepository = new LabelRepository(),
+                loopIndex = 0,
                 translator,
+                useCoreSymbol = function (name) {
+                    coreSymbolsUsed[name] = true;
+
+                    return name;
+                },
                 context = {
                     // Whether source map is to be built will be set later based on options
                     blockContexts: [],
@@ -1690,6 +1919,9 @@ module.exports = {
                     currentNamespace: '', // We're in the global namespace by default
                     labelRepository: labelRepository,
                     lineNumbers: null,
+                    nextLoopIndex: function () {
+                        return loopIndex++;
+                    },
                     /**
                      * Raises a PHPFatalError for the given translation key, variables and AST node
                      *
@@ -1705,6 +1937,7 @@ module.exports = {
                         throw new PHPFatalError(message, filePath, lineNumber);
                     },
                     tick: null,
+                    useCoreSymbol: useCoreSymbol,
                     variableMap: {}
                 },
                 labels,
@@ -1744,7 +1977,12 @@ module.exports = {
                     // For efficiency, line number tracking is done by just assigning to this local `line` variable
                     // before every statement/expression rather than calling a method. This function
                     // allows the line number to be read later
-                    body.push('var line;tools.instrument(function () {return line;});');
+                    body.push(
+                        useCoreSymbol('instrument'),
+                        '(function () {return ',
+                        useCoreSymbol('line'),
+                        ';});'
+                    );
 
                     context.createExpressionSourceNode = function (chunks, node, name) {
                         if (chunks.length === 0) {
@@ -1753,6 +1991,10 @@ module.exports = {
                             return [];
                         }
 
+                        // TODO: Only assign line if it is different to the previous assigned value.
+                        //       Assigning it here (for each expression) as well as below (for each statement)
+                        //       is needed because statements can span multiple lines, however there are currently
+                        //       lots of redundant identical assignments for the same line.
                         return [createSourceNode(node, ['(line = ' + node.bounds.start.line + ', ', chunks, ')'], name)];
                     };
                     // "Internal" nodes are those that do not map directly back to a PHP construct,
@@ -1781,7 +2023,7 @@ module.exports = {
                                 'line = ' + node.bounds.start.line + ';',
                                 context.tick ?
                                     // Ticking is enabled, so add a call to the tick callback before each statement
-                                    'tools.tick(' + [
+                                    useCoreSymbol('tick') + '(' + [
                                         node.bounds.start.line,
                                         node.bounds.start.column,
                                         node.bounds.end.line,
@@ -1813,7 +2055,7 @@ module.exports = {
                             [
                                 context.tick ?
                                     // Ticking is enabled, so add a call to the tick callback before each statement
-                                    'tools.tick(' + [
+                                    useCoreSymbol('tick') + '(' + [
                                         node.bounds.start.line,
                                         node.bounds.start.column,
                                         node.bounds.end.line,
@@ -1878,7 +2120,11 @@ module.exports = {
 
             if (context.buildingSourceMap) {
                 _.forOwn(context.variableMap, function (t, name) {
-                    body.unshift('var $' + name + ' = tools.createDebugVar(scope, "' + name + '");');
+                    body.unshift(
+                        'var $' + name + ' = ',
+                        useCoreSymbol('createDebugVar'),
+                        '("' + name + '");'
+                    );
                 });
             }
 
@@ -1888,16 +2134,28 @@ module.exports = {
                 body.unshift('var goingToLabel_' + labels.join(' = false, goingToLabel_') + ' = false;');
             }
 
-            body.unshift('var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;');
+            _.each(Object.keys(coreSymbolsUsed).sort(), function (name) {
+                var declarator = name;
 
-            // Program returns null rather than undefined if nothing is returned
-            body.push('return tools.valueFactory.createNull();');
+                if (
+                    name !== 'line' &&
+                    name !== 'ternaryCondition'
+                ) {
+                    declarator += ' = core.' + name;
+                }
+
+                coreSymbolDeclarators.push(declarator);
+            });
+
+            if (coreSymbolDeclarators.length > 0) {
+                body.unshift('var ' + coreSymbolDeclarators.join(', ') + ';');
+            }
 
             // Wrap program in function for passing to runtime
             body = [
                 'function ',
                 context.stackCleaning ? MODULE_STACK_MARKER : '',
-                '(stdin, stdout, stderr, tools, namespace) {'
+                '(core) {'
             ].concat(body, '}');
 
             if (!bareMode) {
@@ -1953,19 +2211,24 @@ module.exports = {
         },
         'N_REFERENCE': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.operand, {getValue: false}).concat('.getReference()'),
+                [
+                    context.useCoreSymbol('getReference'),
+                    '(',
+                    interpret(node.operand, {getValue: false}),
+                    ')'
+                ],
                 node
             );
         },
         'N_REQUIRE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.require('].concat(interpret(node.path), '.getNative(), scope)'),
+                [context.useCoreSymbol('require'), '(', interpret(node.path), ')'],
                 node
             );
         },
         'N_REQUIRE_ONCE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.requireOnce('].concat(interpret(node.path), '.getNative(), scope)'),
+                [context.useCoreSymbol('requireOnce'), '(', interpret(node.path), ')'],
                 node
             );
         },
@@ -1973,7 +2236,7 @@ module.exports = {
             var expression = node.expression ? interpret(node.expression) : null;
 
             return context.createStatementSourceNode(
-                ['return '].concat(expression ? expression : 'tools.valueFactory.createNull()', ';'),
+                ['return'].concat(expression ? [' ', expression] : '', ';'),
                 node
             );
         },
@@ -1985,16 +2248,20 @@ module.exports = {
                 );
             }
 
-            return context.createExpressionSourceNode(['scope.getClassNameOrThrow()'], node);
+            return context.createExpressionSourceNode([context.useCoreSymbol('getClassNameOrThrow'), '()'], node);
         },
         'N_STATIC': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['scope.getStaticClassNameOrThrow()'], node);
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getStaticClassName'), '()'],
+                node
+            );
         },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
             var argChunks = [],
                 isForwarding = node.className.name === 'N_SELF' ||
                     node.className.name === 'N_PARENT' ||
-                    node.className.name === 'N_STATIC';
+                    node.className.name === 'N_STATIC',
+                isVariable = node.method.name !== 'N_STRING';
 
             _.each(node.args, function (arg, index) {
                 if (index > 0) {
@@ -2006,12 +2273,14 @@ module.exports = {
 
             return context.createExpressionSourceNode(
                 [
+                    context.useCoreSymbol(isVariable ? 'callVariableStaticMethod' : 'callStaticMethod'),
+                    '(',
                     interpret(node.className, {allowBareword: true}),
-                    '.callStaticMethod(',
-                    interpret(node.method, {allowBareword: true}),
+                    ', ',
+                    isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
                     ', [',
                     argChunks,
-                    '], namespaceScope, ' +
+                    '], ',
                     !!isForwarding +
                     ')'
                 ],
@@ -2047,67 +2316,87 @@ module.exports = {
             };
         },
         'N_STATIC_PROPERTY': function (node, interpret, context) {
-            var classVariableCode = interpret(node.className, {getValue: true, allowBareword: true}),
-                propertyCodeChunks = ['.getStaticPropertyByName('].concat(
-                    interpret(node.property, {assignment: false, getValue: true, allowBareword: true}),
-                    ', namespaceScope)'
-                ),
-                suffix = '';
+            var classVariableCodeChunks = interpret(node.className, {getValue: true, allowBareword: true}),
+                propertyCodeChunks = [];
 
-            if (!context.assignment && context.getValue !== false) {
-                suffix = '.getValue()';
+            if (node.property.name === 'N_STRING') {
+                propertyCodeChunks.push(
+                    context.useCoreSymbol('getStaticProperty'),
+                    '(',
+                    classVariableCodeChunks,
+                    ', ',
+                    JSON.stringify(node.property.string),
+                    ')'
+                );
+            } else {
+                propertyCodeChunks.push(
+                    context.useCoreSymbol('getVariableStaticProperty'),
+                    '(',
+                    classVariableCodeChunks,
+                    ', ',
+                    interpret(node.property, {assignment: false, getValue: true, allowBareword: true}),
+                    ')'
+                );
             }
 
-            return context.createExpressionSourceNode(
-                classVariableCode.concat(propertyCodeChunks, suffix),
-                node
-            );
+            return context.createExpressionSourceNode(propertyCodeChunks, node);
         },
         'N_STATIC_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
-                    // TODO: Is this currentClass param needed?
-                    ['function (currentClass) { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['tools.valueFactory.createNull()'], '; }'),
+                    // Note that currentClass is passed here because at the point static properties are loaded,
+                    // the Class constructor is still executing and so the new Class instance has not been returned
+                    // and therefore not yet been assigned to the currentClass variable in the enclosing scope
+                    ['function (currentClass) { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'], '; }'),
                     node
                 )
             };
         },
         'N_STATIC_STATEMENT': function (node, interpret, context) {
-            var code = '';
+            var codeChunks = [];
 
             _.each(node.variables, function (declarator) {
-                code += 'scope.importStatic(' + JSON.stringify(declarator.variable.variable);
+                codeChunks.push(
+                    context.useCoreSymbol('importStatic'),
+                    '(',
+                    JSON.stringify(declarator.variable.variable)
+                );
 
                 if (declarator.initialiser) {
                     // An initialiser will be evaluated only once and assigned to the variable
                     // the first time the function it's in is called - subsequent calls to the function
                     // will have access to the most recent value of the variable.
-                    code += ', ' + interpret(declarator.initialiser);
+                    codeChunks.push(', ', interpret(declarator.initialiser));
                 }
 
-                code += ');';
+                codeChunks.push(');');
             });
 
-            return context.createStatementSourceNode([code], node);
+            return context.createStatementSourceNode(codeChunks, node);
         },
         'N_STRING': function (node, interpret, context) {
             if (context.allowBareword) {
                 return context.createExpressionSourceNode(
-                    ['tools.valueFactory.createBarewordString(' + JSON.stringify(node.string) + ')'],
+                    [
+                        context.useCoreSymbol('createBareword'),
+                        '(',
+                        JSON.stringify(node.string),
+                        ')'
+                    ],
                     node
                 );
             }
 
             return context.createExpressionSourceNode(
-                ['namespaceScope.getConstant(' + JSON.stringify(node.string) + ')'],
+                [context.useCoreSymbol('getConstant'), '(', JSON.stringify(node.string), ')'],
                 node
             );
         },
         'N_STRING_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                interpret(node.value, {getValue: true}).concat('.coerceToString()'),
+                [context.useCoreSymbol('coerceToString'), '(', interpret(node.value, {getValue: true}), ')'],
                 node
             );
         },
@@ -2116,33 +2405,37 @@ module.exports = {
 
             _.each(node.parts, function (part, index) {
                 if (index > 0) {
-                    codeChunks.push(' + ');
+                    codeChunks.push(', ');
                 }
 
-                codeChunks.push(interpret(part), '.coerceToString().getNative()');
+                codeChunks.push(
+                    // Handle the common case of string literal fragments specially,
+                    // to save on bundle size
+                    part.name === 'N_STRING_LITERAL' ?
+                        JSON.stringify(part.string) :
+                        interpret(part)
+                );
             });
 
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createString('].concat(codeChunks, ')'),
+                [context.useCoreSymbol('interpolate'), '(', codeChunks, ')'],
                 node
             );
         },
         'N_STRING_LITERAL': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                ['tools.valueFactory.createString(' + JSON.stringify(node.string) + ')'],
+                [context.useCoreSymbol('createString'), '(' + JSON.stringify(node.string) + ')'],
                 node
             );
         },
         'N_SUPPRESSED_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 [
-                    '(function (scope) {scope.suppressErrors();' +
-                    'var result = '
-                ].concat(
+                    context.useCoreSymbol('suppressErrors'),
+                    '()(',
                     interpret(node.expression),
-                    ';' +
-                    'scope.unsuppressErrors(); return result;}(scope))'
-                ),
+                    ')'
+                ],
                 node
             );
         },
@@ -2161,8 +2454,11 @@ module.exports = {
 
             codeChunks.push(
                 'var switchExpression_' + blockContexts.length + ' = ',
+                context.useCoreSymbol('switchOn'),
+                '(',
                 expressionCode,
-                ',' +
+                '),' +
+                // NB: switchMatched is used for fall-through
                 ' switchMatched_' + blockContexts.length + ' = false;'
             );
 
@@ -2210,14 +2506,16 @@ module.exports = {
                 consequent = interpret(node.consequent);
             } else {
                 // Handle shorthand ternary
-                condition = ['(tools.ternaryCondition = ', condition, ')'];
-                consequent = 'tools.ternaryCondition';
+                condition = [context.useCoreSymbol('ternaryCondition'), ' = ', condition];
+                consequent = context.useCoreSymbol('ternaryCondition');
             }
 
             expression = [
                 '(',
+                context.useCoreSymbol('ternary'),
+                '(',
                 condition,
-                '.coerceToBoolean().getNative() ? ',
+                ') ? ',
                 consequent,
                 ' : ',
                 interpret(node.alternate),
@@ -2238,8 +2536,14 @@ module.exports = {
 
             _.each(node.catches, function (catchNode, index) {
                 var catchCodeChunks = [
-                    'if (', interpret(catchNode.type, {allowBareword: true}), '.isTheClassOfObject(e, namespaceScope).getNative()) {',
-                    interpret(catchNode.variable, {getValue: false}), '.setValue(e);',
+                    'if (',
+                    context.useCoreSymbol('caught'),
+                    '(',
+                    JSON.stringify(catchNode.type.string), ', e)) {',
+                    context.useCoreSymbol('setValue'),
+                    '(',
+                    interpret(catchNode.variable, {getValue: false}),
+                    ', e);',
                     interpret(catchNode.body),
                     '}'
                 ];
@@ -2254,17 +2558,20 @@ module.exports = {
             [].push.apply(codeChunks, catchCodesChunks);
 
             if (node.catches.length > 0) {
-                codeChunks.unshift('if (!tools.valueFactory.isValue(e)) {throw e;}');
-                codeChunks.push(' else { throw e; }');
-            } else {
-                codeChunks.push('throw e;');
+                codeChunks.unshift(' catch (e) {if (', context.useCoreSymbol('pausing'), '()) {throw e;} ');
+                codeChunks.push(' else { throw e; }}');
             }
 
-            codeChunks.unshift('try {', interpret(node.body), '} catch (e) {');
-            codeChunks.push('}');
+            codeChunks.unshift('try {', interpret(node.body), '}');
 
             if (node.finalizer) {
-                codeChunks.push(' finally {', interpret(node.finalizer), '}');
+                codeChunks.push(
+                    ' finally {if (!',
+                    context.useCoreSymbol('pausing'),
+                    '()) {',
+                    interpret(node.finalizer),
+                    '}}'
+                );
             }
 
             return context.createStatementSourceNode(codeChunks, node);
@@ -2274,14 +2581,19 @@ module.exports = {
                 operand = interpret(node.operand, {getValue: operator !== '++' && operator !== '--'});
 
             return context.createExpressionSourceNode(
-                [operand, '.' + unaryOperatorToMethod[node.prefix ? 'prefix' : 'suffix'][operator] + '()'],
+                [
+                    context.useCoreSymbol(unaryOperatorToMethod[node.prefix ? 'prefix' : 'suffix'][operator]),
+                    '(',
+                    operand,
+                    ')'
+                ],
                 node
             );
         },
         'N_UNSET_CAST': function (node, interpret, context) {
             // Unset cast coerces all values to NULL
             return context.createExpressionSourceNode(
-                ['(', interpret(node.value, {getValue: true}), ', tools.valueFactory.createNull())'],
+                ['(', interpret(node.value, {getValue: true}), ', ', context.useCoreSymbol('nullValue'), ')'],
                 node
             );
         },
@@ -2290,42 +2602,52 @@ module.exports = {
 
             _.each(node.variables, function (variableNode, index) {
                 if (index > 0) {
-                    statementChunks.push('; ');
+                    statementChunks.push(', ');
                 }
 
-                statementChunks.push(interpret(variableNode, {getValue: false}), '.unset()');
+                statementChunks.push(interpret(variableNode, {getValue: false}));
             });
 
-            statementChunks.push(';');
-
-            return context.createStatementSourceNode(statementChunks, node);
+            return context.createStatementSourceNode(
+                [context.useCoreSymbol('unset'), '(', statementChunks, ');'],
+                node
+            );
         },
         'N_USE_STATEMENT': function (node, interpret, context) {
-            var code = '';
+            var codeChunks = [];
 
             _.each(node.uses, function (use) {
                 if (use.alias) {
-                    code += 'namespaceScope.use(' + JSON.stringify(use.source) + ', ' + JSON.stringify(use.alias) + ');';
+                    codeChunks.push(
+                        context.useCoreSymbol('useClass'),
+                        '(',
+                        JSON.stringify(use.source),
+                        ', ',
+                        JSON.stringify(use.alias),
+                        ');'
+                    );
                 } else {
-                    code += 'namespaceScope.use(' + JSON.stringify(use.source) + ');';
+                    codeChunks.push(
+                        context.useCoreSymbol('useClass'),
+                        '(',
+                        JSON.stringify(use.source),
+                        ');'
+                    );
                 }
             });
 
-            return context.createStatementSourceNode([code], node);
+            return context.createStatementSourceNode(codeChunks, node);
         },
         'N_VARIABLE': function (node, interpret, context) {
             context.variableMap[node.variable] = true;
 
-            /*
-             * TODO: To optimize bundle size, detect whether the current function ever sets
-             *       a local variable's reference (or if a parameter, whether it is by-reference).
-             *       If so then we need to access it via scope.getVariable(...), but otherwise
-             *       (as should be the case in 90% of cases) we can use a JS local variable
-             *       with a closure at the end to register with the runtime for fetching the variable
-             *       as required by variable-variables for example.
-             */
             return context.createExpressionSourceNode(
-                ['scope.getVariable("' + node.variable + '")' + (context.getValue !== false ? '.getValue()' : '')],
+                [
+                    context.useCoreSymbol('getVariable'),
+                    '(',
+                    '"' + node.variable + '"',
+                    ')'
+                ],
                 node,
                 '$' + node.variable
             );
@@ -2333,15 +2655,18 @@ module.exports = {
         'N_VARIABLE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 [
-                    'scope.getVariable(',
+                    context.useCoreSymbol('getVariableVariable'),
+                    '(',
                     interpret(node.expression),
-                    '.getNative())' + (context.getValue !== false ? '.getValue()' : '')
+                    ')'
                 ],
                 node
             );
         },
         'N_VOID': function (node, interpret, context) {
-            return context.createExpressionSourceNode(['tools.referenceFactory.createNull()'], node);
+            // Used for list(...) elements that indicate skipping of an array element
+
+            return context.createExpressionSourceNode([context.useCoreSymbol('createVoid'), '()'], node);
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['while']),
@@ -2354,7 +2679,8 @@ module.exports = {
                     blockContexts: blockContexts
                 },
                 conditionChunks = interpret(node.condition, subContext),
-                codeChunks;
+                codeChunks,
+                loopIndex = context.nextLoopIndex();
 
             function onFoundLabel(labelNode) {
                 var label = labelNode.label.string;
@@ -2387,8 +2713,12 @@ module.exports = {
             return context.createStatementSourceNode(
                 [
                     'block_' + blockContexts.length + ': while (',
+                    context.useCoreSymbol('loop'),
+                    '(',
+                    String(loopIndex),
+                    ', ',
                     conditionChunks,
-                    '.coerceToBoolean().getNative()) {',
+                    ')) {',
                     codeChunks,
                     '}'
                 ],

@@ -82,10 +82,10 @@ describe('Transpiler class statement with method definitions test', function () 
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
             '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'var currentClass = defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
@@ -93,25 +93,22 @@ describe('Transpiler class statement with method definitions test', function () 
             'methods: {' +
             '"myInstanceMethod": {' +
             'isStatic: false, method: function _myInstanceMethod($myByRefArrayArg) {' +
-            'var scope = this;' +
-            'scope.getVariable("myByRefArrayArg").setReference($myByRefArrayArg.getReference());' +
-            'return tools.valueFactory.createInteger(21);' +
+            'setReference(getVariable("myByRefArrayArg"), $myByRefArrayArg);' +
+            'return createInteger(21);' +
             '}, args: [' +
             '{"type":"array","name":"myByRefArrayArg","ref":true}' +
             ']}, ' +
             '"myStaticMethod": {' +
             'isStatic: true, method: function _myStaticMethod($myCallableArg) {' +
-            'var scope = this;' +
-            'scope.getVariable("myCallableArg").setValue($myCallableArg.getValue());' +
-            'return tools.valueFactory.createInteger(101);' +
+            'setValue(getVariable("myCallableArg"), $myCallableArg);' +
+            'return createInteger(101);' +
             '}, args: [' +
             '{"type":"array","name":"myCallableArg"}' +
             ']}' +
             '}, ' +
             'constants: {}' +
-            '}, namespaceScope);' +
+            '});' +
             '}());' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

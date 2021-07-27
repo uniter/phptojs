@@ -55,10 +55,10 @@ describe('Transpiler class statement with constants test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
             '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'var currentClass = defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
@@ -66,18 +66,17 @@ describe('Transpiler class statement with constants test', function () {
             'methods: {}, ' +
             'constants: {' +
             '"MY_CONST": function () { ' +
-            'return tools.valueFactory.createInteger(1001); ' +
+            'return createInteger(1001); ' +
             '}, ' +
             '"ANOTHER_ONE": function () { ' +
-            'return currentClass.getConstantByName("MY_CONST", namespaceScope); ' +
+            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}, ' +
             '"YET_ANOTHER_ONE": function () { ' +
-            'return tools.valueFactory.createInteger(1234); ' +
+            'return createInteger(1234); ' +
             '}' +
             '}' +
-            '}, namespaceScope);' +
+            '});' +
             '}());' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
