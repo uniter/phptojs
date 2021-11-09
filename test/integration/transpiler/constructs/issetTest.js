@@ -31,7 +31,7 @@ describe('Transpiler isset(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getVariable = core.getVariable, isSet = core.isSet;' +
-            'return isSet()(getVariable("a_var"));' +
+            'return isSet()([getVariable("a_var")]);' +
             '});'
         );
     });
@@ -57,7 +57,7 @@ describe('Transpiler isset(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getVariable = core.getVariable, isSet = core.isSet;' +
-            'return isSet()(getVariable("a_var"), getVariable("another_var"));' +
+            'return isSet()([getVariable("a_var"), getVariable("another_var")]);' +
             '});'
         );
     });
@@ -87,7 +87,7 @@ describe('Transpiler isset(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getElement = core.getElement, getVariable = core.getVariable, isSet = core.isSet;' +
-            'return isSet()(getElement(getVariable("myArray"), 21));' +
+            'return isSet()([getElement(getVariable("myArray"), 21)]);' +
             '});'
         );
     });

@@ -1410,7 +1410,7 @@ module.exports = {
             });
 
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('interpolate'), '(', codeChunks, ')'],
+                [context.useCoreSymbol('interpolate'), '([', codeChunks, '])'],
                 node
             );
         },
@@ -1595,9 +1595,9 @@ module.exports = {
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol('isSet'),
-                    '()(',
+                    '()([',
                     issetChunks,
-                    ')'
+                    '])'
                 ],
                 node
             );
@@ -2410,7 +2410,7 @@ module.exports = {
             });
 
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('interpolate'), '(', codeChunks, ')'],
+                [context.useCoreSymbol('interpolate'), '([', codeChunks, '])'],
                 node
             );
         },
@@ -2601,7 +2601,9 @@ module.exports = {
             });
 
             return context.createStatementSourceNode(
-                [context.useCoreSymbol('unset'), '(', statementChunks, ');'],
+                // TODO: Have a separate opcode that takes a list to remove need for array
+                //       when there is only a single item to unset, to shrink bundle and reduce GC pressure
+                [context.useCoreSymbol('unset'), '([', statementChunks, ']);'],
                 node
             );
         },

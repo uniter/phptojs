@@ -40,12 +40,12 @@ describe('Transpiler "heredoc" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getVariable = core.getVariable, interpolate = core.interpolate;' +
-            'return interpolate(' +
+            'return interpolate([' +
             '"Increase ", ' +
             'getVariable("firstVar"), ' +
             '" with ", ' +
             'getVariable("secondVar")' +
-            ');' +
+            ']);' +
             '});'
         );
     });
