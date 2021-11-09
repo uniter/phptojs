@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler statement hoisting test', function () {
-    it('should correctly transpile a use followed by assignment, class and function statements', function () {
+    it('should correctly transpile a use followed by assignment, class, interface and function statements', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -54,12 +54,21 @@ describe('Transpiler statement hoisting test', function () {
                     name: 'N_COMPOUND_STATEMENT',
                     statements: []
                 }
+            }, {
+                name: 'N_INTERFACE_STATEMENT',
+                interfaceName: 'Thing',
+                extend: [
+                    'First\\SuperInterface',
+                    'Second\\SuperInterface'
+                ],
+                members: []
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
+            // "Use" import statement
             'useClass("Your\\\\Class", "YourImportedClass");' +
             '(function () {' +
             'var currentClass = defineClass("MyClass", {' +
@@ -68,6 +77,11 @@ describe('Transpiler statement hoisting test', function () {
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             '}());' +
             'defineFunction("aFinalFunc", function _aFinalFunc() {});' +
+            // Interface declaration statement
+            'defineInterface("Thing", {' +
+            'superClass: null, ' +
+            'interfaces: ["First\\\\SuperInterface","Second\\\\SuperInterface"], ' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             'setValue(getVariable("myVar"), createInteger(21));' +
             '});'
         );
