@@ -64,20 +64,18 @@ describe('Transpiler parent:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var defineClass = core.defineClass, getClassConstant = core.getClassConstant, getSuperClassName = core.getSuperClassName;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function () { ' +
+            '"MY_CONST": function (currentClass) { ' +
             'return getClassConstant(getSuperClassName(currentClass), "PARENT_CONST"); ' +
             '}' +
             '}' +
             '});' +
-            '}());' +
             '});'
         );
     });

@@ -70,12 +70,12 @@ describe('Transpiler statement hoisting test', function () {
             'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
             // "Use" import statement
             'useClass("Your\\\\Class", "YourImportedClass");' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            // Class declaration statement
+            'defineClass("MyClass", {' +
             'superClass: "YourImportedClass", ' +
             // TODO: Don't output these properties in this object literal when they are empty
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '}());' +
+            // Function declaration statement
             'defineFunction("aFinalFunc", function _aFinalFunc() {});' +
             // Interface declaration statement
             'defineInterface("Thing", {' +

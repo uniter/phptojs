@@ -84,8 +84,7 @@ describe('Transpiler class statement with abstract methods test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var defineClass = core.defineClass;' +
-            '(function () {' +
-            'var currentClass = defineClass("AbstractMyClass", {' +
+            'defineClass("AbstractMyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
@@ -93,7 +92,6 @@ describe('Transpiler class statement with abstract methods test', function () {
             'methods: {}, ' +
             'constants: {}' +
             '});' +
-            '}());' +
             '});'
         );
     });

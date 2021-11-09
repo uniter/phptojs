@@ -61,7 +61,7 @@ describe('Transpiler source map test', function () {
         );
     });
 
-    it('should correctly transpile a simple return statement in default (async) mode wih returnMap option', function () {
+    it('should correctly transpile a simple return statement in default (async) mode with returnMap option', function () {
         var ast = {
                 name: 'N_PROGRAM',
                 statements: [{
@@ -342,7 +342,7 @@ describe('Transpiler source map test', function () {
             'var $myFunctionVar = createDebugVar("myFunctionVar");' +
             'return getVariable("myFunctionVar");' +
             '});' +
-            '(function () {var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"myMethod": {' +
             'isStatic: false, method: function _myMethod() {' +
@@ -350,7 +350,7 @@ describe('Transpiler source map test', function () {
             'var $myMethodVar = createDebugVar("myMethodVar");' +
             'return getVariable("myMethodVar");' +
             '}' +
-            '}}, constants: {}});}());' +
+            '}}, constants: {}});' +
             'return getVariable("myGlobalCodeVar");' +
             'return createClosure((function (parentScope) { return function ($myArgVar) {' +
             'setValue(getVariable("myArgVar"), $myArgVar);' +
@@ -367,8 +367,8 @@ describe('Transpiler source map test', function () {
             '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm1' +
             '5X21vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIs' +
             'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiJ5WEFFS' +
-            'yxrQ0FBQUEsT0FBQSw0RkFLSSxPQUFVQyw0QkFBVixDQUxKLEdBREksdUpBU0ksbUNBTE5ELFNBS00sd0ZBSE0sT0' +
-            'FBQUUsMEJBQUEsQ0FHTixFQVRKLHdCQU1BLE9BQVVDLDhCQUFWLENBQVUsa1ZBQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
+            'yxrQ0FBQUEsT0FBQSw0RkFLSSxPQUFVQyw0QkFBVixDQUxKLEdBREksc0hBU0ksbUNBTE5ELFNBS00sd0ZBSE0sT0' +
+            'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsa1ZBQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
             'BLHNDIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +
             '\n'
         );

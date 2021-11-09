@@ -68,14 +68,13 @@ describe('Transpiler __NAMESPACE__ magic constant test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var defineClass = core.defineClass, getNamespaceName = core.getNamespaceName;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
+            'defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
             'method: function _getClass() {' +
             'return getNamespaceName();' +
             '}}' +
-            '}, constants: {}});}());' +
+            '}, constants: {}});' +
             '}'
         );
     });

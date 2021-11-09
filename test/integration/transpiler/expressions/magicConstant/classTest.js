@@ -68,14 +68,13 @@ describe('Transpiler __CLASS__ magic constant test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var defineClass = core.defineClass, getClassName = core.getClassName;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
+            'defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
             'method: function _getClass() {' +
             'return getClassName();' +
             '}}' +
-            '}, constants: {}});}());' +
+            '}, constants: {}});' +
             '}'
         );
     });

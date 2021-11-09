@@ -27,8 +27,7 @@ describe('Transpiler class statement "extends" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var defineClass = core.defineClass;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: "My\\\\SuperClass", ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
@@ -36,7 +35,6 @@ describe('Transpiler class statement "extends" test', function () {
             'methods: {}, ' +
             'constants: {}' +
             '});' +
-            '}());' +
             '});'
         );
     });

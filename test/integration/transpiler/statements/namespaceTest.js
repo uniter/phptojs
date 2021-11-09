@@ -214,14 +214,13 @@ describe('Transpiler namespace statement test', function () {
 
             // Second namespace scope
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\Space");' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
+            'defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
             'method: function _getClass() {' +
             'return getNamespaceName();' +
             '}}' +
-            '}, constants: {}});}());' +
+            '}, constants: {}});' +
             '}'
         );
     });

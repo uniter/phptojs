@@ -44,18 +44,17 @@ describe('Transpiler class statement with properties test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"firstProp": {visibility: "private", value: function () { return null; }}, ' +
-            '"secondProp": {visibility: "private", value: function () { return createInteger(21); }}' +
+            '"firstProp": {visibility: "private", value: function (currentClass) { return null; }}, ' +
+            '"secondProp": {visibility: "private", value: function (currentClass) { return createInteger(21); }}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {}' +
-            '});}());' +
+            '});' +
             '});'
         );
     });
@@ -91,8 +90,7 @@ describe('Transpiler class statement with properties test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {' +
@@ -108,7 +106,7 @@ describe('Transpiler class statement with properties test', function () {
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {}' +
-            '});}());' +
+            '});' +
             '});'
         );
     });
@@ -152,24 +150,22 @@ describe('Transpiler class statement with properties test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"myProp": {visibility: "protected", value: function () { ' +
+            '"myProp": {visibility: "protected", value: function (currentClass) { ' +
             'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function () { ' +
+            '"MY_CONST": function (currentClass) { ' +
             'return createInteger(1001); ' +
             '}' +
             '}' +
             '});' +
-            '}());' +
             '});'
         );
     });
@@ -213,8 +209,7 @@ describe('Transpiler class statement with properties test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {' +
@@ -227,12 +222,11 @@ describe('Transpiler class statement with properties test', function () {
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function () { ' +
+            '"MY_CONST": function (currentClass) { ' +
             'return createInteger(1001); ' +
             '}' +
             '}' +
             '});' +
-            '}());' +
             '});'
         );
     });

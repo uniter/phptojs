@@ -763,11 +763,10 @@ module.exports = {
 
             return context.createStatementSourceNode(
                 [
-                    '(function () {var currentClass = ',
                     context.useCoreSymbol('defineClass'),
                     '(' + JSON.stringify(node.className) + ', ',
                     codeChunks,
-                    ');}());'
+                    ');'
                 ],
                 node
             );
@@ -832,7 +831,11 @@ module.exports = {
                 return {
                     name: constant.constant,
                     value: context.createInternalSourceNode(
-                        ['function () { return '].concat(interpret(constant.value, {isConstantOrProperty: true}), '; }'),
+                        [
+                            'function (currentClass) { return ',
+                            interpret(constant.value, {isConstantOrProperty: true}),
+                            '; }'
+                        ],
                         constant
                     )
                 };
@@ -1483,7 +1486,11 @@ module.exports = {
                 value: context.createInternalSourceNode(
                     // Output a function that can be called to create the property's value,
                     // so that each instance gets a separate array object (if one is used as the value)
-                    ['function () { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'], '; }'),
+                    [
+                        'function (currentClass) { return ',
+                        node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'],
+                        '; }'
+                    ],
                     node
                 )
             };
@@ -1560,11 +1567,10 @@ module.exports = {
 
             return context.createStatementSourceNode(
                 [
-                    '(function () {var currentClass = ',
                     context.useCoreSymbol('defineInterface'),
                     '(' + JSON.stringify(node.interfaceName) + ', ',
                     codeChunks,
-                    ');}());'
+                    ');'
                 ],
                 node
             );

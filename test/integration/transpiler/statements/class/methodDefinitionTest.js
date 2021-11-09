@@ -84,8 +84,7 @@ describe('Transpiler class statement with method definitions test', function () 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
-            '(function () {' +
-            'var currentClass = defineClass("MyClass", {' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
@@ -108,7 +107,6 @@ describe('Transpiler class statement with method definitions test', function () 
             '}, ' +
             'constants: {}' +
             '});' +
-            '}());' +
             '});'
         );
     });
