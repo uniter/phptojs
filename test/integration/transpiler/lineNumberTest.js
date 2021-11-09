@@ -493,7 +493,7 @@ describe('Transpiler line numbers test', function () {
             'superClass: null, interfaces: [], staticProperties: {' +
             // Note that line numbers are not included for property initialisers,
             // as we always refer to the site they are referenced from
-            '"myStaticProp": {visibility: "private", value: function (currentClass) { return (line = 5, getConstant("MY_CONST")); }}' +
+            '"myStaticProp": {visibility: "private", value: function (currentClass) { return getConstant("MY_CONST"); }}' +
             '}, properties: {}, methods: {' +
             '"myMethod": {' +
             'isStatic: false, method: function _myMethod() {' +

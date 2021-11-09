@@ -1989,91 +1989,74 @@ module.exports = {
                         useCoreSymbol('line'),
                         ';});'
                     );
+                }
 
-                    context.createExpressionSourceNode = function (chunks, node, name) {
-                        if (chunks.length === 0) {
-                            // Allow detecting empty comma expressions etc. by returning an empty array
-                            // rather than an array containing an empty SourceNode
-                            return [];
-                        }
+                context.createExpressionSourceNode = function (chunks, node, name) {
+                    var context = this;
 
+                    if (chunks.length === 0) {
+                        // Allow detecting empty comma expressions etc. by returning an empty array
+                        // rather than an array containing an empty SourceNode
+                        return [];
+                    }
+
+                    // Line numbers may be enabled or disabled for descendant structures
+                    // (eg. property initialisers always have line tracking disabled)
+                    if (context.lineNumbers) {
                         // TODO: Only assign line if it is different to the previous assigned value.
                         //       Assigning it here (for each expression) as well as below (for each statement)
                         //       is needed because statements can span multiple lines, however there are currently
                         //       lots of redundant identical assignments for the same line.
                         return [createSourceNode(node, ['(line = ' + node.bounds.start.line + ', ', chunks, ')'], name)];
-                    };
-                    // "Internal" nodes are those that do not map directly back to a PHP construct,
-                    // or where we do not need them to. For example, a function declaration's name
-                    context.createInternalSourceNode = function (chunks, node, name) {
-                        if (chunks.length === 0) {
-                            // Allow detecting empty comma expressions etc. by returning an empty array
-                            // rather than an array containing an empty SourceNode
-                            return [];
-                        }
+                    }
 
-                        // Lines are 1-based, but columns are 0-based
-                        return [createSourceNode(node, chunks, name)];
-                    };
-                    context.createStatementSourceNode = function (chunks, node, name) {
-                        if (chunks.length === 0) {
-                            // Allow detecting empty comma expressions etc. by returning an empty array
-                            // rather than an array containing an empty SourceNode
-                            return [];
-                        }
+                    // Lines are 1-based, but columns are 0-based
+                    return [createSourceNode(node, chunks, name)];
+                };
+                // "Internal" nodes are those that do not map directly back to a PHP construct,
+                // or where we do not need them to. For example, a function declaration's name
+                context.createInternalSourceNode = function (chunks, node, name) {
+                    if (chunks.length === 0) {
+                        // Allow detecting empty comma expressions etc. by returning an empty array
+                        // rather than an array containing an empty SourceNode
+                        return [];
+                    }
 
-                        // Lines are 1-based, but columns are 0-based
-                        return [createSourceNode(
-                            node,
-                            [
-                                'line = ' + node.bounds.start.line + ';',
-                                context.tick ?
-                                    // Ticking is enabled, so add a call to the tick callback before each statement
-                                    useCoreSymbol('tick') + '(' + [
-                                        node.bounds.start.line,
-                                        node.bounds.start.column,
-                                        node.bounds.end.line,
-                                        node.bounds.end.column
-                                    ].join(', ') + ');' :
-                                    '',
-                                chunks
-                            ],
-                            name
-                        )];
-                    };
-                } else {
-                    createSpecificSourceNode = function (chunks, node, name) {
-                        if (chunks.length === 0) {
-                            // Allow detecting empty comma expressions etc. by returning an empty array
-                            // rather than an array containing an empty SourceNode
-                            return [];
-                        }
+                    // Lines are 1-based, but columns are 0-based
+                    return [createSourceNode(node, chunks, name)];
+                };
+                context.createStatementSourceNode = function (chunks, node, name) {
+                    var context = this;
 
-                        // Lines are 1-based, but columns are 0-based
-                        return [createSourceNode(node, chunks, name)];
-                    };
+                    if (chunks.length === 0) {
+                        // Allow detecting empty comma expressions etc. by returning an empty array
+                        // rather than an array containing an empty SourceNode
+                        return [];
+                    }
 
-                    context.createExpressionSourceNode = createSpecificSourceNode;
-                    context.createInternalSourceNode = createSpecificSourceNode;
-                    context.createStatementSourceNode = function (chunks, node, name) {
-                        return [createSourceNode(
-                            node,
-                            [
-                                context.tick ?
-                                    // Ticking is enabled, so add a call to the tick callback before each statement
-                                    useCoreSymbol('tick') + '(' + [
-                                        node.bounds.start.line,
-                                        node.bounds.start.column,
-                                        node.bounds.end.line,
-                                        node.bounds.end.column
-                                    ].join(', ') + ');' :
-                                    '',
-                                chunks
-                            ],
-                            name
-                        )];
-                    };
-                }
+                    // Lines are 1-based, but columns are 0-based
+                    return [createSourceNode(
+                        node,
+                        [
+                            // Line numbers may be enabled or disabled for descendant structures
+                            // (eg. property initialisers always have line tracking disabled)
+                            context.lineNumbers ?
+                                'line = ' + node.bounds.start.line + ';' :
+                                '',
+                            context.tick ?
+                                // Ticking is enabled, so add a call to the tick callback before each statement
+                                useCoreSymbol('tick') + '(' + [
+                                    node.bounds.start.line,
+                                    node.bounds.start.column,
+                                    node.bounds.end.line,
+                                    node.bounds.end.column
+                                ].join(', ') + ');' :
+                                '',
+                            chunks
+                        ],
+                        name
+                    )];
+                };
             } else {
                 if (context.buildingSourceMap) {
                     throw new Error('Source map enabled, but AST contains no node bounds');
@@ -2352,10 +2335,13 @@ module.exports = {
                 name: node.variable.variable,
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
-                    // Note that currentClass is passed here because at the point static properties are loaded,
-                    // the Class constructor is still executing and so the new Class instance has not been returned
-                    // and therefore not yet been assigned to the currentClass variable in the enclosing scope
-                    ['function (currentClass) { return '].concat(node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'], '; }'),
+                    [
+                        'function (currentClass) { return ',
+                        // Note that line numbers are not included for property initialisers,
+                        // as we always refer to the site they are referenced from
+                        node.value ? interpret(node.value, {isConstantOrProperty: true, lineNumbers: false}) : ['null'],
+                        '; }'
+                    ],
                     node
                 )
             };
