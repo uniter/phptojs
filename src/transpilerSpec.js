@@ -2518,7 +2518,7 @@ module.exports = {
         },
         'N_THROW_STATEMENT': function (node, interpret, context) {
             return context.createStatementSourceNode(
-                ['throw ', interpret(node.expression), ';'],
+                [context.useCoreSymbol('throw_'), '(', interpret(node.expression), ');'],
                 node
             );
         },
