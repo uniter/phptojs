@@ -128,19 +128,137 @@ function buildExtraFunctionDefinitionArgChunks(argSpecs) {
     });
 }
 
+/**
+ * Hoists declaration statements to the top of a given code block,
+ * sorting class and interface declarations to allow for forward-references.
+ *
+ * Note that as interfaces are always sorted above classes, there is no need
+ * to take implemented interfaces into account while sorting classes.
+ *
+ * @param {Object[]} statements
+ * @returns {Object[]}
+ */
 function hoistDeclarations(statements) {
-    var declarations = [],
-        nonDeclarations = [];
+    var classDeclarations = [],
+        classNameToReferencesMap = {},
+        declarations = [],
+        interfaceDeclarations = [],
+        interfaceNameToReferencesMap = {},
+        nonDeclarations = [],
+        skipHoisting = false;
+
+    // FIXME: Note that class and interface references should be resolved relative
+    //        to the current namespace scope, but resolution is currently done at runtime.
 
     _.each(statements, function (statement) {
-        if (/^N_(CLASS|FUNCTION|INTERFACE|USE)_STATEMENT$/.test(statement.name)) {
+        var references;
+
+        if (statement.name === 'N_CLASS_STATEMENT') {
+            classDeclarations.push(statement);
+            references = [];
+
+            if (statement.extend) {
+                // Class extends another, so add the parent class as a reference.
+                references.push(statement.extend);
+            }
+
+            // Note that we do not need to include any interfaces implemented,
+            // as those will always be hoisted above classes.
+
+            classNameToReferencesMap[statement.className] = references;
+        } else if (statement.name === 'N_INTERFACE_STATEMENT') {
+            interfaceDeclarations.push(statement);
+
+            interfaceNameToReferencesMap[statement.interfaceName] = statement.extend || [];
+        } else if (statement.name === 'N_USE_STATEMENT') {
+            if (classDeclarations.length > 0 || interfaceDeclarations.length > 0) {
+                /*
+                 * A "use" statement is defined after a class or interface -
+                 * skip hoisting for now to preserve "Cannot use ..." fatal error behaviour.
+                 *
+                 * TODO: When NamespaceScope concept is removed, this logic should be improved.
+                 */
+                skipHoisting = true;
+
+                return false;
+            }
+
+            declarations.push(statement);
+        } else if (statement.name === 'N_FUNCTION_STATEMENT') {
+            // Note that no special sorting of functions should be required.
             declarations.push(statement);
         } else {
             nonDeclarations.push(statement);
         }
     });
 
-    return declarations.concat(nonDeclarations);
+    if (skipHoisting) {
+        // TODO: This is an incomplete solution: see notes above.
+        return statements;
+    }
+
+    /**
+     * Determines whether another class or interface is an ancestor of the given class or interface.
+     *
+     * @param {Object.<string, string[]>} nameToReferencesMap
+     * @param {string} className
+     * @param {string} ancestorName
+     * @returns {boolean}
+     */
+    function classHasAncestor(nameToReferencesMap, className, ancestorName) {
+        var i,
+            references = nameToReferencesMap[className] || [];
+
+        if (references.length === 0) {
+            // Class does not refer to any parent so cannot have the specified ancestor.
+            return false;
+        }
+
+        if (references.indexOf(ancestorName) !== -1) {
+            // Easy case: ancestor is a direct parent of the class or interface.
+            return true;
+        }
+
+        // Walk up the hierarchy of the class (within this block), looking for the ancestor.
+        for (i = 0; i < references.length; i++) {
+            if (classHasAncestor(nameToReferencesMap, references[i], ancestorName)) {
+                return true;
+            }
+        }
+
+        // Given name is not an ancestor of the given class.
+        return false;
+    }
+
+    interfaceDeclarations.sort(function (statementA, statementB) {
+        if (classHasAncestor(interfaceNameToReferencesMap, statementB.interfaceName, statementA.interfaceName)) {
+            // B extends A (or a descendant of A), so A needs to be declared first.
+            return -1;
+        }
+
+        if (classHasAncestor(interfaceNameToReferencesMap, statementA.interfaceName, statementB.interfaceName)) {
+            // A extends B (or a descendant of B), so B needs to be declared first.
+            return 1;
+        }
+
+        return 0; // Neither interface references the other, so there is no order to apply.
+    });
+
+    classDeclarations.sort(function (statementA, statementB) {
+        if (classHasAncestor(classNameToReferencesMap, statementB.className, statementA.className)) {
+            // B extends A (or a descendant of A), so A needs to be declared first.
+            return -1;
+        }
+
+        if (classHasAncestor(classNameToReferencesMap, statementA.className, statementB.className)) {
+            // A extends B (or a descendant of B), so B needs to be declared first.
+            return 1;
+        }
+
+        return 0; // Neither class references the other, so there is no order to apply.
+    });
+
+    return declarations.concat(interfaceDeclarations, classDeclarations, nonDeclarations);
 }
 
 function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, interpret, context) {

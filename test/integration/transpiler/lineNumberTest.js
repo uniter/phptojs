@@ -489,6 +489,16 @@ describe('Transpiler line numbers test', function () {
             'instrument(function () {return line;});' +
             'line = 8;return (line = 8, getVariable("myFunctionVar"));' +
             '}, [], 3);' +
+            'line = 3;defineInterface("MyThingInterface", {' +
+            'superClass: null, ' +
+            'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
+            'staticProperties: {}, ' +
+            'properties: {}, ' +
+            'methods: {' +
+            '"doSomethingElse": {isStatic: false, abstract: true}' +
+            '}, ' +
+            'constants: {}' +
+            '});' +
             'line = 2;defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {' +
             // Note that line numbers are not included for property initialisers,
@@ -502,16 +512,6 @@ describe('Transpiler line numbers test', function () {
             'line = 8;return (line = 10, getVariable("myMethodVar"));' +
             '}, args: [], line: 11' +
             '}}, constants: {}});' +
-            'line = 3;defineInterface("MyThingInterface", {' +
-            'superClass: null, ' +
-            'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
-            'staticProperties: {}, ' +
-            'properties: {}, ' +
-            'methods: {' +
-            '"doSomethingElse": {isStatic: false, abstract: true}' +
-            '}, ' +
-            'constants: {}' +
-            '});' +
             'line = 8;return (line = 1, getVariable("myGlobalCodeVar"));' +
             'line = 8;return (line = 12, createClosure((function (parentScope) { return function ($myArgVar) {' +
             'var line;' +
