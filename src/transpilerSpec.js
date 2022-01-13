@@ -789,7 +789,9 @@ module.exports = {
             return '"type":"callable"';
         },
         'N_CASE': function (node, interpret, context) {
-            var bodyChunks = [];
+            var bodyChunks = [],
+                switchExpressionVariable = 'switchExpression_' + context.blockContexts.length,
+                switchMatchedVariable = 'switchMatched_' + context.blockContexts.length;
 
             _.each(node.body, function (statement) {
                 bodyChunks.push(interpret(statement));
@@ -797,14 +799,17 @@ module.exports = {
 
             return context.createStatementSourceNode(
                 [
-                    'if (switchMatched_' + context.blockContexts.length +
+                    'if (',
+                    // Allow for fall-through.
+                    switchMatchedVariable +
                     ' || ',
+                    // Otherwise, if not falling-through, check the case value against the switched one.
                     context.useCoreSymbol('switchCase'),
                     '(',
-                    'switchExpression_' + context.blockContexts.length,
+                    switchExpressionVariable,
                     ', ',
                     interpret(node.expression),
-                    ')) {switchMatched_' + context.blockContexts.length + ' = true; ',
+                    ')) {' + switchMatchedVariable + ' = true;',
                     bodyChunks,
                     '}'
                 ],
@@ -1013,16 +1018,37 @@ module.exports = {
             return context.createStatementSourceNode([statement + ' block_' + targetLevel + ';'], node);
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
-            var bodyChunks = [];
+            var blockContexts = context.blockContexts,
+                switchExpressionVariable = 'switchExpression_' + blockContexts.length,
+                switchMatchedVariable = 'switchMatched_' + blockContexts.length,
+                bodyChunks = [switchMatchedVariable + ' = true;'];
 
             _.each(node.body, function (statement) {
                 bodyChunks.push(interpret(statement));
             });
 
             return context.createInternalSourceNode(
-                ['if (!switchMatched_' + context.blockContexts.length +
-                ') {switchMatched_' + context.blockContexts.length + ' = true; '
-                ].concat(bodyChunks, '}'),
+                context.defaultCaseIsFinal ?
+                    // This default case is the last one in the switch - no wrapping logic is necessary.
+                    bodyChunks :
+                    // This default case is not the last one, we need to wrap it in a condition.
+                    [
+                        'if (',
+                        // Allow for fall-through.
+                        switchMatchedVariable,
+                        ' || ',
+                        /*
+                         * When all cases have failed to match the switched value,
+                         * execution will jump back to the top of the transpiled switch
+                         * with the variable set to native null rather than a Value object,
+                         * allowing us to detect that the default case (which need not be the final one)
+                         * should be used.
+                         */
+                        switchExpressionVariable + ' === null',
+                        ') {',
+                        bodyChunks,
+                        '}'
+                    ],
                 node
             );
         },
@@ -2550,7 +2576,9 @@ module.exports = {
             );
         },
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
-            var codeChunks = [],
+            var caseChunks = [],
+                codeChunks = [],
+                containsNonFinalDefaultCase = false,
                 labelRepository = context.labelRepository,
                 labelsInsideLoopHash = {},
                 // Record which labels have gotos to labels that are not yet defined,
@@ -2558,18 +2586,22 @@ module.exports = {
                 priorPendingLabelsHash = labelRepository.getPendingLabelsHash(),
                 expressionCode = interpret(node.expression),
                 blockContexts = context.blockContexts.concat(['switch']),
+                switchLabel = 'block_' + blockContexts.length,
+                switchExpressionVariable = 'switchExpression_' + blockContexts.length,
+                switchMatchedVariable = 'switchMatched_' + blockContexts.length,
                 subContext = {
-                    blockContexts: blockContexts
+                    blockContexts: blockContexts,
+                    defaultCaseIsFinal: false // May be overridden in the loop below.
                 };
 
             codeChunks.push(
-                'var switchExpression_' + blockContexts.length + ' = ',
+                'var ' + switchExpressionVariable + ' = ',
                 context.useCoreSymbol('switchOn'),
                 '(',
                 expressionCode,
                 '),' +
                 // NB: switchMatched is used for fall-through
-                ' switchMatched_' + blockContexts.length + ' = false;'
+                ' ' + switchMatchedVariable + ' = false;'
             );
 
             function onFoundLabel(labelNode) {
@@ -2586,9 +2618,48 @@ module.exports = {
 
             labelRepository.on('found label', onFoundLabel);
 
-            _.each(node.cases, function (caseNode) {
-                codeChunks.push(interpret(caseNode, subContext));
+            _.each(node.cases, function (caseNode, index) {
+                if (caseNode.name === 'N_DEFAULT_CASE') {
+                    if (index === node.cases.length - 1) {
+                        /*
+                         * Default case is the last one in the switch: mark this,
+                         * as we can apply an optimisation
+                         * (no need to wrap transpiled default case in any logic).
+                         */
+                        subContext.defaultCaseIsFinal = true;
+                    } else {
+                        // Default case is not the last one, so we'll need some extra logic
+                        // as we need to jump backwards after testing all other cases.
+                        containsNonFinalDefaultCase = true;
+                    }
+                }
+
+                caseChunks.push(interpret(caseNode, subContext));
             });
+
+            if (containsNonFinalDefaultCase) {
+                codeChunks.push(
+                    // Reuse the loop we need to add as the labelled target for break and continue statements.
+                    switchLabel + ': ',
+                    // We need a loop to be able to jump back to the top of the switch (to then go back down
+                    // to the default case) if no non-default cases match.
+                    'while (true) {',
+                    caseChunks,
+                    'if (' + switchMatchedVariable + ') {',
+                    // A case matched (or we already jumped backwards to the default case),
+                    // so we don't want to jump back to the top of the switch.
+                    'break;',
+                    '} else {',
+                    // No non-default cases were matched, so use this special value
+                    // for the expression variable to indicate we should jump to the default case.
+                    switchExpressionVariable + ' = null;',
+                    '}',
+                    '}' // End of while loop.
+                );
+            } else {
+                // Either no default case is present or it is the final one.
+                codeChunks.push(switchLabel + ': {', caseChunks, '}');
+            }
 
             labelRepository.off('found label', onFoundLabel);
 
@@ -2602,10 +2673,7 @@ module.exports = {
                 }
             });
 
-            return context.createStatementSourceNode(
-                ['block_' + blockContexts.length + ': {', codeChunks, '}'],
-                node
-            );
+            return context.createStatementSourceNode(codeChunks, node);
         },
         'N_TERNARY': function (node, interpret, context) {
             var condition = interpret(node.condition, {getValue: true}),
