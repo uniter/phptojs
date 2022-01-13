@@ -306,7 +306,7 @@ describe('Transpiler "switch" statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, switchCase = core.switchCase, switchOn = core.switchOn;' +
+            'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, switchCase = core.switchCase, switchDefault = core.switchDefault, switchOn = core.switchOn;' +
             'var switchExpression_1 = switchOn(add(createInteger(21), createInteger(6))), ' +
             'switchMatched_1 = false;' +
             'block_1: while (true) {' +
@@ -315,7 +315,7 @@ describe('Transpiler "switch" statement test', function () {
             'setValue(getVariable("a"), createInteger(7));' +
             'break block_1;' +
             '}' +
-            'if (switchMatched_1 || switchExpression_1 === null) {' +
+            'if (switchMatched_1 || switchDefault(switchExpression_1)) {' +
             'switchMatched_1 = true;' +
             'setValue(getVariable("a"), createInteger(8));' +
             '}' +

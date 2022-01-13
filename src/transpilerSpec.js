@@ -1044,7 +1044,8 @@ module.exports = {
                          * allowing us to detect that the default case (which need not be the final one)
                          * should be used.
                          */
-                        switchExpressionVariable + ' === null',
+                        context.useCoreSymbol('switchDefault'),
+                        '(' + switchExpressionVariable + ')',
                         ') {',
                         bodyChunks,
                         '}'
