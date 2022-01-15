@@ -223,11 +223,11 @@ describe('Transpiler "continue" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, switchCase = core.switchCase, switchOn = core.switchOn;' +
-            'block_1: {' +
             'var switchExpression_1 = switchOn(createInteger(21)), ' +
             'switchMatched_1 = false;' +
+            'block_1: {' +
             'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(21))) {' +
-            'switchMatched_1 = true; ' +
+            'switchMatched_1 = true;' +
             'break block_1;' +
             '}' +
             '}' +
