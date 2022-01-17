@@ -573,11 +573,20 @@ function transpileWithLabelsAndGotos(statements, interpret, context, labelReposi
     return statementDatas;
 }
 
-function processBlock(statements, interpret, context) {
+/**
+ * Transpiles an array of statements that constitute a code block (usually wrapped in braces).
+ * Handles label statements and goto.
+ *
+ * @param {Object[]} statements
+ * @param {Function} interpret
+ * @param {Object} context
+ * @param {LabelRepository} labelRepository
+ * @returns {*[]}
+ */
+function processBlock(statements, interpret, context, labelRepository) {
     var codeChunks = [],
         labelsWithBackwardJumpLoopAdded = {},
         labelsWithForwardJumpBlockAdded = {},
-        labelRepository = context.labelRepository,
         statementDatas = transpileWithLabelsAndGotos(statements, interpret, context, labelRepository);
 
     _.each(statementDatas, function (statementData, index) {
@@ -947,7 +956,10 @@ module.exports = {
             return context.createExpressionSourceNode(expressionCodeChunks, node);
         },
         'N_COMPOUND_STATEMENT': function (node, interpret, context) {
-            return context.createInternalSourceNode(processBlock(node.statements, interpret, context), node);
+            return context.createInternalSourceNode(
+                processBlock(node.statements, interpret, context, context.labelRepository),
+                node
+            );
         },
         'N_CONSTANT_DEFINITION': function (node, interpret, context) {
             return node.constants.map(function (constant) {
@@ -2240,7 +2252,7 @@ module.exports = {
                 throw new Error('Invalid mode "' + options[MODE] + '" given');
             }
 
-            body.push(processBlock(hoistDeclarations(node.statements), interpret, context));
+            body.push(processBlock(hoistDeclarations(node.statements), interpret, context, context.labelRepository));
 
             if (labelRepository.hasPending()) {
                 // After processing the root body of the program, one or more gotos were found targetting labels
@@ -2577,7 +2589,7 @@ module.exports = {
             );
         },
         'N_SWITCH_STATEMENT': function (node, interpret, context) {
-            var caseChunks = [],
+            var caseChunks,
                 codeChunks = [],
                 containsNonFinalDefaultCase = false,
                 labelRepository = context.labelRepository,
@@ -2619,6 +2631,8 @@ module.exports = {
 
             labelRepository.on('found label', onFoundLabel);
 
+            // Go through the cases of this switch (shallowly: not any cases of descendant switches)
+            // to look for a default case.
             _.each(node.cases, function (caseNode, index) {
                 if (caseNode.name === 'N_DEFAULT_CASE') {
                     if (index === node.cases.length - 1) {
@@ -2634,9 +2648,10 @@ module.exports = {
                         containsNonFinalDefaultCase = true;
                     }
                 }
-
-                caseChunks.push(interpret(caseNode, subContext));
             });
+
+            // Process the cases of this switch as a normal block, so that goto labels can be resolved etc.
+            caseChunks = processBlock(node.cases, interpret, subContext, labelRepository);
 
             if (containsNonFinalDefaultCase) {
                 codeChunks.push(
