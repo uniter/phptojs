@@ -798,13 +798,13 @@ module.exports = {
             return '"type":"callable"';
         },
         'N_CASE': function (node, interpret, context) {
-            var bodyChunks = [],
+            var bodyChunks,
                 switchExpressionVariable = 'switchExpression_' + context.blockContexts.length,
                 switchMatchedVariable = 'switchMatched_' + context.blockContexts.length;
 
-            _.each(node.body, function (statement) {
-                bodyChunks.push(interpret(statement));
-            });
+            // Process the body of the case as a block (despite it technically not being braced)
+            // to allow for goto/label etc.
+            bodyChunks = processBlock(node.body, interpret, context, context.labelRepository);
 
             return context.createStatementSourceNode(
                 [
@@ -1035,9 +1035,9 @@ module.exports = {
                 switchMatchedVariable = 'switchMatched_' + blockContexts.length,
                 bodyChunks = [switchMatchedVariable + ' = true;'];
 
-            _.each(node.body, function (statement) {
-                bodyChunks.push(interpret(statement));
-            });
+            // Process the body of the case as a block (despite it technically not being braced)
+            // to allow for goto/label etc.
+            bodyChunks.push(processBlock(node.body, interpret, context, context.labelRepository));
 
             return context.createInternalSourceNode(
                 context.defaultCaseIsFinal ?
