@@ -289,10 +289,9 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         },
         subContext = {
             // This sub-context will be merged with the parent one,
-            // so we need to override any value for the `assignment` and `getValue` options
+            // so we need to override any value for the `assignment` option.
             assignment: undefined,
             blockContexts: [],
-            getValue: undefined,
             labelRepository: labelRepository,
             nextLoopIndex: function () {
                 return loopIndex++;
@@ -683,7 +682,7 @@ module.exports = {
         },
         'N_ARRAY_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToArray'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToArray'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -725,7 +724,7 @@ module.exports = {
                     elementValueChunks.push(', ');
                 }
 
-                elementValueChunks.push(interpret(element, {getValue: true}));
+                elementValueChunks.push(interpret(element));
             });
 
             return context.createExpressionSourceNode(
@@ -738,7 +737,7 @@ module.exports = {
         },
         'N_BINARY_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToString'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToString'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -756,7 +755,7 @@ module.exports = {
         },
         'N_BOOLEAN_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToBoolean'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToBoolean'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -834,7 +833,7 @@ module.exports = {
                             'getClassConstant'
                     ),
                     '(',
-                    interpret(node.className, {getValue: true, allowBareword: true}),
+                    interpret(node.className, {allowBareword: true}),
                     ', ',
                     JSON.stringify(node.constant),
                     ')'
@@ -908,7 +907,7 @@ module.exports = {
         },
         'N_CLONE_EXPRESSION': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('clone'), '(', interpret(node.operand, {getValue: true}), ')'],
+                [context.useCoreSymbol('clone'), '(', interpret(node.operand), ')'],
                 node
             );
         },
@@ -1124,7 +1123,7 @@ module.exports = {
         },
         'N_DOUBLE_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToFloat'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToFloat'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -1147,7 +1146,7 @@ module.exports = {
                 [
                     context.useCoreSymbol('isEmpty'),
                     '()(',
-                    interpret(node.variable, {getValue: false}),
+                    interpret(node.variable),
                     ')'
                 ],
                 node
@@ -1158,7 +1157,7 @@ module.exports = {
                 [
                     context.useCoreSymbol('eval'),
                     '(',
-                    interpret(node.code, {getValue: true}),
+                    interpret(node.code),
                     ')'
                 ],
                 node
@@ -1193,7 +1192,7 @@ module.exports = {
             var chunks = [],
                 isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
                 isReference,
-                leftChunks = interpret(node.left, {assignment: isAssignment, getValue: !isAssignment}),
+                leftChunks = interpret(node.left, {assignment: isAssignment}),
                 operation,
                 method,
                 rightOperand,
@@ -1335,7 +1334,7 @@ module.exports = {
             var arrayValue = interpret(node.array),
                 iteratorVariable,
                 codeChunks = [],
-                key = node.key ? interpret(node.key, {getValue: false}) : null,
+                key = node.key ? interpret(node.key) : null,
                 blockContexts = context.blockContexts.concat(['foreach']),
                 labelRepository = context.labelRepository,
                 labelsInsideLoopHash = {},
@@ -1347,7 +1346,7 @@ module.exports = {
                 },
                 valueIsReference = node.value.name === 'N_REFERENCE',
                 nodeValue = valueIsReference ? node.value.operand : node.value,
-                value = interpret(nodeValue, {getValue: false}),
+                value = interpret(nodeValue),
                 loopIndex = context.nextLoopIndex();
 
             iteratorVariable = 'iterator_' + blockContexts.length;
@@ -1484,7 +1483,7 @@ module.exports = {
                     argChunks.push(', ');
                 }
 
-                argChunks.push(interpret(arg, {getValue: false}));
+                argChunks.push(interpret(arg));
             });
 
             if (node.func.name === 'N_STRING') {
@@ -1507,7 +1506,7 @@ module.exports = {
                 callChunks = [
                     context.useCoreSymbol('callVariableFunction'),
                     '(',
-                    interpret(node.func, {getValue: true, allowBareword: true}),
+                    interpret(node.func, {allowBareword: true}),
 
                     // Only append arguments array if non-empty
                     argChunks.length > 0 ?
@@ -1576,7 +1575,7 @@ module.exports = {
             // Alternate statements are executed if the condition is falsy
             var alternateCodeChunks,
                 codeChunks,
-                conditionCodeChunks = [context.useCoreSymbol('if_'), '(', interpret(node.condition, {getValue: true}), ')'],
+                conditionCodeChunks = [context.useCoreSymbol('if_'), '(', interpret(node.condition), ')'],
                 consequentCodeChunks,
                 gotosJumpingIn = {},
                 labelRepository = context.labelRepository;
@@ -1628,7 +1627,7 @@ module.exports = {
                 [
                     context.useCoreSymbol('instanceOf'),
                     '(',
-                    interpret(node.object, {getValue: true}),
+                    interpret(node.object),
                     ', ',
                     interpret(node['class'], {allowBareword: true}),
                     ')'
@@ -1660,7 +1659,7 @@ module.exports = {
         },
         'N_INTEGER_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToInteger'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToInteger'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -1746,7 +1745,7 @@ module.exports = {
                     issetChunks.push(', ');
                 }
 
-                issetChunks.push(interpret(variable, {getValue: false}));
+                issetChunks.push(interpret(variable));
             });
 
             return context.createExpressionSourceNode(
@@ -1806,7 +1805,7 @@ module.exports = {
                     elementsCodeChunks.push(', ');
                 }
 
-                elementsCodeChunks.push(interpret(element, {getValue: false}));
+                elementsCodeChunks.push(interpret(element));
             });
 
             return context.createExpressionSourceNode(
@@ -1869,14 +1868,14 @@ module.exports = {
                     argChunks.push(', ');
                 }
 
-                argChunks.push(interpret(argNode, {getValue: false}));
+                argChunks.push(interpret(argNode));
             });
 
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol(isVariable ? 'callVariableInstanceMethod' : 'callInstanceMethod'),
                     '(',
-                    interpret(node.object, {getValue: true}),
+                    interpret(node.object),
                     ', ',
                     isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
                     argChunks.length > 0 ? [', ['].concat(argChunks, ']') : [],
@@ -1954,7 +1953,7 @@ module.exports = {
                 [
                     context.useCoreSymbol('createInstance'),
                     '(',
-                    interpret(node.className, {allowBareword: true, getValue: true}),
+                    interpret(node.className, {allowBareword: true}),
                     ', [',
                     argChunks,
                     '])'
@@ -1976,9 +1975,9 @@ module.exports = {
                 [
                     context.useCoreSymbol('nullCoalesce'),
                     '()(',
-                    interpret(node.left, {getValue: false}),
+                    interpret(node.left),
                     ', ',
-                    interpret(node.right, {getValue: false}),
+                    interpret(node.right),
                     ')'
                 ],
                 node
@@ -1986,7 +1985,7 @@ module.exports = {
         },
         'N_OBJECT_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToObject'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToObject'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -1997,10 +1996,10 @@ module.exports = {
 
             if (context.assignment) {
                 objectVariableCodeChunks = [
-                    interpret(node.object, {getValue: false})
+                    interpret(node.object)
                 ];
             } else {
-                objectVariableCodeChunks = interpret(node.object, {getValue: true});
+                objectVariableCodeChunks = interpret(node.object);
             }
 
             property = node.property;
@@ -2020,7 +2019,7 @@ module.exports = {
                     '(',
                     objectVariableCodeChunks,
                     ', ',
-                    interpret(property, {assignment: false, getValue: true, allowBareword: true}),
+                    interpret(property, {assignment: false, allowBareword: true}),
                     ')'
                 );
             }
@@ -2046,7 +2045,7 @@ module.exports = {
                 [
                     context.useCoreSymbol('print'),
                     '(',
-                    interpret(node.operand, {getValue: true}),
+                    interpret(node.operand),
                     ')'
                     // Note that core.print(...) will return int(1) as the result of the expression
                 ],
@@ -2360,7 +2359,7 @@ module.exports = {
                 [
                     context.useCoreSymbol('getReference'),
                     '(',
-                    interpret(node.operand, {getValue: false}),
+                    interpret(node.operand),
                     ')'
                 ],
                 node
@@ -2414,7 +2413,7 @@ module.exports = {
                     argChunks.push(', ');
                 }
 
-                argChunks.push(interpret(arg, {getValue: false}));
+                argChunks.push(interpret(arg));
             });
 
             return context.createExpressionSourceNode(
@@ -2462,7 +2461,7 @@ module.exports = {
             };
         },
         'N_STATIC_PROPERTY': function (node, interpret, context) {
-            var classVariableCodeChunks = interpret(node.className, {getValue: true, allowBareword: true}),
+            var classVariableCodeChunks = interpret(node.className, {allowBareword: true}),
                 propertyCodeChunks = [];
 
             if (node.property.name === 'N_STRING') {
@@ -2480,7 +2479,7 @@ module.exports = {
                     '(',
                     classVariableCodeChunks,
                     ', ',
-                    interpret(node.property, {assignment: false, getValue: true, allowBareword: true}),
+                    interpret(node.property, {assignment: false, allowBareword: true}),
                     ')'
                 );
             }
@@ -2545,7 +2544,7 @@ module.exports = {
         },
         'N_STRING_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('coerceToString'), '(', interpret(node.value, {getValue: true}), ')'],
+                [context.useCoreSymbol('coerceToString'), '(', interpret(node.value), ')'],
                 node
             );
         },
@@ -2692,7 +2691,7 @@ module.exports = {
             return context.createStatementSourceNode(codeChunks, node);
         },
         'N_TERNARY': function (node, interpret, context) {
-            var condition = interpret(node.condition, {getValue: true}),
+            var condition = interpret(node.condition),
                 consequent,
                 expression;
 
@@ -2736,7 +2735,7 @@ module.exports = {
                     JSON.stringify(catchNode.type.string), ', e)) {',
                     context.useCoreSymbol('setValue'),
                     '(',
-                    interpret(catchNode.variable, {getValue: false}),
+                    interpret(catchNode.variable),
                     ', e);',
                     interpret(catchNode.body),
                     '}'
@@ -2772,7 +2771,7 @@ module.exports = {
         },
         'N_UNARY_EXPRESSION': function (node, interpret, context) {
             var operator = node.operator,
-                operand = interpret(node.operand, {getValue: operator !== '++' && operator !== '--'});
+                operand = interpret(node.operand);
 
             return context.createExpressionSourceNode(
                 [
@@ -2787,7 +2786,7 @@ module.exports = {
         'N_UNSET_CAST': function (node, interpret, context) {
             // Unset cast coerces all values to NULL
             return context.createExpressionSourceNode(
-                ['(', interpret(node.value, {getValue: true}), ', ', context.useCoreSymbol('nullValue'), ')'],
+                ['(', interpret(node.value), ', ', context.useCoreSymbol('nullValue'), ')'],
                 node
             );
         },
@@ -2799,7 +2798,7 @@ module.exports = {
                     statementChunks.push(', ');
                 }
 
-                statementChunks.push(interpret(variableNode, {getValue: false}));
+                statementChunks.push(interpret(variableNode));
             });
 
             return context.createStatementSourceNode(
