@@ -29,12 +29,9 @@ describe('Transpiler error control operator @(...) test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (function (scope) {scope.suppressErrors();' +
-            'var result = scope.getVariable("myVar").getValue();' +
-            'scope.unsuppressErrors(); return result;}(scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, suppressErrors = core.suppressErrors;' +
+            'return suppressErrors()(getVariable("myVar"));' +
             '});'
         );
     });

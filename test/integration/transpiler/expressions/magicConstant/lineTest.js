@@ -31,10 +31,9 @@ describe('Transpiler __LINE__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(1);' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(1);' +
             '}'
         );
     });
@@ -72,12 +71,30 @@ describe('Transpiler __LINE__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("myFunction", function _myFunction() {var scope = this;' +
-            'return tools.valueFactory.createInteger(3);' +
-            '}, namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger, defineFunction = core.defineFunction;' +
+            'defineFunction("myFunction", function _myFunction() {' +
+            'return createInteger(3);' +
+            '});' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return statement outside of function with no bounds information', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_MAGIC_LINE_CONSTANT'
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var nullValue = core.nullValue;' +
+            'return nullValue;' +
             '}'
         );
     });

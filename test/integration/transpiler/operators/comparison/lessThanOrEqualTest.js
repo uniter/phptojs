@@ -36,10 +36,9 @@ describe('Transpiler less-than-or-equal comparison operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(21).isLessThanOrEqual(tools.valueFactory.createInteger(32));' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger, isLessThanOrEqual = core.isLessThanOrEqual;' +
+            'return isLessThanOrEqual(createInteger(21), createInteger(32));' +
             '}'
         );
     });

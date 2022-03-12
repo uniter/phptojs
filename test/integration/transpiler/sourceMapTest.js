@@ -50,19 +50,18 @@ describe('Transpiler source map test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(4);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(4);' +
             '});' +
-            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15' +
-            'X21vZHVsZS5waHAiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6InVNQU9TLE9BQVUsbUNBQVYsQyIsInNvdXJjZXNDb2' +
-            '50ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
+            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm' +
+            '15X21vZHVsZS5waHAiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6InNGQU9TLE9BQVUsZ0JBQVYsQyIsInNvdXJjZX' +
+            'NDb250ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
             '\n'
         );
     });
 
-    it('should correctly transpile a simple return statement in default (async) mode wih returnMap option', function () {
+    it('should correctly transpile a simple return statement in default (async) mode with returnMap option', function () {
         var ast = {
                 name: 'N_PROGRAM',
                 statements: [{
@@ -100,13 +99,12 @@ describe('Transpiler source map test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.deep.equal({
-            code: 'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(4);' +
-            'return tools.valueFactory.createNull();' +
+            code: 'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(4);' +
             '});',
             map: {
-                mappings: 'uMAOS,OAAU,mCAAV,C',
+                mappings: 'sFAOS,OAAU,gBAAV,C',
                 names: [],
                 sources: [
                     'my_module.php'
@@ -335,45 +333,43 @@ describe('Transpiler source map test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createClosure = core.createClosure, createDebugVar = core.createDebugVar, defineClass = core.defineClass, defineFunction = core.defineFunction, getVariable = core.getVariable, getVariableForScope = core.getVariableForScope, scope = core.scope, setValue = core.setValue;' +
             // Debug variable will be inserted for better debugging in Chrome dev tools
-            'var $myGlobalCodeVar = tools.createDebugVar(scope, "myGlobalCodeVar");' +
-            'namespace.defineFunction("myFunc", function _myFunc() {' +
-            'var scope = this;' +
-            'var $this = tools.createDebugVar(scope, "this");' +
-            'var $myFunctionVar = tools.createDebugVar(scope, "myFunctionVar");' +
-            'return scope.getVariable("myFunctionVar").getValue();' +
-            '}, namespaceScope);' +
-            '(function () {var currentClass = namespace.defineClass("MyClass", {' +
+            'var $myGlobalCodeVar = createDebugVar("myGlobalCodeVar");' +
+            'defineFunction("myFunc", function _myFunc() {' +
+            'var $this = createDebugVar("this");' +
+            'var $myFunctionVar = createDebugVar("myFunctionVar");' +
+            'return getVariable("myFunctionVar");' +
+            '});' +
+            'defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"myMethod": {' +
             'isStatic: false, method: function _myMethod() {' +
-            'var scope = this;var $this = tools.createDebugVar(scope, "this");' +
-            'var $myMethodVar = tools.createDebugVar(scope, "myMethodVar");' +
-            'return scope.getVariable("myMethodVar").getValue();' +
+            'var $this = createDebugVar("this");' +
+            'var $myMethodVar = createDebugVar("myMethodVar");' +
+            'return getVariable("myMethodVar");' +
             '}' +
-            '}}, constants: {}}, namespaceScope);}());' +
-            'return scope.getVariable("myGlobalCodeVar").getValue();' +
-            'return tools.createClosure((function (parentScope) { return function ($myArgVar) {' +
-            'var scope = this;scope.getVariable("myArgVar").setValue($myArgVar.getValue());' +
-            'var $myArgVar = tools.createDebugVar(scope, "myArgVar");' +
-            'var $this = tools.createDebugVar(scope, "this");' +
-            'var $myClosureVar = tools.createDebugVar(scope, "myClosureVar");' +
-            'scope.getVariable("myBoundVar").setValue(parentScope.getVariable("myBoundVar").getValue());' +
-            'var $myBoundVar = tools.createDebugVar(scope, "myBoundVar");' +
-            'return scope.getVariable("myClosureVar").getValue();' +
-            '}; }(scope)), scope, namespaceScope, [' +
+            '}}, constants: {}});' +
+            'return getVariable("myGlobalCodeVar");' +
+            'return createClosure((function (parentScope) { return function ($myArgVar) {' +
+            'setValue(getVariable("myArgVar"), $myArgVar);' +
+            'var $myArgVar = createDebugVar("myArgVar");' +
+            'var $this = createDebugVar("this");' +
+            'var $myClosureVar = createDebugVar("myClosureVar");' +
+            'setValue(getVariable("myBoundVar"), getVariableForScope("myBoundVar", parentScope));' +
+            'var $myBoundVar = createDebugVar("myBoundVar");' +
+            'return getVariable("myClosureVar");' +
+            '}; }(scope)), [' +
             '{"name":"myArgVar"}' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '});' +
-            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm15X21' +
-            'vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIsIiRteUds' +
-            'b2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2UUFFSyw0Q0FBQUEsT' +
-            '0FBQSx1SUFLSSxPQUFVQyw2Q0FBVixDQUxKLG1CQURJLGlLQVNJLG1DQUxORCxTQUtNLG1JQUhNLE9BQUFFLDJDQUFBLE' +
-            'NBR04sRUFUSix3Q0FNQSxPQUFVQywrQ0FBVixDQUFVLHVhQUFBQyxXQUFBLG9EQUFBQyw0Q0FBQSw2RCIsInNvdXJjZXN' +
-            'Db250ZW50IjpbIjw/cGhwICR0aGlzID0gXCJpcyBteSBzb3VyY2UgUEhQXCI7Il19' +
+            '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm1' +
+            '5X21vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIs' +
+            'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiJ5WEFFS' +
+            'yxrQ0FBQUEsT0FBQSw0RkFLSSxPQUFVQyw0QkFBVixDQUxKLEdBREksc0hBU0ksbUNBTE5ELFNBS00sd0ZBSE0sT0' +
+            'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsa1ZBQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
+            'BLHNDIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +
             '\n'
         );
     });

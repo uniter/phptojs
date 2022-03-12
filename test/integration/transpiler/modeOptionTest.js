@@ -26,10 +26,9 @@ describe('Transpiler "mode" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {mode: 'sync'})).to.equal(
-            'require(\'phpruntime/sync\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime/sync\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });
@@ -47,10 +46,9 @@ describe('Transpiler "mode" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {mode: 'async'})).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });
@@ -68,10 +66,9 @@ describe('Transpiler "mode" option test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });
@@ -89,10 +86,9 @@ describe('Transpiler "mode" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {mode: 'psync'})).to.equal(
-            'require(\'phpruntime/psync\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime/psync\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });

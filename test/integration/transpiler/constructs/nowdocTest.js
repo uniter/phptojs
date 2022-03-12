@@ -26,12 +26,11 @@ describe('Transpiler "nowdoc" statement test', function () {
             };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString(' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString(' +
             '"my nowdoc with strings that $look like $interpolated variables"' +
             ');' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

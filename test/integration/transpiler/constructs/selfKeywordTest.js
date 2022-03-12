@@ -32,10 +32,9 @@ describe('Transpiler self:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getClassNameOrThrow().getStaticPropertyByName(tools.valueFactory.createBarewordString("myProp"), namespaceScope).getValue();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getClassNameOrThrow = core.getClassNameOrThrow, getStaticProperty = core.getStaticProperty;' +
+            'return getStaticProperty(getClassNameOrThrow(), "myProp");' +
             '});'
         );
     });
@@ -62,11 +61,9 @@ describe('Transpiler self:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getClassNameOrThrow()' +
-            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [], namespaceScope, true);' + // Forwarding
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callStaticMethod = core.callStaticMethod, getClassNameOrThrow = core.getClassNameOrThrow;' +
+            'callStaticMethod(getClassNameOrThrow(), "myMethod", [], true);' + // Forwarding
             '});'
         );
     });

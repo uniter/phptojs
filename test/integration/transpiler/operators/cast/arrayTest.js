@@ -39,10 +39,9 @@ describe('Transpiler array cast operator test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("myVar").getValue().add(tools.valueFactory.createInteger(21)).coerceToArray();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var add = core.add, coerceToArray = core.coerceToArray, createInteger = core.createInteger, getVariable = core.getVariable;' +
+            'coerceToArray(add(getVariable("myVar"), createInteger(21)));' +
             '}'
         );
     });

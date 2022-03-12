@@ -24,29 +24,28 @@ describe('Transpiler instance method call expression test', function () {
                         name: 'N_VARIABLE',
                         variable: 'myObject'
                     },
-                    calls: [{
-                        func: {
-                            name: 'N_STRING',
-                            string: 'myMethod'
-                        },
-                        args: [{
-                            name: 'N_VARIABLE',
-                            variable: 'myVar'
-                        }]
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: [{
+                        name: 'N_VARIABLE',
+                        variable: 'firstVar'
+                    }, {
+                        name: 'N_VARIABLE',
+                        variable: 'secondVar'
                     }]
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("myObject").getValue().callMethod(' +
-            'tools.valueFactory.createBarewordString("myMethod").getNative(), [' +
-            'scope.getVariable("myVar")' +
-            ']' +
-            ');' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callInstanceMethod = core.callInstanceMethod, getVariable = core.getVariable;' +
+            'callInstanceMethod(getVariable("myObject"), "myMethod", [' +
+            'getVariable("firstVar"), ' +
+            'getVariable("secondVar")' +
+            ']);' +
             '});'
         );
     });

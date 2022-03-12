@@ -29,10 +29,9 @@ describe('Transpiler clone operator test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myObject").getValue().clone();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var clone = core.clone, getVariable = core.getVariable;' +
+            'return clone(getVariable("myObject"));' +
             '});'
         );
     });

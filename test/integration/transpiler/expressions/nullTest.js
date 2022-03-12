@@ -12,24 +12,22 @@
 var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
-describe('Transpiler literal expression test', function () {
-    it('should correctly transpile a return of boolean with non-lower case', function () {
+describe('Transpiler null expression test', function () {
+    it('should correctly transpile a return of null', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_RETURN_STATEMENT',
                 expression: {
-                    name: 'N_BOOLEAN',
-                    bool: 'tRUe'
+                    name: 'N_NULL'
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createBoolean(true);' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var nullValue = core.nullValue;' +
+            'return nullValue;' +
             '}'
         );
     });

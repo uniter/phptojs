@@ -26,33 +26,28 @@ describe('Transpiler object instance property access test', function () {
                             name: 'N_VARIABLE',
                             variable: 'myVar'
                         },
-                        properties: [{
-                            property: {
-                                name: 'N_STRING',
-                                string: 'firstProp'
-                            }
-                        }]
-                    },
-                    properties: [{
                         property: {
                             name: 'N_STRING',
-                            string: 'secondProp'
+                            string: 'firstProp'
                         }
-                    }]
+                    },
+                    property: {
+                        name: 'N_STRING',
+                        string: 'secondProp'
+                    }
                 }
             }]
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("firstProp")).getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("secondProp")).getValue();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable;' +
+            'return getInstanceProperty(getInstanceProperty(getVariable("myVar"), "firstProp"), "secondProp");' +
             '}'
         );
     });
 
-    it('should correctly transpile a dynamic reference to a property', function () {
+    it('should correctly transpile a read of dynamically referenced to a property', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -63,10 +58,45 @@ describe('Transpiler object instance property access test', function () {
                         name: 'N_VARIABLE',
                         variable: 'myObjectVar'
                     },
-                    properties: [{
-                        property: {
+                    property: {
+                        name: 'N_VARIABLE',
+                        variable: 'myVarHoldingPropName'
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var getVariable = core.getVariable, getVariableInstanceProperty = core.getVariableInstanceProperty;' +
+            'return getVariableInstanceProperty(getVariable("myObjectVar"), getVariable("myVarHoldingPropName"));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a write to a property', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_OBJECT_PROPERTY',
+                        object: {
                             name: 'N_VARIABLE',
-                            variable: 'myVarHoldingPropName'
+                            variable: 'myVar'
+                        },
+                        property: {
+                            name: 'N_STRING',
+                            string: 'myProp'
+                        }
+                    },
+                    right: [{
+                        operator: '=',
+                        operand: {
+                            name: 'N_INTEGER',
+                            number: 1234
                         }
                     }]
                 }
@@ -74,10 +104,9 @@ describe('Transpiler object instance property access test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myObjectVar").getValue().getInstancePropertyByName(scope.getVariable("myVarHoldingPropName").getValue()).getValue();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, setValue = core.setValue;' +
+            'setValue(getInstanceProperty(getVariable("myVar"), "myProp"), createInteger(1234));' +
             '}'
         );
     });

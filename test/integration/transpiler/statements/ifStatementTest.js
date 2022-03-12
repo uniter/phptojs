@@ -24,12 +24,10 @@ describe('Transpiler if statement test', function () {
                         name: 'N_VARIABLE',
                         variable: 'myObject'
                     },
-                    properties: [{
-                        property: {
-                            name: 'N_STRING',
-                            string: 'myProp'
-                        }
-                    }]
+                    property: {
+                        name: 'N_STRING',
+                        string: 'myProp'
+                    }
                 },
                 consequentStatement: {
                     name: 'N_COMPOUND_STATEMENT',
@@ -39,10 +37,9 @@ describe('Transpiler if statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'if (scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue().coerceToBoolean().getNative()) {}' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, if_ = core.if_;' +
+            'if (if_(getInstanceProperty(getVariable("myObject"), "myProp"))) {}' +
             '}'
         );
     });
@@ -72,12 +69,10 @@ describe('Transpiler if statement test', function () {
                                         name: 'N_VARIABLE',
                                         variable: 'myObject'
                                     },
-                                    properties: [{
-                                        property: {
-                                            name: 'N_STRING',
-                                            string: 'myProp'
-                                        }
-                                    }]
+                                    property: {
+                                        name: 'N_STRING',
+                                        string: 'myProp'
+                                    }
                                 },
                                 consequentStatement: {
                                     name: 'N_COMPOUND_STATEMENT',
@@ -91,14 +86,14 @@ describe('Transpiler if statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([' +
-            'tools.createClosure(function () {var scope = this;' +
-            'if (scope.getVariable("myObject").getValue().getInstancePropertyByName(tools.valueFactory.createBarewordString("myProp")).getValue().coerceToBoolean().getNative()) {}' +
-            '}, scope, namespaceScope)' +
-            '], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();}'
+            'function (core) {' +
+            'var callFunction = core.callFunction, createClosure = core.createClosure, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, if_ = core.if_;' +
+            'callFunction("myFunc", [' +
+            'createClosure(function () {' +
+            'if (if_(getInstanceProperty(getVariable("myObject"), "myProp"))) {}' +
+            '})' +
+            ']);' +
+            '}'
         );
     });
 
@@ -143,14 +138,13 @@ describe('Transpiler if statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'if (tools.valueFactory.createBoolean(true).coerceToBoolean().getNative()) {' +
-            '(tools.valueFactory.createBarewordString("firstFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, if_ = core.if_, trueValue = core.trueValue;' +
+            'if (if_(trueValue)) {' +
+            'callFunction("firstFunc");' +
             '} else {' +
-            '(tools.valueFactory.createBarewordString("secondFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
+            'callFunction("secondFunc");' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -222,18 +216,35 @@ describe('Transpiler if statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'if (tools.valueFactory.createBoolean(' +
-            'tools.valueFactory.createInteger(1).isIdenticalTo(' +
-            'tools.valueFactory.createInteger(2)).coerceToBoolean().getNative() || (' +
-            'tools.valueFactory.createBoolean(tools.valueFactory.createInteger(3).isIdenticalTo(' +
-            'tools.valueFactory.createInteger(4)).coerceToBoolean().getNative() || (' +
-            'tools.valueFactory.createInteger(5).isIdenticalTo(tools.valueFactory.createInteger(6)' +
-            ').coerceToBoolean().getNative())).coerceToBoolean().getNative()' +
-            ')' +
-            ').coerceToBoolean().getNative()) {}' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createBoolean = core.createBoolean, createInteger = core.createInteger, if_ = core.if_, isIdentical = core.isIdentical, logicalTerm = core.logicalTerm;' +
+            'if (' +
+                'if_(' +
+                    'createBoolean(' +
+                        'logicalTerm(' +
+                            'isIdentical(' +
+                                'createInteger(1), ' +
+                                'createInteger(2)' +
+                            ')' +
+                        ') || logicalTerm(' +
+                            'createBoolean(' +
+                                'logicalTerm(' +
+                                    'isIdentical(' +
+                                        'createInteger(3), ' +
+                                        'createInteger(4)' +
+                                    ')' +
+                                ') || logicalTerm(' +
+                                    'isIdentical(' +
+                                        'createInteger(5), ' +
+                                        'createInteger(6)' +
+                                    ')' +
+                                ')' +
+                            ')' +
+                        ')' +
+                    ')' +
+                ')' +
+            ') ' +
+            '{}' +
             '}'
         );
     });

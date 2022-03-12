@@ -29,10 +29,9 @@ describe('Transpiler global import statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.importGlobal("firstVar");scope.importGlobal("secondVar");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var importGlobal = core.importGlobal;' +
+            'importGlobal("firstVar");importGlobal("secondVar");' +
             '});'
         );
     });

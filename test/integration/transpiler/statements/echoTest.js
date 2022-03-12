@@ -29,11 +29,10 @@ describe('Transpiler echo statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'stdout.write(scope.getVariable("firstVar").getValue().coerceToString().getNative());' +
-            'stdout.write(scope.getVariable("secondVar").getValue().coerceToString().getNative());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var echo = core.echo, getVariable = core.getVariable;' +
+            'echo(getVariable("firstVar"));' +
+            'echo(getVariable("secondVar"));' +
             '});'
         );
     });

@@ -51,14 +51,16 @@ describe('Transpiler try statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, pausing = core.pausing;' +
             'try {' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
-            '} catch (e) {throw e;} finally {' +
-            '(tools.valueFactory.createBarewordString("yourFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
+            'callFunction("myFunc");' +
+            '} finally {' +
+            // Skip finally clause if we're pausing
+            'if (!pausing()) {' +
+            'callFunction("yourFunc");' +
             '}' +
-            'return tools.valueFactory.createNull();' +
+            '}' +
             '});'
         );
     });
@@ -99,7 +101,7 @@ describe('Transpiler try statement test', function () {
                                 name: 'N_FUNCTION_CALL',
                                 func: {
                                     name: 'N_STRING',
-                                    string: 'catchFunc1();'
+                                    string: 'catchFunc1'
                                 },
                                 args: []
                             }
@@ -122,7 +124,7 @@ describe('Transpiler try statement test', function () {
                                 name: 'N_FUNCTION_CALL',
                                 func: {
                                     name: 'N_STRING',
-                                    string: 'catchFunc1();'
+                                    string: 'catchFunc1'
                                 },
                                 args: []
                             }
@@ -134,21 +136,131 @@ describe('Transpiler try statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, caught = core.caught, getVariable = core.getVariable, pausing = core.pausing, setValue = core.setValue;' +
             'try {' +
-            '(tools.valueFactory.createBarewordString("myFunc").call([], namespaceScope) || tools.valueFactory.createNull());' +
+            'callFunction("myFunc");' +
             '} catch (e) {' +
-            'if (!tools.valueFactory.isValue(e)) {throw e;}' +
-            'if (tools.valueFactory.createBarewordString("My\\\\Exception\\\\Type").isTheClassOfObject(e, namespaceScope).getNative()) {' +
-            'scope.getVariable("ex1").setValue(e);' +
-            '(tools.valueFactory.createBarewordString("catchFunc1();").call([], namespaceScope) || tools.valueFactory.createNull());' +
-            '} else if (tools.valueFactory.createBarewordString("Another\\\\Exception\\\\Type").isTheClassOfObject(e, namespaceScope).getNative()) {' +
-            'scope.getVariable("ex2").setValue(e);' +
-            '(tools.valueFactory.createBarewordString("catchFunc1();").call([], namespaceScope) || tools.valueFactory.createNull());' +
+            // Re-throw the error if we're pausing
+            'if (pausing()) {throw e;} ' +
+            'if (caught("My\\\\Exception\\\\Type", e)) {' +
+            'setValue(getVariable("ex1"), e);' +
+            'callFunction("catchFunc1");' +
+            '} else if (caught("Another\\\\Exception\\\\Type", e)) {' +
+            'setValue(getVariable("ex2"), e);' +
+            'callFunction("catchFunc1");' +
+            // Rethrow if none of the catch guards matched, as the throwable was not caught
             '} else { throw e; }' +
             '}' +
-            'return tools.valueFactory.createNull();' +
+            '});'
+        );
+    });
+
+    it('should correctly transpile a try with two catches and finally clause', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_TRY_STATEMENT',
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_EXPRESSION_STATEMENT',
+                        expression: {
+                            name: 'N_FUNCTION_CALL',
+                            func: {
+                                name: 'N_STRING',
+                                string: 'myFunc'
+                            },
+                            args: []
+                        }
+                    }]
+                },
+                catches: [{
+                    type: {
+                        name: 'N_STRING',
+                        string: 'My\\Exception\\Type'
+                    },
+                    variable: {
+                        name: 'N_VARIABLE',
+                        variable: 'ex1'
+                    },
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: [{
+                            name: 'N_EXPRESSION_STATEMENT',
+                            expression: {
+                                name: 'N_FUNCTION_CALL',
+                                func: {
+                                    name: 'N_STRING',
+                                    string: 'catchFunc1'
+                                },
+                                args: []
+                            }
+                        }]
+                    }
+                }, {
+                    type: {
+                        name: 'N_STRING',
+                        string: 'Another\\Exception\\Type'
+                    },
+                    variable: {
+                        name: 'N_VARIABLE',
+                        variable: 'ex2'
+                    },
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: [{
+                            name: 'N_EXPRESSION_STATEMENT',
+                            expression: {
+                                name: 'N_FUNCTION_CALL',
+                                func: {
+                                    name: 'N_STRING',
+                                    string: 'catchFunc1'
+                                },
+                                args: []
+                            }
+                        }]
+                    }
+                }],
+                finalizer: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_EXPRESSION_STATEMENT',
+                        expression: {
+                            name: 'N_FUNCTION_CALL',
+                            func: {
+                                name: 'N_STRING',
+                                string: 'yourFunc'
+                            },
+                            args: []
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, caught = core.caught, getVariable = core.getVariable, pausing = core.pausing, setValue = core.setValue;' +
+            'try {' +
+            'callFunction("myFunc");' +
+            '} catch (e) {' +
+            // Re-throw the error if we're pausing
+            'if (pausing()) {throw e;} ' +
+            'if (caught("My\\\\Exception\\\\Type", e)) {' +
+            'setValue(getVariable("ex1"), e);' +
+            'callFunction("catchFunc1");' +
+            '} else if (caught("Another\\\\Exception\\\\Type", e)) {' +
+            'setValue(getVariable("ex2"), e);' +
+            'callFunction("catchFunc1");' +
+            // Rethrow if none of the catch guards matched, as the throwable was not caught
+            '} else { throw e; }' +
+            '} finally {' +
+            // Skip finally clause if we're pausing
+            'if (!pausing()) {' +
+            'callFunction("yourFunc");' +
+            '}' +
+            '}' +
             '});'
         );
     });

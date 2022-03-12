@@ -26,10 +26,9 @@ describe('Transpiler "sync" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {sync: true})).to.equal(
-            'require(\'phpruntime/sync\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime/sync\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });
@@ -47,10 +46,9 @@ describe('Transpiler "sync" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {sync: false})).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });

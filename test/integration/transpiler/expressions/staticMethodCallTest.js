@@ -37,13 +37,11 @@ describe('Transpiler static method call expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.valueFactory.createBarewordString("\\\\My\\\\Space\\\\MyClass")' +
-            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [' +
-            'scope.getVariable("myVar")' +
-            '], namespaceScope, false);' + // Non-forwarding
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callStaticMethod = core.callStaticMethod, createBareword = core.createBareword, getVariable = core.getVariable;' +
+            'callStaticMethod(createBareword("\\\\My\\\\Space\\\\MyClass"), "myMethod", [' +
+            'getVariable("myVar")' +
+            '], false);' + // Non-forwarding
             '});'
         );
     });

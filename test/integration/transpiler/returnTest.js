@@ -22,10 +22,8 @@ describe('Transpiler "return" statement test', function () {
             };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createNull();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'return;' +
             '});'
         );
     });
@@ -43,10 +41,9 @@ describe('Transpiler "return" statement test', function () {
             };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(4);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(4);' +
             '});'
         );
     });
@@ -64,10 +61,29 @@ describe('Transpiler "return" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createInteger(6);' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(6);' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return statement of variable value in bare mode', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_VARIABLE',
+                    variable: 'myVar'
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var getVariable = core.getVariable;' +
+            'return getVariable("myVar");' +
             '}'
         );
     });

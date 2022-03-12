@@ -67,10 +67,9 @@ describe('Transpiler tick feature test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.tick(2, 1, 3, 11);return tools.valueFactory.createInteger(4);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, tick = core.tick;' +
+            'tick(2, 1, 3, 11);return createInteger(4);' +
             '});'
         );
     });
@@ -130,11 +129,10 @@ describe('Transpiler tick feature test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 2;tools.tick(2, 1, 3, 11);return (line = 3, tools.valueFactory.createInteger(4));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, instrument = core.instrument, line, tick = core.tick;' +
+            'instrument(function () {return line;});' +
+            'line = 2;tick(2, 1, 3, 11);return (line = 3, createInteger(4));' +
             '});'
         );
     });

@@ -32,10 +32,9 @@ describe('Transpiler parent:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getParentClassNameOrThrow().getStaticPropertyByName(tools.valueFactory.createBarewordString("myProp"), namespaceScope).getValue();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getStaticProperty = core.getStaticProperty, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
+            'return getStaticProperty(getSuperClassNameOrThrow(), "myProp");' +
             '});'
         );
     });
@@ -63,24 +62,20 @@ describe('Transpiler parent:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var defineClass = core.defineClass, getClassConstant = core.getClassConstant, getSuperClassName = core.getSuperClassName;' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function () { ' +
-            'return tools.getParentClassName(currentClass)' +
-            '.getConstantByName("PARENT_CONST", namespaceScope); ' +
+            '"MY_CONST": function (currentClass) { ' +
+            'return getClassConstant(getSuperClassName(currentClass), "PARENT_CONST"); ' +
             '}' +
             '}' +
-            '}, namespaceScope);' +
-            '}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });
@@ -107,11 +102,9 @@ describe('Transpiler parent:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getParentClassNameOrThrow()' +
-            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [], namespaceScope, true);' + // Forwarding
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callStaticMethod = core.callStaticMethod, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
+            'callStaticMethod(getSuperClassNameOrThrow(), "myMethod", [], true);' + // Forwarding
             '});'
         );
     });

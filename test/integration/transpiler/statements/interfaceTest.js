@@ -80,10 +80,9 @@ describe('Transpiler interface statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("Thing", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, defineInterface = core.defineInterface;' +
+            'defineInterface("Thing", {' +
             'superClass: null, ' +
             'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
             'staticProperties: {}, ' +
@@ -93,12 +92,11 @@ describe('Transpiler interface statement test', function () {
             '"doSomethingElse": {isStatic: false, abstract: true}' +
             '}, ' +
             'constants: {' +
-            '"SHAPE_ONE": function () { return tools.valueFactory.createString("sphere"); }, ' +
-            '"SHAPE_TWO": function () { return tools.valueFactory.createString("circle"); }' +
+            // TODO: Prevent unnecessary currentClass parameter from being output when not referenced
+            '"SHAPE_ONE": function (currentClass) { return createString("sphere"); }, ' +
+            '"SHAPE_TWO": function (currentClass) { return createString("circle"); }' +
             '}' +
-            '}, namespaceScope);' +
-            '}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });

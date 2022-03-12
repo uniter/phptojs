@@ -78,16 +78,15 @@ describe('Transpiler "for" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, isLessThan = core.isLessThan, loop = core.loop, postIncrement = core.postIncrement, setValue = core.setValue;' +
             'block_1: for (' +
-            'scope.getVariable("i").setValue(tools.valueFactory.createInteger(0));' +
-            'scope.getVariable("i").getValue().isLessThan(tools.valueFactory.createInteger(2)).coerceToBoolean().getNative();' +
-            'scope.getVariable("i").postIncrement()' +
+            'setValue(getVariable("i"), createInteger(0));' +
+            'loop(0, isLessThan(getVariable("i"), createInteger(2)));' +
+            'postIncrement(getVariable("i"))' +
             ') {' +
-            'stdout.write(scope.getVariable("i").getValue().coerceToString().getNative());' +
+            'echo(getVariable("i"));' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -123,12 +122,11 @@ describe('Transpiler "for" statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'block_1: for (;;) {' +
-            'stdout.write(scope.getVariable("i").getValue().coerceToString().getNative());' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var echo = core.echo, getVariable = core.getVariable, loop = core.loop;' +
+            'block_1: for (;loop(0);) {' +
+            'echo(getVariable("i"));' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

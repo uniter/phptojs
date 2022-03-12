@@ -25,10 +25,9 @@ describe('Transpiler __FILE__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.getPath();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getPath = core.getPath;' +
+            'return getPath();' +
             '}'
         );
     });
@@ -60,12 +59,11 @@ describe('Transpiler __FILE__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("myFunction", function _myFunction() {var scope = this;' +
-            'return tools.getPath();' +
-            '}, namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var defineFunction = core.defineFunction, getPath = core.getPath;' +
+            'defineFunction("myFunction", function _myFunction() {' +
+            'return getPath();' +
+            '});' +
             '}'
         );
     });

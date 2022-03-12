@@ -39,10 +39,9 @@ describe('Transpiler reference assignment pseudo-operator "=&" test', function (
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").setReference(scope.getVariable("anotherVar").getReference());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, setReference = core.setReference;' +
+            'return setReference(getVariable("myVar"), getVariable("anotherVar"));' +
             '});'
         );
     });
@@ -83,10 +82,9 @@ describe('Transpiler reference assignment pseudo-operator "=&" test', function (
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("firstVar").setValue(scope.getVariable("secondVar").setReference(scope.getVariable("thirdVar").getReference()).getValue());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
+            'return setValue(getVariable("firstVar"), setReference(getVariable("secondVar"), getVariable("thirdVar")));' +
             '});'
         );
     });

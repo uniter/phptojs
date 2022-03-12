@@ -33,10 +33,40 @@ describe('Transpiler function statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("gogo", function _gogo() {var scope = this;}, namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var defineFunction = core.defineFunction;' +
+            'defineFunction("gogo", function _gogo() {});' +
+            '});'
+        );
+    });
+
+    it('should correctly transpile a function returning a number in default (async) mode', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_FUNCTION_STATEMENT',
+                func: {
+                    name: 'N_STRING',
+                    string: 'gogo'
+                },
+                args: [],
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: [{
+                        name: 'N_RETURN_STATEMENT',
+                        expression: {
+                            name: 'N_INTEGER',
+                            number: 1234
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast)).to.equal(
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineFunction = core.defineFunction;' +
+            'defineFunction("gogo", function _gogo() {return createInteger(1234);});' +
             '});'
         );
     });
@@ -108,21 +138,19 @@ describe('Transpiler function statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("gogo", function _gogo($myByRefArrayArg, $myByRefCallableArg, $myByRefClassArg, $myByRefIterableArg) {' +
-            'var scope = this;' +
-            'scope.getVariable("myByRefArrayArg").setReference($myByRefArrayArg.getReference());' +
-            'scope.getVariable("myByRefCallableArg").setReference($myByRefCallableArg.getReference());' +
-            'scope.getVariable("myByRefClassArg").setReference($myByRefClassArg.getReference());' +
-            'scope.getVariable("myByRefIterableArg").setReference($myByRefIterableArg.getReference());' +
-            '}, namespaceScope, [' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var defineFunction = core.defineFunction, getVariable = core.getVariable, setReference = core.setReference;' +
+            'defineFunction("gogo", function _gogo($myByRefArrayArg, $myByRefCallableArg, $myByRefClassArg, $myByRefIterableArg) {' +
+            'setReference(getVariable("myByRefArrayArg"), $myByRefArrayArg);' +
+            'setReference(getVariable("myByRefCallableArg"), $myByRefCallableArg);' +
+            'setReference(getVariable("myByRefClassArg"), $myByRefClassArg);' +
+            'setReference(getVariable("myByRefIterableArg"), $myByRefIterableArg);' +
+            '}, [' +
             '{"type":"array","name":"myByRefArrayArg","ref":true},' +
             '{"type":"callable","name":"myByRefCallableArg","ref":true},' +
             '{"type":"class","className":"My\\\\NS\\\\MyClass","name":"myByRefClassArg","ref":true},' +
             '{"type":"iterable","name":"myByRefIterableArg","ref":true}' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -155,16 +183,13 @@ describe('Transpiler function statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'if (namespaceResult = (function (globalNamespace) {' +
-            'var namespace = globalNamespace.getDescendant("This\\\\Is\\\\My\\\\Space"), namespaceScope = tools.createNamespaceScope(namespace);' +
-            'namespace.defineFunction("__autoload", ' +
-            'function ___autoload() {var scope = this;' +
-            'return tools.valueFactory.createInteger(1234);' +
-            '}, namespaceScope);' +
-            '}(namespace))) { return namespaceResult; }' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineFunction = core.defineFunction, useDescendantNamespaceScope = core.useDescendantNamespaceScope;' +
+            'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\Space");' +
+            'defineFunction("__autoload", ' +
+            'function ___autoload() {' +
+            'return createInteger(1234);' +
+            '});' +
             '});'
         );
     });

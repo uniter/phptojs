@@ -36,10 +36,9 @@ describe('Transpiler division assignment operator "/=" test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myVar").divideBy(tools.valueFactory.createInteger(27));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, divideBy = core.divideBy, getVariable = core.getVariable;' +
+            'return divideBy(getVariable("myVar"), createInteger(27));' +
             '});'
         );
     });

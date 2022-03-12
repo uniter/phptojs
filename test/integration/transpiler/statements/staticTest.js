@@ -57,17 +57,15 @@ describe('Transpiler static variable scope statement test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("myFunc", function _myFunc($myArg) {' +
-            'var scope = this;' +
-            'scope.getVariable("myArg").setValue($myArg.getValue());' +
-            'scope.importStatic("firstVar");' +
-            'scope.importStatic("secondVar", tools.valueFactory.createInteger(101));' +
-            '}, namespaceScope, [' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineFunction = core.defineFunction, getVariable = core.getVariable, importStatic = core.importStatic, setValue = core.setValue;' +
+            'defineFunction("myFunc", function _myFunc($myArg) {' +
+            'setValue(getVariable("myArg"), $myArg);' +
+            'importStatic("firstVar");' +
+            'importStatic("secondVar", createInteger(101));' +
+            '}, [' +
             '{"type":"callable","name":"myArg"}' +
             ']);' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

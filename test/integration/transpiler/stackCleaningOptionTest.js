@@ -26,10 +26,9 @@ describe('Transpiler "stackCleaning" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {stackCleaning: true})).to.equal(
-            'require(\'phpruntime\').compile(function __uniterModuleStackMarker__(stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function __uniterModuleStackMarker__(core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });
@@ -52,10 +51,9 @@ describe('Transpiler "stackCleaning" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {stackCleaning: true})).to.equal(
-            'require(\'phpruntime\').compile(function __uniterModuleStackMarker__(stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("gogo", function _gogo__uniterFunctionStackMarker__() {var scope = this;}, namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function __uniterModuleStackMarker__(core) {' +
+            'var defineFunction = core.defineFunction;' +
+            'defineFunction("gogo", function _gogo__uniterFunctionStackMarker__() {});' +
             '});'
         );
     });
@@ -73,10 +71,9 @@ describe('Transpiler "stackCleaning" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {stackCleaning: false})).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.valueFactory.createString("my result");' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString;' +
+            'return createString("my result");' +
             '});'
         );
     });
@@ -99,10 +96,9 @@ describe('Transpiler "stackCleaning" option test', function () {
         };
 
         expect(phpToJS.transpile(ast, {stackCleaning: false})).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'namespace.defineFunction("gogo", function _gogo() {var scope = this;}, namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var defineFunction = core.defineFunction;' +
+            'defineFunction("gogo", function _gogo() {});' +
             '});'
         );
     });

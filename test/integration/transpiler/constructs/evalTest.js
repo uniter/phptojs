@@ -29,10 +29,9 @@ describe('Transpiler eval(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return tools.eval(scope.getVariable("myCode").getValue().getNative(), scope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var eval = core.eval, getVariable = core.getVariable;' +
+            'return eval(getVariable("myCode"));' +
             '});'
         );
     });

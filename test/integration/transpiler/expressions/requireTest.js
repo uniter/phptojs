@@ -39,10 +39,9 @@ describe('Transpiler "require" expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getVariable("map").setValue(tools.require(tools.valueFactory.createString("abc.php").getNative(), scope));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, getVariable = core.getVariable, require = core.require, setValue = core.setValue;' +
+            'setValue(getVariable("map"), require(createString("abc.php")));' +
             '});'
         );
     });

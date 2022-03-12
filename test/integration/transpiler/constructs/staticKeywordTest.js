@@ -32,17 +32,16 @@ describe('Transpiler static:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getStaticClassNameOrThrow().getStaticPropertyByName(tools.valueFactory.createBarewordString("myProp"), namespaceScope).getValue();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getStaticClassName = core.getStaticClassName, getStaticProperty = core.getStaticProperty;' +
+            'return getStaticProperty(getStaticClassName(), "myProp");' +
             '});'
         );
     });
 
     // Calls to static methods with keywords eg. self::, parent:: and static:: are always forwarding,
     // calls to the same methods with the class name eg. MyClass:: are non-forwarding
-    it('should correctly transpile a call to a method with parent:: (forwarding)', function () {
+    it('should correctly transpile a call to a method with static:: (forwarding)', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -62,11 +61,9 @@ describe('Transpiler static:: construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'scope.getStaticClassNameOrThrow()' +
-            '.callStaticMethod(tools.valueFactory.createBarewordString("myMethod"), [], namespaceScope, true);' + // Forwarding
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callStaticMethod = core.callStaticMethod, getStaticClassName = core.getStaticClassName;' +
+            'callStaticMethod(getStaticClassName(), "myMethod", [], true);' + // Forwarding
             '});'
         );
     });

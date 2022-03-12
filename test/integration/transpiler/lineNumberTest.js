@@ -48,11 +48,10 @@ describe('Transpiler line numbers test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 6;return (line = 8, tools.valueFactory.createInteger(4));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, instrument = core.instrument, line;' +
+            'instrument(function () {return line;});' +
+            'line = 6;return (line = 8, createInteger(4));' +
             '});'
         );
     });
@@ -102,11 +101,11 @@ describe('Transpiler line numbers test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 4;line = 6;return (line = 8, tools.valueFactory.createInteger(101));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, instrument = core.instrument, line, useGlobalNamespaceScope = core.useGlobalNamespaceScope;' +
+            'instrument(function () {return line;});' +
+            'line = 4;useGlobalNamespaceScope();' +
+            'line = 6;return (line = 8, createInteger(101));' +
             '});'
         );
     });
@@ -174,13 +173,12 @@ describe('Transpiler line numbers test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 6;block_1: while ((line = 8, scope.getVariable("myCond").getValue()).coerceToBoolean().getNative()) {' +
-            'line = 9;stdout.write((line = 9, scope.getVariable("myVar").getValue()).coerceToString().getNative());' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var echo = core.echo, getVariable = core.getVariable, instrument = core.instrument, line, loop = core.loop;' +
+            'instrument(function () {return line;});' +
+            'line = 6;block_1: while (loop(0, (line = 8, getVariable("myCond")))) {' +
+            'line = 9;echo((line = 9, getVariable("myVar")));' +
             '}' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });
@@ -257,6 +255,35 @@ describe('Transpiler line numbers test', function () {
                     name: 'N_CLASS_STATEMENT',
                     className: 'MyClass',
                     members: [{
+                        name: 'N_STATIC_PROPERTY_DEFINITION',
+                        visibility: 'private',
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'myStaticProp',
+                            bounds: {
+                                start: {
+                                    line: 5,
+                                    column: 20
+                                }
+                            }
+                        },
+                        value: {
+                            name: 'N_STRING',
+                            string: 'MY_CONST',
+                            bounds: {
+                                start: {
+                                    line: 5,
+                                    column: 30
+                                }
+                            }
+                        },
+                        bounds: {
+                            start: {
+                                line: 5,
+                                column: 3
+                            }
+                        }
+                    }, {
                         name: 'N_METHOD_DEFINITION',
                         visibility: 'public',
                         func: {
@@ -454,25 +481,15 @@ describe('Transpiler line numbers test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 3;namespace.defineFunction("myFunc", function _myFunc() {' +
-            'var scope = this;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 8;return (line = 8, scope.getVariable("myFunctionVar").getValue());' +
-            '}, namespaceScope, [], 3);' +
-            'line = 2;(function () {var currentClass = namespace.defineClass("MyClass", {' +
-            'superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
-            '"myMethod": {' +
-            'isStatic: false, method: function _myMethod() {' +
-            'var scope = this;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'line = 8;return (line = 10, scope.getVariable("myMethodVar").getValue());' +
-            '}, args: [], line: 11' +
-            '}}, constants: {}}, namespaceScope);}());' +
-            'line = 8;return (line = 1, scope.getVariable("myGlobalCodeVar").getValue());' +
-            'line = 3;(function () {var currentClass = namespace.defineClass("MyThingInterface", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createClosure = core.createClosure, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getConstant = core.getConstant, getVariable = core.getVariable, getVariableForScope = core.getVariableForScope, instrument = core.instrument, line, scope = core.scope, setValue = core.setValue;' +
+            'instrument(function () {return line;});' +
+            'line = 3;defineFunction("myFunc", function _myFunc() {' +
+            'var line;' +
+            'instrument(function () {return line;});' +
+            'line = 8;return (line = 8, getVariable("myFunctionVar"));' +
+            '}, [], 3);' +
+            'line = 3;defineInterface("MyThingInterface", {' +
             'superClass: null, ' +
             'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
             'staticProperties: {}, ' +
@@ -481,18 +498,30 @@ describe('Transpiler line numbers test', function () {
             '"doSomethingElse": {isStatic: false, abstract: true}' +
             '}, ' +
             'constants: {}' +
-            '}, namespaceScope);' +
-            '}());' +
-            'line = 8;return (line = 12, tools.createClosure((function (parentScope) { return function ($myArgVar) {' +
-            'var scope = this;' +
-            'var line;tools.instrument(function () {return line;});' +
-            'scope.getVariable("myArgVar").setValue($myArgVar.getValue());' +
-            'scope.getVariable("myBoundVar").setValue(parentScope.getVariable("myBoundVar").getValue());' +
-            'line = 8;return (line = 11, scope.getVariable("myClosureVar").getValue());' +
-            '}; }(scope)), scope, namespaceScope, [' +
+            '});' +
+            'line = 2;defineClass("MyClass", {' +
+            'superClass: null, interfaces: [], staticProperties: {' +
+            // Note that line numbers are not included for property initialisers,
+            // as we always refer to the site they are referenced from
+            '"myStaticProp": {visibility: "private", value: function (currentClass) { return getConstant("MY_CONST"); }}' +
+            '}, properties: {}, methods: {' +
+            '"myMethod": {' +
+            'isStatic: false, method: function _myMethod() {' +
+            'var line;' +
+            'instrument(function () {return line;});' +
+            'line = 8;return (line = 10, getVariable("myMethodVar"));' +
+            '}, args: [], line: 11' +
+            '}}, constants: {}});' +
+            'line = 8;return (line = 1, getVariable("myGlobalCodeVar"));' +
+            'line = 8;return (line = 12, createClosure((function (parentScope) { return function ($myArgVar) {' +
+            'var line;' +
+            'instrument(function () {return line;});' +
+            'setValue(getVariable("myArgVar"), $myArgVar);' +
+            'setValue(getVariable("myBoundVar"), getVariableForScope("myBoundVar", parentScope));' +
+            'line = 8;return (line = 11, getVariable("myClosureVar"));' +
+            '}; }(scope)), [' +
             '{"name":"myArgVar"}' +
             '], false, 12));' +
-            'return tools.valueFactory.createNull();' +
             '});'
         );
     });

@@ -25,10 +25,9 @@ describe('Transpiler exit(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.exit();' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var exit = core.exit;' +
+            'exit();' +
             '});'
         );
     });
@@ -49,10 +48,9 @@ describe('Transpiler exit(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'tools.exit(tools.valueFactory.createInteger(21));' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, exit = core.exit;' +
+            'exit(createInteger(21));' +
             '});'
         );
     });
@@ -73,10 +71,9 @@ describe('Transpiler exit(...) construct expression test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(stdout.write(tools.valueFactory.createString("My failure message").getNative()), tools.exit());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createString = core.createString, exit = core.exit, print = core.print;' +
+            '(print(createString("My failure message")), exit());' +
             '});'
         );
     });

@@ -33,10 +33,9 @@ describe('Transpiler instanceof binary operator test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myObject").getValue().isAnInstanceOf(scope.getVariable("myClass").getValue(), namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var getVariable = core.getVariable, instanceOf = core.instanceOf;' +
+            'return instanceOf(getVariable("myObject"), getVariable("myClass"));' +
             '});'
         );
     });
@@ -61,10 +60,9 @@ describe('Transpiler instanceof binary operator test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getVariable("myObject").getValue().isAnInstanceOf(tools.valueFactory.createBarewordString("MyClass"), namespaceScope);' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createBareword = core.createBareword, getVariable = core.getVariable, instanceOf = core.instanceOf;' +
+            'return instanceOf(getVariable("myObject"), createBareword("MyClass"));' +
             '});'
         );
     });
@@ -96,12 +94,9 @@ describe('Transpiler instanceof binary operator test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return (tools.valueFactory.createBarewordString("myFunc").call([scope.getVariable("myObject").getValue().isAnInstanceOf(' +
-            'tools.valueFactory.createBarewordString("MyClass"), namespaceScope' +
-            ')], namespaceScope) || tools.valueFactory.createNull());' +
-            'return tools.valueFactory.createNull();' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var callFunction = core.callFunction, createBareword = core.createBareword, getVariable = core.getVariable, instanceOf = core.instanceOf;' +
+            'return callFunction("myFunc", [instanceOf(getVariable("myObject"), createBareword("MyClass"))]);' +
             '});'
         );
     });

@@ -25,18 +25,18 @@
   "dependencies": {
     "es6-set": "^0.1.5",
     "microdash": "^1.4.2",
-    "phpcommon": "^2.0.0",
-    "source-map": "^0.5.6",
-    "source-map-to-comment": "^1.1.0",
+    "phpcommon": "^2.0.1",
+    "source-map": "^0.7.3",
+    "source-map-to-comment": "^2.0.0",
     "transpiler": "~1.2"
   },
   "devDependencies": {
-    "chai": "^4.2.0",
-    "jshint": "^2.12.0",
-    "mocha": "^7.2.0",
+    "chai": "^4.3.6",
+    "jshint": "^2.13.4",
+    "mocha": "^9.2.2",
     "nowdoc": "^1.0.1",
-    "sinon": "^5.1.1",
-    "sinon-chai": "^3.3.0"
+    "sinon": "^13.0.1",
+    "sinon-chai": "^3.7.0"
   },
   "engines": {
     "node": ">=0.6"

@@ -82,19 +82,16 @@ describe('Transpiler class statement with abstract methods test', function () {
 
         // Abstract method definitions are discarded for now
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("AbstractMyClass", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var defineClass = core.defineClass;' +
+            'defineClass("AbstractMyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {}' +
-            '}, namespaceScope);' +
-            '}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });

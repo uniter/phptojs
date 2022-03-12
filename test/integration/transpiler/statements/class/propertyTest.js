@@ -42,21 +42,19 @@ describe('Transpiler class statement with properties test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass;' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"firstProp": {visibility: "private", value: function () { return null; }}, ' +
-            '"secondProp": {visibility: "private", value: function () { return tools.valueFactory.createInteger(21); }}' +
+            '"firstProp": {visibility: "private", value: function (currentClass) { return null; }}, ' +
+            '"secondProp": {visibility: "private", value: function (currentClass) { return createInteger(21); }}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {}' +
-            '}, namespaceScope);}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });
@@ -90,27 +88,25 @@ describe('Transpiler class statement with properties test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass;' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {' +
             '"firstProp": {' +
             'visibility: "private", ' +
-            'value: function (currentClass) { return tools.valueFactory.createNull(); }' +
+            'value: function (currentClass) { return null; }' +
             '}, ' +
             '"secondProp": {' +
             'visibility: "private", ' +
-            'value: function (currentClass) { return tools.valueFactory.createInteger(21); }' +
+            'value: function (currentClass) { return createInteger(21); }' +
             '}' +
             '}, ' +
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {}' +
-            '}, namespaceScope);}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });
@@ -152,27 +148,24 @@ describe('Transpiler class statement with properties test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"myProp": {visibility: "protected", value: function () { ' +
-            'return currentClass.getConstantByName("MY_CONST", namespaceScope); ' +
+            '"myProp": {visibility: "protected", value: function (currentClass) { ' +
+            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function () { ' +
-            'return tools.valueFactory.createInteger(1001); ' +
+            '"MY_CONST": function (currentClass) { ' +
+            'return createInteger(1001); ' +
             '}' +
             '}' +
-            '}, namespaceScope);' +
-            '}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });
@@ -214,29 +207,26 @@ describe('Transpiler class statement with properties test', function () {
         };
 
         expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {' +
+            'require(\'phpruntime\').compile(function (core) {' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
+            'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {' +
             '"myStaticProp": {' +
             'visibility: "private", ' +
             'value: function (currentClass) { ' +
-            'return currentClass.getConstantByName("MY_CONST", namespaceScope); ' +
+            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}' +
             '}}, ' +
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function () { ' +
-            'return tools.valueFactory.createInteger(1001); ' +
+            '"MY_CONST": function (currentClass) { ' +
+            'return createInteger(1001); ' +
             '}' +
             '}' +
-            '}, namespaceScope);' +
-            '}());' +
-            'return tools.valueFactory.createNull();' +
+            '});' +
             '});'
         );
     });

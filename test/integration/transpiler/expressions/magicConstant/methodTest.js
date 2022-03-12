@@ -25,10 +25,9 @@ describe('Transpiler __METHOD__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            'return scope.getMethodName();' +
-            'return tools.valueFactory.createNull();' +
+            'function (core) {' +
+            'var getMethodName = core.getMethodName;' +
+            'return getMethodName();' +
             '}'
         );
     });
@@ -67,17 +66,16 @@ describe('Transpiler __METHOD__ magic constant test', function () {
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
-            'function (stdin, stdout, stderr, tools, namespace) {' +
-            'var namespaceScope = tools.topLevelNamespaceScope, namespaceResult, scope = tools.topLevelScope, currentClass = null;' +
-            '(function () {' +
-            'var currentClass = namespace.defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
+            'function (core) {' +
+            'var defineClass = core.defineClass, getMethodName = core.getMethodName;' +
+            'defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +
             'isStatic: false, ' +
-            'method: function _getClass() {var scope = this;' +
-            'return scope.getMethodName();' +
+            'method: function _getClass() {' +
+            'return getMethodName();' +
             '}}' +
-            '}, constants: {}}, namespaceScope);}());' +
-            'return tools.valueFactory.createNull();}'
+            '}, constants: {}});' +
+            '}'
         );
     });
 });
