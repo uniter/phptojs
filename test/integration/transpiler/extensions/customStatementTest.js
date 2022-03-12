@@ -49,7 +49,7 @@ describe('Transpiler custom statement test', function () {
                 nodes: {
                     'N_CUSTOM_TRAP_IT': function (node, interpret, context) {
                         return context.createStatementSourceNode(
-                            [context.useCoreSymbol('printRaw'), '("Trapped: " + ', context.useCoreSymbol('getNative'), '(', interpret(node.arg, {getValue: true}), '));'],
+                            [context.useCoreSymbol('printRaw'), '("Trapped: " + ', context.useCoreSymbol('getNative'), '(', interpret(node.arg), '));'],
                             node
                         );
                     }
