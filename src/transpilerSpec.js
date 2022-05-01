@@ -270,17 +270,10 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         labelRepository = new LabelRepository(),
         labels,
         loopIndex = 0,
-        parentScopeUsed = false,
         pendingLabelGotoNode,
         useCoreSymbol = function (name) {
             if (name === 'line' || name === 'scope' || name === 'ternaryCondition') {
                 coreSymbolsUsed[name] = true;
-
-                return name;
-            }
-
-            if (name === 'parentScope') {
-                parentScopeUsed = true;
 
                 return name;
             }
@@ -336,21 +329,20 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
 
     _.each(bindingNodes, function (bindingNode) {
         var isReference = bindingNode.name === 'N_REFERENCE',
-            methodSuffix = isReference ? 'Reference' : 'Value',
+            assignmentOpcode = isReference ? 'setReference' : 'setValue',
+            bindingOpcode = isReference ? 'getReferenceBinding': 'getValueBinding',
             variableName = isReference ? bindingNode.operand.variable : bindingNode.variable;
 
         bindingAssignmentChunks.push(
-            useCoreSymbol('set' + methodSuffix),
+            useCoreSymbol(assignmentOpcode),
             '(',
             useCoreSymbol('getVariable'),
             '(',
             JSON.stringify(variableName),
             '), ',
-            useCoreSymbol('getVariableForScope'),
+            useCoreSymbol(bindingOpcode),
             '(',
             JSON.stringify(variableName),
-            ', ',
-            useCoreSymbol('parentScope'),
             ')',
             ');'
         );
@@ -462,11 +454,37 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         '}'
     ];
 
-    if (parentScopeUsed) {
-        body = ['(function (parentScope) { return ', body, '; }(', context.useCoreSymbol('scope'), '))'];
+    return body;
+}
+
+/**
+ * Produces an array containing the name and type of bindings for a closure.
+ *
+ * @param {Array} bindingNodes
+ * @returns {Array}
+ */
+function interpretClosureBindings(bindingNodes) {
+    var allBindingCodeChunks = [];
+
+    if (bindingNodes.length === 0) {
+        // Closure has no bindings: nothing to do.
+        return [];
     }
 
-    return body;
+    _.each(bindingNodes, function (bindingNode) {
+        var isReference = bindingNode.name === 'N_REFERENCE',
+            variableName = isReference ? bindingNode.operand.variable : bindingNode.variable,
+            bindingData = {name: variableName};
+
+        if (isReference) {
+            // Omit the .ref property if false to save on bundle size.
+            bindingData.ref = true;
+        }
+
+        allBindingCodeChunks.push(JSON.stringify(bindingData));
+    });
+
+    return ['[', allBindingCodeChunks.join(','), ']'];
 }
 
 /**
@@ -916,6 +934,10 @@ module.exports = {
                 extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                     {
                         value: interpretFunctionArgs(node.args, interpret),
+                        emptyValue: '[]'
+                    },
+                    {
+                        value: interpretClosureBindings(node.bindings),
                         emptyValue: '[]'
                     },
                     {

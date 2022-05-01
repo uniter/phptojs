@@ -482,7 +482,7 @@ describe('Transpiler line numbers test', function () {
 
         expect(phpToJS.transpile(ast, options)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var createClosure = core.createClosure, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getConstant = core.getConstant, getVariable = core.getVariable, getVariableForScope = core.getVariableForScope, instrument = core.instrument, line, scope = core.scope, setValue = core.setValue;' +
+            'var createClosure = core.createClosure, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getConstant = core.getConstant, getValueBinding = core.getValueBinding, getVariable = core.getVariable, instrument = core.instrument, line, setValue = core.setValue;' +
             'instrument(function () {return line;});' +
             'line = 3;defineFunction("myFunc", function _myFunc() {' +
             'var line;' +
@@ -513,15 +513,15 @@ describe('Transpiler line numbers test', function () {
             '}, args: [], line: 11' +
             '}}, constants: {}});' +
             'line = 8;return (line = 1, getVariable("myGlobalCodeVar"));' +
-            'line = 8;return (line = 12, createClosure((function (parentScope) { return function ($myArgVar) {' +
+            'line = 8;return (line = 12, createClosure(function ($myArgVar) {' +
             'var line;' +
             'instrument(function () {return line;});' +
             'setValue(getVariable("myArgVar"), $myArgVar);' +
-            'setValue(getVariable("myBoundVar"), getVariableForScope("myBoundVar", parentScope));' +
+            'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
             'line = 8;return (line = 11, getVariable("myClosureVar"));' +
-            '}; }(scope)), [' +
+            '}, [' +
             '{"name":"myArgVar"}' +
-            '], false, 12));' +
+            '], [{"name":"myBoundVar"}], false, 12));' +
             '});'
         );
     });

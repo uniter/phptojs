@@ -75,23 +75,22 @@ describe('Transpiler closure expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, getVariableForScope = core.getVariableForScope, scope = core.scope, setReference = core.setReference, setValue = core.setValue;' +
+            'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getReferenceBinding = core.getReferenceBinding, getValueBinding = core.getValueBinding, getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
             'return createClosure(' +
-            '(function (parentScope) { ' +
-            'return function ($arg1, $arg2, $arg3) {' +
+            'function ($arg1, $arg2, $arg3) {' +
             'setValue(getVariable("arg1"), $arg1);' +
             'setReference(getVariable("arg2"), $arg2);' +
             'setValue(getVariable("arg3"), $arg3);' +
-            'setValue(getVariable("bound1"), getVariableForScope("bound1", parentScope));' +
-            'setReference(getVariable("bound2"), getVariableForScope("bound2", parentScope));' +
+            'setValue(getVariable("bound1"), getValueBinding("bound1"));' +
+            'setReference(getVariable("bound2"), getReferenceBinding("bound2"));' +
             'echo(createInteger(21));' +
-            '}; ' +
-            '}(scope)), ' +
-            '[' +
+            '}, [' +
             '{"name":"arg1"},' +
             '{"type":"array","name":"arg2","ref":true},' +
             '{"name":"arg3","value":function () { return createInteger(21); }}' +
-            ']);' +
+            '], ' +
+            '[{"name":"bound1"},{"name":"bound2","ref":true}]' +
+            ');' +
             '}'
         );
     });
@@ -170,7 +169,7 @@ describe('Transpiler closure expression test', function () {
             'var createClosure = core.createClosure;' +
             'return createClosure(' +
             'function () {' +
-            '}, [], true);' +
+            '}, [], [], true);' +
             '}'
         );
     });

@@ -334,7 +334,7 @@ describe('Transpiler source map test', function () {
 
         expect(phpToJS.transpile(ast, options)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var createClosure = core.createClosure, createDebugVar = core.createDebugVar, defineClass = core.defineClass, defineFunction = core.defineFunction, getVariable = core.getVariable, getVariableForScope = core.getVariableForScope, scope = core.scope, setValue = core.setValue;' +
+            'var createClosure = core.createClosure, createDebugVar = core.createDebugVar, defineClass = core.defineClass, defineFunction = core.defineFunction, getValueBinding = core.getValueBinding, getVariable = core.getVariable, setValue = core.setValue;' +
             // Debug variable will be inserted for better debugging in Chrome dev tools
             'var $myGlobalCodeVar = createDebugVar("myGlobalCodeVar");' +
             'defineFunction("myFunc", function _myFunc() {' +
@@ -352,24 +352,24 @@ describe('Transpiler source map test', function () {
             '}' +
             '}}, constants: {}});' +
             'return getVariable("myGlobalCodeVar");' +
-            'return createClosure((function (parentScope) { return function ($myArgVar) {' +
+            'return createClosure(function ($myArgVar) {' +
             'setValue(getVariable("myArgVar"), $myArgVar);' +
             'var $myArgVar = createDebugVar("myArgVar");' +
             'var $this = createDebugVar("this");' +
             'var $myClosureVar = createDebugVar("myClosureVar");' +
-            'setValue(getVariable("myBoundVar"), getVariableForScope("myBoundVar", parentScope));' +
+            'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
             'var $myBoundVar = createDebugVar("myBoundVar");' +
             'return getVariable("myClosureVar");' +
-            '}; }(scope)), [' +
+            '}, [' +
             '{"name":"myArgVar"}' +
-            ']);' +
+            '], [{"name":"myBoundVar"}]);' +
             '});' +
             '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm1' +
             '5X21vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIs' +
-            'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiJ5WEFFS' +
+            'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2VkFFS' +
             'yxrQ0FBQUEsT0FBQSw0RkFLSSxPQUFVQyw0QkFBVixDQUxKLEdBREksc0hBU0ksbUNBTE5ELFNBS00sd0ZBSE0sT0' +
-            'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsa1ZBQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
-            'BLHNDIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +
+            'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsZ1NBQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
+            'BLG9EIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +
             '\n'
         );
     });
