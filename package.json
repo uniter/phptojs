@@ -26,7 +26,7 @@
     "es6-set": "^0.1.5",
     "microdash": "^1.4.2",
     "phpcommon": "^2.0.1",
-    "source-map": "^0.7.3",
+    "source-map": "^0.8.0-beta.0",
     "source-map-to-comment": "^2.0.0",
     "transpiler": "~1.2"
   },
