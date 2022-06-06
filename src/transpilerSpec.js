@@ -735,18 +735,29 @@ module.exports = {
             );
         },
         'N_ARRAY_LITERAL': function (node, interpret, context) {
-            var elementValueChunks = [];
+            var allElementChunks = [];
 
             _.each(node.elements, function (element, index) {
+                var elementChunks;
+
                 if (index > 0) {
-                    elementValueChunks.push(', ');
+                    allElementChunks.push(', ');
                 }
 
-                elementValueChunks.push(interpret(element));
+                elementChunks = (element.name === 'N_REFERENCE') ?
+                    [
+                        context.useCoreSymbol('createReferenceElement'),
+                        '(',
+                        interpret(element.operand),
+                        ')'
+                    ] :
+                    interpret(element);
+
+                allElementChunks.push(elementChunks);
             });
 
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('createArray'), '([', elementValueChunks, '])'],
+                [context.useCoreSymbol('createArray'), '([', allElementChunks, '])'],
                 node
             );
         },

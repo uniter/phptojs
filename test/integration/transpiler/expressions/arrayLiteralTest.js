@@ -39,11 +39,11 @@ describe('Transpiler array literal expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createArray = core.createArray, createInteger = core.createInteger, getReference = core.getReference, getVariable = core.getVariable;' +
+            'var createArray = core.createArray, createInteger = core.createInteger, createReferenceElement = core.createReferenceElement, getVariable = core.getVariable;' +
             'return createArray([' +
             'createInteger(21), ' +
             'getVariable("myVarByVal"), ' +
-            'getReference(getVariable("myVarByRef"))' +
+            'createReferenceElement(getVariable("myVarByRef"))' +
             ']);' +
             '}'
         );
@@ -111,13 +111,13 @@ describe('Transpiler array literal expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createArray = core.createArray, createInteger = core.createInteger, getElement = core.getElement, getInstanceProperty = core.getInstanceProperty, getReference = core.getReference, getVariable = core.getVariable, setValue = core.setValue;' +
+            'var createArray = core.createArray, createInteger = core.createInteger, createReferenceElement = core.createReferenceElement, getElement = core.getElement, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, setValue = core.setValue;' +
             'setValue(getVariable("myTarget"), createArray([' +
             'createInteger(21), ' +
             'getVariable("myVarByVal"), ' +
-            'getReference(getVariable("myVarByRef")), ' +
-            'getReference(getElement(getVariable("myArray"), "myElementByRef")), ' +
-            'getReference(getInstanceProperty(getVariable("myObject"), "myPropertyByRef"))' +
+            'createReferenceElement(getVariable("myVarByRef")), ' +
+            'createReferenceElement(getElement(getVariable("myArray"), "myElementByRef")), ' +
+            'createReferenceElement(getInstanceProperty(getVariable("myObject"), "myPropertyByRef"))' +
             ']));' +
             '}'
         );
