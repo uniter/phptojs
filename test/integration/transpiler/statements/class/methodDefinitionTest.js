@@ -83,7 +83,7 @@ describe('Transpiler class statement with method definitions test', function () 
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass, getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
@@ -91,15 +91,13 @@ describe('Transpiler class statement with method definitions test', function () 
             'properties: {}, ' +
             'methods: {' +
             '"myInstanceMethod": {' +
-            'isStatic: false, method: function _myInstanceMethod($myByRefArrayArg) {' +
-            'setReference(getVariable("myByRefArrayArg"), $myByRefArrayArg);' +
+            'isStatic: false, method: function _myInstanceMethod() {' +
             'return createInteger(21);' +
             '}, args: [' +
             '{"type":"array","name":"myByRefArrayArg","ref":true}' +
             ']}, ' +
             '"myStaticMethod": {' +
-            'isStatic: true, method: function _myStaticMethod($myCallableArg) {' +
-            'setValue(getVariable("myCallableArg"), $myCallableArg);' +
+            'isStatic: true, method: function _myStaticMethod() {' +
             'return createInteger(101);' +
             '}, args: [' +
             '{"type":"array","name":"myCallableArg"}' +

@@ -513,10 +513,9 @@ describe('Transpiler line numbers test', function () {
             '}, args: [], line: 11' +
             '}}, constants: {}});' +
             'line = 8;return (line = 1, getVariable("myGlobalCodeVar"));' +
-            'line = 8;return (line = 12, createClosure(function ($myArgVar) {' +
+            'line = 8;return (line = 12, createClosure(function () {' +
             'var line;' +
             'instrument(function () {return line;});' +
-            'setValue(getVariable("myArgVar"), $myArgVar);' +
             'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
             'line = 8;return (line = 11, getVariable("myClosureVar"));' +
             '}, [' +

@@ -58,9 +58,8 @@ describe('Transpiler static variable scope statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var createInteger = core.createInteger, defineFunction = core.defineFunction, getVariable = core.getVariable, importStatic = core.importStatic, setValue = core.setValue;' +
-            'defineFunction("myFunc", function _myFunc($myArg) {' +
-            'setValue(getVariable("myArg"), $myArg);' +
+            'var createInteger = core.createInteger, defineFunction = core.defineFunction, importStatic = core.importStatic;' +
+            'defineFunction("myFunc", function _myFunc() {' +
             'importStatic("firstVar");' +
             'importStatic("secondVar", createInteger(101));' +
             '}, [' +

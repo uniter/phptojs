@@ -77,10 +77,7 @@ describe('Transpiler closure expression test', function () {
             'function (core) {' +
             'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getReferenceBinding = core.getReferenceBinding, getValueBinding = core.getValueBinding, getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
             'return createClosure(' +
-            'function ($arg1, $arg2, $arg3) {' +
-            'setValue(getVariable("arg1"), $arg1);' +
-            'setReference(getVariable("arg2"), $arg2);' +
-            'setValue(getVariable("arg3"), $arg3);' +
+            'function () {' +
             'setValue(getVariable("bound1"), getValueBinding("bound1"));' +
             'setReference(getVariable("bound2"), getReferenceBinding("bound2"));' +
             'echo(createInteger(21));' +
@@ -133,10 +130,9 @@ describe('Transpiler closure expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, setReferenceOrValue = core.setReferenceOrValue;' +
+            'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo;' +
             'return createClosure(' +
-            'function ($myArg) {' +
-            'setReferenceOrValue(getVariable("myArg"), $myArg);' +
+            'function () {' +
             'echo(createInteger(21));' +
             '}, ' +
             '[' +

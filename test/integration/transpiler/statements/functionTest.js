@@ -139,12 +139,8 @@ describe('Transpiler function statement test', function () {
 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
-            'var defineFunction = core.defineFunction, getVariable = core.getVariable, setReference = core.setReference;' +
-            'defineFunction("gogo", function _gogo($myByRefArrayArg, $myByRefCallableArg, $myByRefClassArg, $myByRefIterableArg) {' +
-            'setReference(getVariable("myByRefArrayArg"), $myByRefArrayArg);' +
-            'setReference(getVariable("myByRefCallableArg"), $myByRefCallableArg);' +
-            'setReference(getVariable("myByRefClassArg"), $myByRefClassArg);' +
-            'setReference(getVariable("myByRefIterableArg"), $myByRefIterableArg);' +
+            'var defineFunction = core.defineFunction;' +
+            'defineFunction("gogo", function _gogo() {' +
             '}, [' +
             '{"type":"array","name":"myByRefArrayArg","ref":true},' +
             '{"type":"callable","name":"myByRefCallableArg","ref":true},' +

@@ -352,8 +352,7 @@ describe('Transpiler source map test', function () {
             '}' +
             '}}, constants: {}});' +
             'return getVariable("myGlobalCodeVar");' +
-            'return createClosure(function ($myArgVar) {' +
-            'setValue(getVariable("myArgVar"), $myArgVar);' +
+            'return createClosure(function () {' +
             'var $myArgVar = createDebugVar("myArgVar");' +
             'var $this = createDebugVar("this");' +
             'var $myClosureVar = createDebugVar("myClosureVar");' +
@@ -368,7 +367,7 @@ describe('Transpiler source map test', function () {
             '5X21vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIs' +
             'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2VkFFS' +
             'yxrQ0FBQUEsT0FBQSw0RkFLSSxPQUFVQyw0QkFBVixDQUxKLEdBREksc0hBU0ksbUNBTE5ELFNBS00sd0ZBSE0sT0' +
-            'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsZ1NBQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
+            'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsME9BQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
             'BLG9EIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +
             '\n'
         );

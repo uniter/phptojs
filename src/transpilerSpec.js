@@ -262,8 +262,7 @@ function hoistDeclarations(statements) {
 }
 
 function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, interpret, context) {
-    var args = [],
-        argumentAssignmentChunks = [],
+    var argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
         coreSymbolsUsed = {},
         coreSymbolDeclarators = [],
@@ -272,7 +271,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         loopIndex = 0,
         pendingLabelGotoNode,
         useCoreSymbol = function (name) {
-            if (name === 'line' || name === 'scope' || name === 'ternaryCondition') {
+            if (name === 'line' || name === 'ternaryCondition') {
                 coreSymbolsUsed[name] = true;
 
                 return name;
@@ -363,63 +362,19 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     });
 
     // Copy passed values for any arguments
-    _.each(argNodes, function (argNode, index) {
-        var isReference = argNode.variable.name === 'N_REFERENCE',
-            variableNode = isReference ? argNode.variable.operand : argNode.variable,
-            variable = variableNode.variable;
+    if (context.buildingSourceMap) {
+        _.each(argNodes, function (argNode) {
+            var isReference = argNode.variable.name === 'N_REFERENCE',
+                variableNode = isReference ? argNode.variable.operand : argNode.variable,
+                variable = variableNode.variable;
 
-        if (isReference) {
-            if (argNode.value) {
-                // Either a reference could be passed or the default value could be provided
-                argumentAssignmentChunks.push(
-                    useCoreSymbol('setReferenceOrValue'),
-                    '(',
-                    useCoreSymbol('getVariable'),
-                    '(',
-                    JSON.stringify(variable),
-                    '), ',
-                    '$',
-                    variable,
-                    ');'
-                );
-            } else {
-                // Only a reference could be passed as no default value is defined for this parameter
-                argumentAssignmentChunks.push(
-                    useCoreSymbol('setReference'),
-                    '(',
-                    useCoreSymbol('getVariable'),
-                    '(',
-                    JSON.stringify(variable),
-                    '), ',
-                    '$',
-                    variable,
-                    ');'
-                );
-            }
-        } else {
-            argumentAssignmentChunks.push(
-                useCoreSymbol('setValue'),
-                '(',
-                useCoreSymbol('getVariable'),
-                '(',
-                JSON.stringify(variable),
-                '), ',
-                '$',
-                variable,
-                ');'
-            );
-        }
-
-        args[index] = '$' + variable;
-
-        if (context.buildingSourceMap) {
             argumentAssignmentChunks.push(
                 'var $' + variable + ' = ',
                 useCoreSymbol('createDebugVar'),
                 '("' + variable + '");'
             );
-        }
-    });
+        });
+    }
 
     // Prepend parts in correct order
     body = [argumentAssignmentChunks, bindingAssignmentChunks].concat(body);
@@ -427,10 +382,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     _.each(Object.keys(coreSymbolsUsed).sort(), function (name) {
         var declarator = name;
 
-        if (name === 'scope') {
-            // Inside a function, its Scope is exposed via "this"
-            declarator += ' = this';
-        } else if (name !== 'line' && name !== 'ternaryCondition') {
+        if (name !== 'line' && name !== 'ternaryCondition') {
             declarator += ' = core.' + name;
         }
 
@@ -442,7 +394,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
         'function ',
         nameNode ? context.createInternalSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
         context.stackCleaning ? FUNCTION_STACK_MARKER : '',
-        '(' + args.join(', ') + ') {',
+        '() {',
         coreSymbolDeclarators.length > 0 ?
             'var ' + coreSymbolDeclarators.join(', ') + ';' :
             '',
