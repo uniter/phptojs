@@ -54,11 +54,11 @@ describe('Transpiler try statement test', function () {
             'require(\'phpruntime\').compile(function (core) {' +
             'var callFunction = core.callFunction, pausing = core.pausing;' +
             'try {' +
-            'callFunction("myFunc");' +
+            'callFunction("myFunc")();' +
             '} finally {' +
             // Skip finally clause if we're pausing
             'if (!pausing()) {' +
-            'callFunction("yourFunc");' +
+            'callFunction("yourFunc")();' +
             '}' +
             '}' +
             '});'
@@ -139,16 +139,16 @@ describe('Transpiler try statement test', function () {
             'require(\'phpruntime\').compile(function (core) {' +
             'var callFunction = core.callFunction, caught = core.caught, getVariable = core.getVariable, pausing = core.pausing, setValue = core.setValue;' +
             'try {' +
-            'callFunction("myFunc");' +
+            'callFunction("myFunc")();' +
             '} catch (e) {' +
             // Re-throw the error if we're pausing
             'if (pausing()) {throw e;} ' +
             'if (caught("My\\\\Exception\\\\Type", e)) {' +
             'setValue(getVariable("ex1"), e);' +
-            'callFunction("catchFunc1");' +
+            'callFunction("catchFunc1")();' +
             '} else if (caught("Another\\\\Exception\\\\Type", e)) {' +
             'setValue(getVariable("ex2"), e);' +
-            'callFunction("catchFunc1");' +
+            'callFunction("catchFunc1")();' +
             // Rethrow if none of the catch guards matched, as the throwable was not caught
             '} else { throw e; }' +
             '}' +
@@ -243,22 +243,22 @@ describe('Transpiler try statement test', function () {
             'require(\'phpruntime\').compile(function (core) {' +
             'var callFunction = core.callFunction, caught = core.caught, getVariable = core.getVariable, pausing = core.pausing, setValue = core.setValue;' +
             'try {' +
-            'callFunction("myFunc");' +
+            'callFunction("myFunc")();' +
             '} catch (e) {' +
             // Re-throw the error if we're pausing
             'if (pausing()) {throw e;} ' +
             'if (caught("My\\\\Exception\\\\Type", e)) {' +
             'setValue(getVariable("ex1"), e);' +
-            'callFunction("catchFunc1");' +
+            'callFunction("catchFunc1")();' +
             '} else if (caught("Another\\\\Exception\\\\Type", e)) {' +
             'setValue(getVariable("ex2"), e);' +
-            'callFunction("catchFunc1");' +
+            'callFunction("catchFunc1")();' +
             // Rethrow if none of the catch guards matched, as the throwable was not caught
             '} else { throw e; }' +
             '} finally {' +
             // Skip finally clause if we're pausing
             'if (!pausing()) {' +
-            'callFunction("yourFunc");' +
+            'callFunction("yourFunc")();' +
             '}' +
             '}' +
             '});'

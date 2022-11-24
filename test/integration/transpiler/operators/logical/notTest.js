@@ -68,7 +68,7 @@ describe('Transpiler logical "not" operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var getVariable = core.getVariable, isNotIdentical = core.isNotIdentical, logicalNot = core.logicalNot;' +
-            'return isNotIdentical(logicalNot(getVariable("leftVar")), getVariable("rightVar"));' +
+            'return isNotIdentical(logicalNot(getVariable("leftVar")))(getVariable("rightVar"));' +
             '}'
         );
     });

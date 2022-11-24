@@ -38,7 +38,7 @@ describe('Transpiler addition arithmetic operator "+" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var add = core.add, createInteger = core.createInteger;' +
-            'return add(createInteger(21), createInteger(10));' +
+            'return add(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

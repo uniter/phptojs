@@ -91,7 +91,7 @@ describe('Transpiler empty(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, isEmpty = core.isEmpty;' +
-            'return isEmpty()(getInstanceProperty(getVariable("myObject"), "myProp"));' +
+            'return isEmpty()(getInstanceProperty(getVariable("myObject"))("myProp"));' +
             '});'
         );
     });
@@ -120,7 +120,7 @@ describe('Transpiler empty(...) construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getClassNameOrThrow = core.getClassNameOrThrow, getStaticProperty = core.getStaticProperty, isEmpty = core.isEmpty;' +
-            'return isEmpty()(getStaticProperty(getClassNameOrThrow(), "myProp"));' +
+            'return isEmpty()(getStaticProperty(getClassNameOrThrow())("myProp"));' +
             '});'
         );
     });

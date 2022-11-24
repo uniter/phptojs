@@ -34,7 +34,7 @@ describe('Transpiler parent:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getStaticProperty = core.getStaticProperty, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
-            'return getStaticProperty(getSuperClassNameOrThrow(), "myProp");' +
+            'return getStaticProperty(getSuperClassNameOrThrow())("myProp");' +
             '});'
         );
     });
@@ -72,7 +72,7 @@ describe('Transpiler parent:: construct expression test', function () {
             'methods: {}, ' +
             'constants: {' +
             '"MY_CONST": function (currentClass) { ' +
-            'return getClassConstant(getSuperClassName(currentClass), "PARENT_CONST"); ' +
+            'return getClassConstant(getSuperClassName(currentClass))("PARENT_CONST"); ' +
             '}' +
             '}' +
             '});' +
@@ -80,8 +80,8 @@ describe('Transpiler parent:: construct expression test', function () {
         );
     });
 
-    // Calls to static methods with keywords eg. self::, parent:: and static:: are always forwarding,
-    // calls to the same methods with the class name eg. MyClass:: are non-forwarding
+    // Calls to static methods with keywords e.g. self::, parent:: and static:: are always forwarding,
+    // calls to the same methods with the class name e.g. MyClass:: are non-forwarding.
     it('should correctly transpile a call to a method with parent:: (forwarding)', function () {
         var ast = {
             name: 'N_PROGRAM',
@@ -104,7 +104,9 @@ describe('Transpiler parent:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var callStaticMethod = core.callStaticMethod, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
-            'callStaticMethod(getSuperClassNameOrThrow(), "myMethod", [], true);' + // Forwarding
+            'callStaticMethod(getSuperClassNameOrThrow())("myMethod")' +
+            '(true)' + // Forwarding.
+            '();' +
             '});'
         );
     });

@@ -35,7 +35,7 @@ var _ = require('microdash'),
     LABEL_ALREADY_DEFINED = 'core.label_already_defined',
     OPERATOR_REQUIRES_POSITIVE_INTEGER = 'core.operator_requires_positive_integer',
 
-    binaryOperatorToMethod = {
+    binaryOperatorToOpcode = {
         '+': 'add',
         '-': 'subtract',
         '*': 'multiply',
@@ -71,6 +71,8 @@ var _ = require('microdash'),
             'false': 'setValue',
             'true': 'setReference'
         },
+        // Note that XOR is the only operator here, as the others require
+        // special short-circuit evaluation handling.
         'xor': 'logicalXor'
     },
     hasOwn = {}.hasOwnProperty,
@@ -327,6 +329,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
     }
 
     _.each(bindingNodes, function (bindingNode) {
+        // TODO: Consider loading bindings in the runtime (and not via opcodes) as we now do for parameter arguments.
         var isReference = bindingNode.name === 'N_REFERENCE',
             assignmentOpcode = isReference ? 'setReference' : 'setValue',
             bindingOpcode = isReference ? 'getReferenceBinding': 'getValueBinding',
@@ -338,7 +341,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
             useCoreSymbol('getVariable'),
             '(',
             JSON.stringify(variableName),
-            '), ',
+            '))(',
             useCoreSymbol(bindingOpcode),
             '(',
             JSON.stringify(variableName),
@@ -680,14 +683,23 @@ module.exports = {
                         interpret(node.array),
                         ')'
                     ] :
-                    [
-                        context.useCoreSymbol(indexNative === null ? 'getVariableElement' : 'getElement'),
-                        '(',
-                        interpret(node.array),
-                        ', ',
-                        indexNative === null ? interpret(node.index) : String(indexNative),
-                        ')'
-                    ],
+                    indexNative === null ?
+                        [
+                            context.useCoreSymbol('getVariableElement'),
+                            '(',
+                            interpret(node.array),
+                            ')(',
+                            interpret(node.index),
+                            ')'
+                        ] :
+                        [
+                            context.useCoreSymbol('getElement'),
+                            '(',
+                            interpret(node.array),
+                            ', ',
+                            String(indexNative),
+                            ')'
+                        ],
                 node
             );
         },
@@ -698,7 +710,7 @@ module.exports = {
                 var elementChunks;
 
                 if (index > 0) {
-                    allElementChunks.push(', ');
+                    allElementChunks.push(')(');
                 }
 
                 elementChunks = (element.name === 'N_REFERENCE') ?
@@ -714,7 +726,14 @@ module.exports = {
             });
 
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('createArray'), '([', allElementChunks, '])'],
+                [
+                    context.useCoreSymbol('createArray'),
+                    // Only append elements if non-empty.
+                    allElementChunks.length > 0 ?
+                        ['(', allElementChunks, ')'] :
+                        [],
+                    '()'
+                ],
                 node
             );
         },
@@ -820,7 +839,7 @@ module.exports = {
                     ),
                     '(',
                     interpret(node.className, {allowBareword: true}),
-                    ', ',
+                    ')(',
                     JSON.stringify(node.constant),
                     ')'
                 ],
@@ -1183,8 +1202,8 @@ module.exports = {
                 isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
                 isReference,
                 leftChunks = interpret(node.left, {assignment: isAssignment}),
+                opcode,
                 operation,
-                method,
                 rightOperand,
                 transpiledRightOperand;
 
@@ -1230,17 +1249,17 @@ module.exports = {
                     '))'
                 );
             } else {
-                method = binaryOperatorToMethod[operation.operator];
+                opcode = binaryOperatorToOpcode[operation.operator];
 
-                if (!method) {
+                if (!opcode) {
                     throw new Error('Unsupported binary operator "' + operation.operator + '"');
                 }
 
-                if (_.isPlainObject(method)) {
-                    method = method[isReference];
+                if (_.isPlainObject(opcode)) {
+                    opcode = opcode[isReference];
                 }
 
-                chunks.push(context.useCoreSymbol(method), '(', leftChunks, ', ', transpiledRightOperand, ')');
+                chunks.push(context.useCoreSymbol(opcode), '(', leftChunks, ')(', transpiledRightOperand, ')');
             }
 
             return context.createExpressionSourceNode(chunks, node);
@@ -1470,7 +1489,7 @@ module.exports = {
 
             _.each(node.args, function (arg, index) {
                 if (index > 0) {
-                    argChunks.push(', ');
+                    argChunks.push(')(');
                 }
 
                 argChunks.push(interpret(arg));
@@ -1483,12 +1502,13 @@ module.exports = {
                     context.useCoreSymbol('callFunction'),
                     '(',
                     JSON.stringify(node.func.string),
+                    ')',
 
-                    // Only append arguments array if non-empty
+                    // Only append arguments if non-empty.
                     argChunks.length > 0 ?
-                        [', [', argChunks, ']'] :
+                        ['(', argChunks, ')'] :
                         [],
-                    ')'
+                    '()'
                 ];
             } else {
                 // Slower case: function call is to a variable function name
@@ -1497,12 +1517,13 @@ module.exports = {
                     context.useCoreSymbol('callVariableFunction'),
                     '(',
                     interpret(node.func, {allowBareword: true}),
+                    ')',
 
-                    // Only append arguments array if non-empty
+                    // Only append arguments if non-empty.
                     argChunks.length > 0 ?
-                        [', [', argChunks, ']'] :
+                        ['(', argChunks, ')'] :
                         [],
-                    ')'
+                    '()'
                 ];
             }
 
@@ -1618,7 +1639,7 @@ module.exports = {
                     context.useCoreSymbol('instanceOf'),
                     '(',
                     interpret(node.object),
-                    ', ',
+                    ')(',
                     interpret(node['class'], {allowBareword: true}),
                     ')'
                 ],
@@ -1759,7 +1780,7 @@ module.exports = {
                     context.useCoreSymbol('createKey' + (isReference ? 'Reference' : 'Value') + 'Pair'),
                     '(',
                     interpret(node.key),
-                    ', ',
+                    ')(',
                     // No need to wrap references in getReference(), createKeyReferencePair() will handle that
                     interpret(isReference ? node.value.operand : node.value),
                     ')'
@@ -1792,14 +1813,21 @@ module.exports = {
 
             _.each(node.elements, function (element, index) {
                 if (index > 0) {
-                    elementsCodeChunks.push(', ');
+                    elementsCodeChunks.push(')(');
                 }
 
                 elementsCodeChunks.push(interpret(element));
             });
 
             return context.createExpressionSourceNode(
-                [context.useCoreSymbol('createList'), '([', elementsCodeChunks, '])'],
+                [
+                    context.useCoreSymbol('createList'),
+                    // Only append elements if non-empty.
+                    elementsCodeChunks.length > 0 ?
+                        ['(', elementsCodeChunks, ')'] :
+                        [],
+                    '()'
+                ],
                 node
             );
         },
@@ -1855,7 +1883,7 @@ module.exports = {
 
             _.each(node.args, function (argNode, index) {
                 if (index > 0) {
-                    argChunks.push(', ');
+                    argChunks.push(')(');
                 }
 
                 argChunks.push(interpret(argNode));
@@ -1866,10 +1894,17 @@ module.exports = {
                     context.useCoreSymbol(isVariable ? 'callVariableInstanceMethod' : 'callInstanceMethod'),
                     '(',
                     interpret(node.object),
-                    ', ',
+                    ')(',
+
+                    // Add the method name, which for a variable method call will be an expression.
                     isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
-                    argChunks.length > 0 ? [', ['].concat(argChunks, ']') : [],
-                    ')'
+                    ')',
+
+                    // Only append arguments if non-empty.
+                    argChunks.length > 0 ?
+                        ['(', argChunks, ')'] :
+                        [],
+                    '()'
                 ],
                 node
             );
@@ -1933,7 +1968,7 @@ module.exports = {
 
             _.each(node.args, function (arg, index) {
                 if (index > 0) {
-                    argChunks.push(', ');
+                    argChunks.push(')(');
                 }
 
                 argChunks.push(interpret(arg));
@@ -1944,9 +1979,12 @@ module.exports = {
                     context.useCoreSymbol('createInstance'),
                     '(',
                     interpret(node.className, {allowBareword: true}),
-                    ', [',
-                    argChunks,
-                    '])'
+                    ')',
+                    // Only append arguments if non-empty.
+                    argChunks.length > 0 ?
+                        ['(', argChunks, ')'] :
+                        [],
+                    '()'
                 ],
                 node
             );
@@ -1999,7 +2037,7 @@ module.exports = {
                     context.useCoreSymbol('getInstanceProperty'),
                     '(',
                     objectVariableCodeChunks,
-                    ', ',
+                    ')(',
                     JSON.stringify(property.string),
                     ')'
                 );
@@ -2008,7 +2046,7 @@ module.exports = {
                     context.useCoreSymbol('getVariableInstanceProperty'),
                     '(',
                     objectVariableCodeChunks,
-                    ', ',
+                    ')(',
                     interpret(property, {assignment: false, allowBareword: true}),
                     ')'
                 );
@@ -2400,7 +2438,7 @@ module.exports = {
 
             _.each(node.args, function (arg, index) {
                 if (index > 0) {
-                    argChunks.push(', ');
+                    argChunks.push(')(');
                 }
 
                 argChunks.push(interpret(arg));
@@ -2411,13 +2449,23 @@ module.exports = {
                     context.useCoreSymbol(isVariable ? 'callVariableStaticMethod' : 'callStaticMethod'),
                     '(',
                     interpret(node.className, {allowBareword: true}),
-                    ', ',
+                    ')',
+
+                    // Add the method name, which for a variable method call will be an expression.
+                    '(',
                     isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
-                    ', [',
-                    argChunks,
-                    '], ',
-                    !!isForwarding +
-                    ')'
+                    ')',
+
+                    // Add whether the call is forwarding or non-forwarding.
+                    '(',
+                    isForwarding ? 'true' : 'false',
+                    ')',
+
+                    // Only append arguments if non-empty.
+                    argChunks.length > 0 ?
+                        ['(', argChunks, ')'] :
+                        [],
+                    '()'
                 ],
                 node
             );
@@ -2459,7 +2507,7 @@ module.exports = {
                     context.useCoreSymbol('getStaticProperty'),
                     '(',
                     classVariableCodeChunks,
-                    ', ',
+                    ')(',
                     JSON.stringify(node.property.string),
                     ')'
                 );
@@ -2468,7 +2516,7 @@ module.exports = {
                     context.useCoreSymbol('getVariableStaticProperty'),
                     '(',
                     classVariableCodeChunks,
-                    ', ',
+                    ')(',
                     interpret(node.property, {assignment: false, allowBareword: true}),
                     ')'
                 );
@@ -2785,16 +2833,24 @@ module.exports = {
 
             _.each(node.variables, function (variableNode, index) {
                 if (index > 0) {
-                    statementChunks.push(', ');
+                    statementChunks.push(')(');
                 }
 
                 statementChunks.push(interpret(variableNode));
             });
 
             return context.createStatementSourceNode(
-                // TODO: Have a separate opcode that takes a list to remove need for array
-                //       when there is only a single item to unset, to shrink bundle and reduce GC pressure
-                [context.useCoreSymbol('unset'), '([', statementChunks, ']);'],
+                // TODO: Have a separate opcode that takes a list to remove need for variadic call
+                //       when there is only a single item to unset, to shrink bundle and reduce GC pressure.
+                [
+                    context.useCoreSymbol('unset'),
+
+                    // Only append references if non-empty.
+                    statementChunks.length > 0 ?
+                        ['(', statementChunks, ')'] :
+                        [],
+                    '();'
+                ],
                 node
             );
         },

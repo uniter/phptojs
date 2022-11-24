@@ -83,7 +83,7 @@ describe('Transpiler statement hoisting test', function () {
             // TODO: Don't output these properties in this object literal when they are empty
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             // Expression statement ends up below all declarations.
-            'setValue(getVariable("myVar"), createInteger(21));' +
+            'setValue(getVariable("myVar"))(createInteger(21));' +
             '});'
         );
     });

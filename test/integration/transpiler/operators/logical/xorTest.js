@@ -38,7 +38,7 @@ describe('Transpiler logical "xor" operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createString = core.createString, logicalXor = core.logicalXor;' +
-            'return logicalXor(createString("first"), createString("second"));' +
+            'return logicalXor(createString("first"))(createString("second"));' +
             '}'
         );
     });

@@ -38,7 +38,7 @@ describe('Transpiler subtraction arithmetic operator "-" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, subtract = core.subtract;' +
-            'return subtract(createInteger(21), createInteger(10));' +
+            'return subtract(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

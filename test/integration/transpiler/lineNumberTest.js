@@ -516,7 +516,7 @@ describe('Transpiler line numbers test', function () {
             'line = 8;return (line = 12, createClosure(function () {' +
             'var line;' +
             'instrument(function () {return line;});' +
-            'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
+            'setValue(getVariable("myBoundVar"))(getValueBinding("myBoundVar"));' +
             'line = 8;return (line = 11, getVariable("myClosureVar"));' +
             '}, [' +
             '{"name":"myArgVar"}' +

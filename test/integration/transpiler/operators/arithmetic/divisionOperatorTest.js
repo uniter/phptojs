@@ -38,7 +38,7 @@ describe('Transpiler division arithmetic operator "/" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, divide = core.divide;' +
-            'return divide(createInteger(21), createInteger(10));' +
+            'return divide(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

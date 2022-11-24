@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../..');
 
 describe('Transpiler new expression test', function () {
-    it('should correctly transpile in default (async) mode', function () {
+    it('should correctly transpile an instantiation with no constructor arguments', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -38,15 +38,15 @@ describe('Transpiler new expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createBareword = core.createBareword, createInstance = core.createInstance, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getVariable("object"), createInstance(createBareword("Worker"), []));' +
-            '});'
+            'setValue(getVariable("object"))(createInstance(createBareword("Worker"))());' +
+            '}'
         );
     });
 
-    it('should correctly transpile a new expression in function call argument in default (async) mode', function () {
+    it('should correctly transpile a new expression in function call argument', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -68,13 +68,13 @@ describe('Transpiler new expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var callFunction = core.callFunction, createInstance = core.createInstance, getVariable = core.getVariable;' +
-            'callFunction("myFunc", [' +
-            'createInstance(getVariable("myClassName"), [])' +
-            ']);' +
-            '});'
+            'callFunction("myFunc")(' +
+            'createInstance(getVariable("myClassName"))()' +
+            ')();' +
+            '}'
         );
     });
 });

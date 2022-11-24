@@ -38,7 +38,7 @@ describe('Transpiler greater-than-or-equal comparison operator test', function (
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, isGreaterThanOrEqual = core.isGreaterThanOrEqual;' +
-            'return isGreaterThanOrEqual(createInteger(21), createInteger(32));' +
+            'return isGreaterThanOrEqual(createInteger(21))(createInteger(32));' +
             '}'
         );
     });

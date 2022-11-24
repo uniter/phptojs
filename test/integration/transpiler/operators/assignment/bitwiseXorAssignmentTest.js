@@ -38,7 +38,7 @@ describe('Transpiler bitwise XOR assignment operator "^=" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var bitwiseXorWith = core.bitwiseXorWith, createInteger = core.createInteger, getVariable = core.getVariable;' +
-            'return bitwiseXorWith(getVariable("myVar"), createInteger(27));' +
+            'return bitwiseXorWith(getVariable("myVar"))(createInteger(27));' +
             '});'
         );
     });

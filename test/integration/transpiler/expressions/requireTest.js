@@ -38,11 +38,11 @@ describe('Transpiler "require" expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, getVariable = core.getVariable, require = core.require, setValue = core.setValue;' +
-            'setValue(getVariable("map"), require(createString("abc.php")));' +
-            '});'
+            'setValue(getVariable("map"))(require(createString("abc.php")));' +
+            '}'
         );
     });
 });

@@ -12,34 +12,29 @@
 var expect = require('chai').expect,
     phpToJS = require('../../../../..');
 
-describe('Transpiler bitwise XOR operator "^" test', function () {
+describe('Transpiler bitwise NOT (ones\' complement) operator "~" test', function () {
     it('should correctly transpile a return statement with operation', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
                 name: 'N_RETURN_STATEMENT',
                 expression: {
-                    name: 'N_EXPRESSION',
-                    left: {
+                    name: 'N_UNARY_EXPRESSION',
+                    prefix: true,
+                    operator: '~',
+                    operand: {
                         name: 'N_INTEGER',
                         number: '21'
-                    },
-                    right: [{
-                        operator: '^',
-                        operand: {
-                            name: 'N_INTEGER',
-                            number: '10'
-                        }
-                    }]
+                    }
                 }
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
-            'var bitwiseXor = core.bitwiseXor, createInteger = core.createInteger;' +
-            'return bitwiseXor(createInteger(21))(createInteger(10));' +
-            '});'
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createInteger = core.createInteger, onesComplement = core.onesComplement;' +
+            'return onesComplement(createInteger(21));' +
+            '}'
         );
     });
 });

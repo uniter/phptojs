@@ -13,6 +13,26 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler array literal expression test', function () {
+    it('should correctly transpile a return of empty array', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ARRAY_LITERAL',
+                    elements: []
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createArray = core.createArray;' +
+            'return createArray();' +
+            '}'
+        );
+    });
+
     it('should correctly transpile a return of array with immediate integer, variable and variable reference', function () {
         var ast = {
             name: 'N_PROGRAM',
@@ -40,11 +60,11 @@ describe('Transpiler array literal expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createInteger = core.createInteger, createReferenceElement = core.createReferenceElement, getVariable = core.getVariable;' +
-            'return createArray([' +
-            'createInteger(21), ' +
-            'getVariable("myVarByVal"), ' +
-            'createReferenceElement(getVariable("myVarByRef"))' +
-            ']);' +
+            'return createArray' +
+            '(createInteger(21))' +
+            '(getVariable("myVarByVal"))' +
+            '(createReferenceElement(getVariable("myVarByRef")))' +
+            '();' +
             '}'
         );
     });
@@ -112,13 +132,15 @@ describe('Transpiler array literal expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createInteger = core.createInteger, createReferenceElement = core.createReferenceElement, getElement = core.getElement, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getVariable("myTarget"), createArray([' +
-            'createInteger(21), ' +
-            'getVariable("myVarByVal"), ' +
-            'createReferenceElement(getVariable("myVarByRef")), ' +
-            'createReferenceElement(getElement(getVariable("myArray"), "myElementByRef")), ' +
-            'createReferenceElement(getInstanceProperty(getVariable("myObject"), "myPropertyByRef"))' +
-            ']));' +
+            'setValue(getVariable("myTarget"))(' +
+            'createArray' +
+            '(createInteger(21))' +
+            '(getVariable("myVarByVal"))' +
+            '(createReferenceElement(getVariable("myVarByRef")))' +
+            '(createReferenceElement(getElement(getVariable("myArray"), "myElementByRef")))' +
+            '(createReferenceElement(getInstanceProperty(getVariable("myObject"))("myPropertyByRef")))' +
+            '()' +
+            ');' +
             '}'
         );
     });
@@ -161,10 +183,10 @@ describe('Transpiler array literal expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createKeyReferencePair = core.createKeyReferencePair, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getVariable = core.getVariable;' +
-            'return createArray([' +
-            'createKeyValuePair(createString("myKeyForVal"), getVariable("myVarByVal")), ' +
-            'createKeyReferencePair(createString("myKeyForRef"), getVariable("myVarByRef"))' +
-            ']);' +
+            'return createArray' +
+            '(createKeyValuePair(createString("myKeyForVal"))(getVariable("myVarByVal")))' +
+            '(createKeyReferencePair(createString("myKeyForRef"))(getVariable("myVarByRef")))' +
+            '();' +
             '}'
         );
     });

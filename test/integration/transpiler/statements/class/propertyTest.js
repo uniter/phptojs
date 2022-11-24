@@ -156,7 +156,7 @@ describe('Transpiler class statement with properties test', function () {
             'staticProperties: {}, ' +
             'properties: {' +
             '"myProp": {visibility: "protected", value: function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
+            'return getCurrentClassConstant(currentClass)("MY_CONST"); ' +
             '}}' +
             '}, ' +
             'methods: {}, ' +
@@ -216,7 +216,7 @@ describe('Transpiler class statement with properties test', function () {
             '"myStaticProp": {' +
             'visibility: "private", ' +
             'value: function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
+            'return getCurrentClassConstant(currentClass)("MY_CONST"); ' +
             '}' +
             '}}, ' +
             'properties: {}, ' +

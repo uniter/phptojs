@@ -38,7 +38,7 @@ describe('Transpiler bitwise OR operator "|" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var bitwiseOr = core.bitwiseOr, createInteger = core.createInteger;' +
-            'return bitwiseOr(createInteger(21), createInteger(10));' +
+            'return bitwiseOr(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

@@ -32,7 +32,7 @@ describe('Transpiler scope resolution operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createBareword = core.createBareword, getClassConstant = core.getClassConstant;' +
-            'return getClassConstant(createBareword("MyClass"), "MY_CONST");' +
+            'return getClassConstant(createBareword("MyClass"))("MY_CONST");' +
             '});'
         );
     });

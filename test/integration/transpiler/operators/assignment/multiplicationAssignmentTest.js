@@ -38,7 +38,7 @@ describe('Transpiler multiplication assignment operator "*=" test', function () 
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, multiplyBy = core.multiplyBy;' +
-            'return multiplyBy(getVariable("myVar"), createInteger(21));' +
+            'return multiplyBy(getVariable("myVar"))(createInteger(21));' +
             '});'
         );
     });

@@ -44,7 +44,7 @@ describe('Transpiler binary cast operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var add = core.add, coerceToString = core.coerceToString, createInteger = core.createInteger, getVariable = core.getVariable;' +
-            'coerceToString(add(getVariable("myVar"), createInteger(21)));' +
+            'coerceToString(add(getVariable("myVar"))(createInteger(21)));' +
             '}'
         );
     });

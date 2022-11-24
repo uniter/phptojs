@@ -41,7 +41,7 @@ describe('Transpiler unset cast operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, nullValue = core.nullValue;' +
-            '(add(getVariable("myVar"), createInteger(21)), nullValue);' +
+            '(add(getVariable("myVar"))(createInteger(21)), nullValue);' +
             '}'
         );
     });

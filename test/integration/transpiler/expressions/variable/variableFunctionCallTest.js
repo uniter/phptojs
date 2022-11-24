@@ -32,7 +32,7 @@ describe('Transpiler variable function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callVariableFunction = core.callVariableFunction, getVariable = core.getVariable;' +
-            'callVariableFunction(getVariable("myFuncNameVar"));' +
+            'callVariableFunction(getVariable("myFuncNameVar"))();' +
             '}'
         );
     });
@@ -65,11 +65,11 @@ describe('Transpiler variable function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callVariableFunction = core.callVariableFunction, createFloat = core.createFloat, createInteger = core.createInteger, createString = core.createString, getVariable = core.getVariable;' +
-            'callVariableFunction(getVariable("myFuncNameVar"), [' +
-            'createString("My string"), ' +
-            'createInteger(21), ' +
-            'createFloat(101.4)' +
-            ']);' +
+            'callVariableFunction(getVariable("myFuncNameVar"))' +
+            '(createString("My string"))' +
+            '(createInteger(21))' +
+            '(createFloat(101.4))' +
+            '();' +
             '}'
         );
     });
@@ -143,25 +143,25 @@ describe('Transpiler variable function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callVariableFunction = core.callVariableFunction, createArray = core.createArray, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getConstant = core.getConstant, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, ternary = core.ternary;' +
-            'callVariableFunction(getVariable("myFuncNameVar"), [' +
-            'createArray([' +
-            'createKeyValuePair(' +
-            'createString("myVarElement"), ' +
-            'getVariable("myVarInNamedElement")' +
-            '), ' +
-            'createKeyValuePair(' +
-            'createString("myPropertyElement"), ' +
-            'getInstanceProperty(getVariable("myObject"), "myProp")' +
-            '), ' +
-            'getVariable("myVarInIndexedElement")' +
-            ']), ' +
+            'callVariableFunction(getVariable("myFuncNameVar"))(' +
+            'createArray' +
+            '(createKeyValuePair(' +
+            'createString("myVarElement"))' +
+            '(getVariable("myVarInNamedElement")' +
+            '))' +
+            '(createKeyValuePair(' +
+            'createString("myPropertyElement"))' +
+            '(getInstanceProperty(getVariable("myObject"))("myProp")' +
+            '))' +
+            '(getVariable("myVarInIndexedElement"))' +
+            '())(' +
             'getVariable("myVarAsArg")' +
-            ', ' +
+            ')(' +
             '(ternary(getVariable("myVarAsCondition")) ? ' +
             'getConstant("show me if truthy") : ' +
             'getConstant("show me if falsy")' +
             ')' +
-            ']);' +
+            ')();' +
             '}'
         );
     });

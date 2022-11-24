@@ -38,7 +38,7 @@ describe('Transpiler bitwise AND operator "&" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var bitwiseAnd = core.bitwiseAnd, createInteger = core.createInteger;' +
-            'return bitwiseAnd(createInteger(21), createInteger(10));' +
+            'return bitwiseAnd(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

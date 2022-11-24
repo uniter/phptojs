@@ -51,7 +51,7 @@ describe('Transpiler "do..while" statement test', function () {
             'block_1: do {' +
             'echo(createInteger(4));' +
             '} while (' +
-            'loop(0, isGreaterThan(createInteger(27), createInteger(21)))' +
+            'loop(0, isGreaterThan(createInteger(27))(createInteger(21)))' +
             ');' +
             '});'
         );

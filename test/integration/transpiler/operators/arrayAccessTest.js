@@ -89,7 +89,7 @@ describe('Transpiler array access operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getVariable = core.getVariable, getVariableElement = core.getVariableElement;' +
-            'return getVariableElement(getVariable("myArray"), getVariable("myKeyVar"));' +
+            'return getVariableElement(getVariable("myArray"))(getVariable("myKeyVar"));' +
             '});'
         );
     });
@@ -160,7 +160,7 @@ describe('Transpiler array access operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, getElement = core.getElement, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getElement(getVariable("myArray"), 21), createInteger(5));' +
+            'setValue(getElement(getVariable("myArray"), 21))(createInteger(5));' +
             '});'
         );
     });
@@ -204,7 +204,7 @@ describe('Transpiler array access operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, getElement = core.getElement, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getElement(getElement(getVariable("myArray"), 21), 24), createInteger(5));' +
+            'setValue(getElement(getElement(getVariable("myArray"), 21), 24))(createInteger(5));' +
             '});'
         );
     });
@@ -238,7 +238,7 @@ describe('Transpiler array access operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, pushElement = core.pushElement, setValue = core.setValue;' +
-            'setValue(pushElement(getVariable("myArray")), createInteger(21));' +
+            'setValue(pushElement(getVariable("myArray")))(createInteger(21));' +
             '});'
         );
     });
@@ -279,7 +279,7 @@ describe('Transpiler array access operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, pushElement = core.pushElement, setValue = core.setValue;' +
-            'setValue(pushElement(getVariable("myArray")), getInstanceProperty(getVariable("myTarget"), "myProp"));' +
+            'setValue(pushElement(getVariable("myArray")))(getInstanceProperty(getVariable("myTarget"))("myProp"));' +
             '});'
         );
     });
@@ -316,7 +316,7 @@ describe('Transpiler array access operator test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getVariable = core.getVariable, pushElement = core.pushElement, setReference = core.setReference;' +
-            'setReference(pushElement(getVariable("myArray")), getVariable("myTarget"));' +
+            'setReference(pushElement(getVariable("myArray")))(getVariable("myTarget"));' +
             '});'
         );
     });

@@ -35,7 +35,7 @@ describe('Transpiler static property access test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createBareword = core.createBareword, getStaticProperty = core.getStaticProperty;' +
-            'return getStaticProperty(createBareword("MyImportedClass"), "myStaticProp");' +
+            'return getStaticProperty(createBareword("MyImportedClass"))("myStaticProp");' +
             '}'
         );
     });
@@ -69,7 +69,7 @@ describe('Transpiler static property access test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var getStaticProperty = core.getStaticProperty, getVariable = core.getVariable;' +
-            'return getStaticProperty(getStaticProperty(getVariable("myVar"), "firstProp"), "secondProp");' +
+            'return getStaticProperty(getStaticProperty(getVariable("myVar"))("firstProp"))("secondProp");' +
             '}'
         );
     });
@@ -96,7 +96,7 @@ describe('Transpiler static property access test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var getVariable = core.getVariable, getVariableStaticProperty = core.getVariableStaticProperty;' +
-            'return getVariableStaticProperty(getVariable("myClassNameVar"), getVariable("myVarHoldingPropName"));' +
+            'return getVariableStaticProperty(getVariable("myClassNameVar"))(getVariable("myVarHoldingPropName"));' +
             '}'
         );
     });

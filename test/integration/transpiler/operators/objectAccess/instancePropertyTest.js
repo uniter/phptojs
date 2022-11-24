@@ -42,7 +42,7 @@ describe('Transpiler object instance property access test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable;' +
-            'return getInstanceProperty(getInstanceProperty(getVariable("myVar"), "firstProp"), "secondProp");' +
+            'return getInstanceProperty(getInstanceProperty(getVariable("myVar"))("firstProp"))("secondProp");' +
             '}'
         );
     });
@@ -69,7 +69,7 @@ describe('Transpiler object instance property access test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var getVariable = core.getVariable, getVariableInstanceProperty = core.getVariableInstanceProperty;' +
-            'return getVariableInstanceProperty(getVariable("myObjectVar"), getVariable("myVarHoldingPropName"));' +
+            'return getVariableInstanceProperty(getVariable("myObjectVar"))(getVariable("myVarHoldingPropName"));' +
             '}'
         );
     });
@@ -106,7 +106,7 @@ describe('Transpiler object instance property access test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getInstanceProperty(getVariable("myVar"), "myProp"), createInteger(1234));' +
+            'setValue(getInstanceProperty(getVariable("myVar"))("myProp"))(createInteger(1234));' +
             '}'
         );
     });

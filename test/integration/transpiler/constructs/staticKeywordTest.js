@@ -34,7 +34,7 @@ describe('Transpiler static:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getStaticClassName = core.getStaticClassName, getStaticProperty = core.getStaticProperty;' +
-            'return getStaticProperty(getStaticClassName(), "myProp");' +
+            'return getStaticProperty(getStaticClassName())("myProp");' +
             '});'
         );
     });
@@ -63,7 +63,9 @@ describe('Transpiler static:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var callStaticMethod = core.callStaticMethod, getStaticClassName = core.getStaticClassName;' +
-            'callStaticMethod(getStaticClassName(), "myMethod", [], true);' + // Forwarding
+            'callStaticMethod(getStaticClassName())("myMethod")' +
+            '(true)' +  // Forwarding.
+            '();' +
             '});'
         );
     });

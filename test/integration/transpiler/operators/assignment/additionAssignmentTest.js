@@ -38,7 +38,7 @@ describe('Transpiler addition assignment operator "+=" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, incrementBy = core.incrementBy;' +
-            'return incrementBy(getVariable("myVar"), createInteger(21));' +
+            'return incrementBy(getVariable("myVar"))(createInteger(21));' +
             '});'
         );
     });

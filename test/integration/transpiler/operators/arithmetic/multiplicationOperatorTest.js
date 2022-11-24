@@ -38,7 +38,7 @@ describe('Transpiler multiplication arithmetic operator "*" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, multiply = core.multiply;' +
-            'return multiply(createInteger(21), createInteger(10));' +
+            'return multiply(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

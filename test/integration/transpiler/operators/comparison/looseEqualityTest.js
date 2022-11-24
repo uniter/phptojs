@@ -38,7 +38,7 @@ describe('Transpiler loose equality comparison operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, isEqual = core.isEqual;' +
-            'return isEqual(createInteger(21), createInteger(32));' +
+            'return isEqual(createInteger(21))(createInteger(32));' +
             '}'
         );
     });

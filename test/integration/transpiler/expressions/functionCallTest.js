@@ -32,7 +32,7 @@ describe('Transpiler function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callFunction = core.callFunction;' +
-            'callFunction("myFunc");' +
+            'callFunction("myFunc")();' +
             '}'
         );
     });
@@ -65,11 +65,11 @@ describe('Transpiler function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callFunction = core.callFunction, createFloat = core.createFloat, createInteger = core.createInteger, createString = core.createString;' +
-            'callFunction("myFunc", [' +
-            'createString("My string"), ' +
-            'createInteger(21), ' +
-            'createFloat(101.4)' +
-            ']);' +
+            'callFunction("myFunc")' +
+            '(createString("My string"))' +
+            '(createInteger(21))' +
+            '(createFloat(101.4))' +
+            '();' +
             '}'
         );
     });
@@ -143,25 +143,25 @@ describe('Transpiler function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callFunction = core.callFunction, createArray = core.createArray, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getConstant = core.getConstant, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, ternary = core.ternary;' +
-            'callFunction("myFunc", [' +
-            'createArray([' +
-            'createKeyValuePair(' +
-            'createString("myVarElement"), ' +
-            'getVariable("myVarInNamedElement")' +
-            '), ' +
-            'createKeyValuePair(' +
-            'createString("myPropertyElement"), ' +
-            'getInstanceProperty(getVariable("myObject"), "myProp")' +
-            '), ' +
-            'getVariable("myVarInIndexedElement")' +
-            ']), ' +
+            'callFunction("myFunc")' +
+            '(createArray' +
+            '(createKeyValuePair(' +
+            'createString("myVarElement"))' +
+            '(getVariable("myVarInNamedElement")' +
+            '))' +
+            '(createKeyValuePair(' +
+            'createString("myPropertyElement"))' +
+            '(getInstanceProperty(getVariable("myObject"))("myProp")' +
+            '))' +
+            '(getVariable("myVarInIndexedElement"))' +
+            '())(' +
             'getVariable("myVarAsArg")' +
-            ', ' +
+            ')(' +
             '(ternary(getVariable("myVarAsCondition")) ? ' +
             'getConstant("show me if truthy") : ' +
             'getConstant("show me if falsy")' +
-            ')' +
-            ']);' +
+            '))' +
+            '();' +
             '}'
         );
     });

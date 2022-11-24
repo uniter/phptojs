@@ -38,7 +38,7 @@ describe('Transpiler loose inequality comparison operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, isNotEqual = core.isNotEqual;' +
-            'return isNotEqual(createInteger(21), createInteger(32));' +
+            'return isNotEqual(createInteger(21))(createInteger(32));' +
             '}'
         );
     });
@@ -68,7 +68,7 @@ describe('Transpiler loose inequality comparison operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, isNotEqual = core.isNotEqual;' +
-            'return isNotEqual(createInteger(21), createInteger(32));' +
+            'return isNotEqual(createInteger(21))(createInteger(32));' +
             '}'
         );
     });

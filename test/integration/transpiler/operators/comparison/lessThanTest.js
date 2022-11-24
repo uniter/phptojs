@@ -38,7 +38,7 @@ describe('Transpiler less-than comparison operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, isLessThan = core.isLessThan;' +
-            'return isLessThan(createInteger(21), createInteger(32));' +
+            'return isLessThan(createInteger(21))(createInteger(32));' +
             '}'
         );
     });

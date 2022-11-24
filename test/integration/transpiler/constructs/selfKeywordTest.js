@@ -34,13 +34,13 @@ describe('Transpiler self:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getClassNameOrThrow = core.getClassNameOrThrow, getStaticProperty = core.getStaticProperty;' +
-            'return getStaticProperty(getClassNameOrThrow(), "myProp");' +
+            'return getStaticProperty(getClassNameOrThrow())("myProp");' +
             '});'
         );
     });
 
-    // Calls to static methods with keywords eg. self::, parent:: and static:: are always forwarding,
-    // calls to the same methods with the class name eg. MyClass:: are non-forwarding
+    // Calls to static methods with keywords e.g. self::, parent:: and static:: are always forwarding,
+    // calls to the same methods with the class name e.g. MyClass:: are non-forwarding.
     it('should correctly transpile a call to a method with self:: (forwarding)', function () {
         var ast = {
             name: 'N_PROGRAM',
@@ -63,11 +63,13 @@ describe('Transpiler self:: construct expression test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var callStaticMethod = core.callStaticMethod, getClassNameOrThrow = core.getClassNameOrThrow;' +
-            'callStaticMethod(getClassNameOrThrow(), "myMethod", [], true);' + // Forwarding
+            'callStaticMethod(getClassNameOrThrow())("myMethod")' +
+            '(true)' + // Forwarding.
+            '();' +
             '});'
         );
     });
 
-    // See constantTest.js for a test that uses self:: in class constant -scope
-    // See propertyTest.js for a test that uses self:: as the initial value of a class property
+    // See constantTest.js for a test that uses self:: in class constant -scope.
+    // See propertyTest.js for a test that uses self:: as the initial value of a class property.
 });

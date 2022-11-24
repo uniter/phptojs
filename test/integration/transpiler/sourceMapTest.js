@@ -356,7 +356,7 @@ describe('Transpiler source map test', function () {
             'var $myArgVar = createDebugVar("myArgVar");' +
             'var $this = createDebugVar("this");' +
             'var $myClosureVar = createDebugVar("myClosureVar");' +
-            'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
+            'setValue(getVariable("myBoundVar"))(getValueBinding("myBoundVar"));' +
             'var $myBoundVar = createDebugVar("myBoundVar");' +
             'return getVariable("myClosureVar");' +
             '}, [' +

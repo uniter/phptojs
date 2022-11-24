@@ -48,7 +48,7 @@ describe('Transpiler "while" statement test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, echo = core.echo, isGreaterThan = core.isGreaterThan, loop = core.loop;' +
-            'block_1: while (loop(0, isGreaterThan(createInteger(27), createInteger(21)))) {' +
+            'block_1: while (loop(0, isGreaterThan(createInteger(27))(createInteger(21)))) {' +
             'echo(createInteger(4));' +
             '}' +
             '});'

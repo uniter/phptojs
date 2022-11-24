@@ -38,7 +38,7 @@ describe('Transpiler bitwise right-shift operator ">>" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var createInteger = core.createInteger, shiftRight = core.shiftRight;' +
-            'return shiftRight(createInteger(21), createInteger(10));' +
+            'return shiftRight(createInteger(21))(createInteger(10));' +
             '});'
         );
     });

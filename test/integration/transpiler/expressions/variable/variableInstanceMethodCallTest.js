@@ -36,13 +36,13 @@ describe('Transpiler variable instance method call expression test', function ()
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var callVariableInstanceMethod = core.callVariableInstanceMethod, getVariable = core.getVariable;' +
-            'callVariableInstanceMethod(getVariable("myObject"), getVariable("myMethodName"), [' +
-            'getVariable("myVar")' +
-            ']);' +
-            '});'
+            'callVariableInstanceMethod(getVariable("myObject"))(getVariable("myMethodName"))' +
+            '(getVariable("myVar"))' +
+            '();' +
+            '}'
         );
     });
 });

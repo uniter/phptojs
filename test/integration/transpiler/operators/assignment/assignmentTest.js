@@ -38,7 +38,7 @@ describe('Transpiler reference assignment operator "=" test', function () {
         expect(phpToJS.transpile(ast)).to.equal(
             'require(\'phpruntime\').compile(function (core) {' +
             'var getVariable = core.getVariable, setValue = core.setValue;' +
-            'return setValue(getVariable("myVar"), getVariable("anotherVar"));' +
+            'return setValue(getVariable("myVar"))(getVariable("anotherVar"));' +
             '});'
         );
     });
