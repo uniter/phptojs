@@ -2531,9 +2531,7 @@ module.exports = {
                 value: context.createInternalSourceNode(
                     [
                         'function (currentClass) { return ',
-                        // Note that line numbers are not included for property initialisers,
-                        // as we always refer to the site they are referenced from
-                        node.value ? interpret(node.value, {isConstantOrProperty: true, lineNumbers: false}) : ['null'],
+                        node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'],
                         '; }'
                     ],
                     node
