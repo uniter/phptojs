@@ -1461,10 +1461,17 @@ module.exports = {
 
             func = interpretFunction(node.func, node.args, null, node.body, interpret, context);
             extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                // Function parameters.
                 {
                     value: interpretFunctionArgs(node.args, interpret),
                     emptyValue: '[]'
                 },
+                // Return type spec.
+                {
+                    value: node.returnType ? ['{', interpret(node.returnType), '}'] : null,
+                    emptyValue: 'null'
+                },
+                // Line number.
                 {
                     value: context.lineNumbers ?
                         ['' + node.bounds.start.line] :
@@ -2011,6 +2018,9 @@ module.exports = {
                 node
             );
         },
+        'N_NULL_TYPE': function () {
+            return '"type":"null"';
+        },
         'N_OBJECT_CAST': function (node, interpret, context) {
             return context.createExpressionSourceNode(
                 [context.useCoreSymbol('coerceToObject'), '(', interpret(node.value), ')'],
@@ -2412,6 +2422,9 @@ module.exports = {
                 ['return'].concat(expression ? [' ', expression] : '', ';'),
                 node
             );
+        },
+        'N_SCALAR_TYPE': function (node) {
+            return '"type":"scalar","scalarType":"' + node.type + '"';
         },
         'N_SELF': function (node, interpret, context) {
             if (context.isConstantOrProperty) {
@@ -2819,6 +2832,13 @@ module.exports = {
                 node
             );
         },
+        'N_UNION_TYPE': function (node, interpret) {
+            var subTypeChunks = node.types.map(function (subType) {
+                return '{' + interpret(subType) + '}';
+            });
+
+            return ['"type":"union","types":[', subTypeChunks.join(','), ']'];
+        },
         'N_UNSET_CAST': function (node, interpret, context) {
             // Unset cast coerces all values to NULL
             return context.createExpressionSourceNode(
@@ -2906,6 +2926,9 @@ module.exports = {
             // Used for list(...) elements that indicate skipping of an array element
 
             return context.createExpressionSourceNode([context.useCoreSymbol('createVoid'), '()'], node);
+        },
+        'N_VOID_TYPE': function () {
+            return '"type":"void"';
         },
         'N_WHILE_STATEMENT': function (node, interpret, context) {
             var blockContexts = context.blockContexts.concat(['while']),

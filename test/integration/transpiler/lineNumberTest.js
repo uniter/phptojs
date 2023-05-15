@@ -488,7 +488,7 @@ describe('Transpiler line numbers test', function () {
             'var line;' +
             'instrument(function () {return line;});' +
             'line = 8;return (line = 8, getVariable("myFunctionVar"));' +
-            '}, [], 3);' +
+            '}, [], null, 3);' +
             'line = 3;defineInterface("MyThingInterface", {' +
             'superClass: null, ' +
             'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
