@@ -34,6 +34,8 @@ var _ = require('microdash'),
     INTERFACE_PROPERTY_NOT_ALLOWED = 'core.interface_property_not_allowed',
     LABEL_ALREADY_DEFINED = 'core.label_already_defined',
     OPERATOR_REQUIRES_POSITIVE_INTEGER = 'core.operator_requires_positive_integer',
+    STRICT_TYPES_INVALID_LITERAL = 'core.strict_types_invalid_literal',
+    STRICT_TYPES_VALUE_MUST_BE_LITERAL = 'core.strict_types_value_must_be_literal',
 
     binaryOperatorToOpcode = {
         '+': 'add',
@@ -1036,6 +1038,36 @@ module.exports = {
             statement = context.blockContexts[targetLevel - 1] === 'switch' ? 'break' : 'continue';
 
             return context.createStatementSourceNode([statement + ' block_' + targetLevel + ';'], node);
+        },
+        'N_DECLARE_STATEMENT': function (node, interpret, context) {
+            var allDirectiveChunks = [];
+
+            _.each(node.directives, function (directiveNode) {
+                var directiveChunks = interpret(directiveNode);
+
+                if (directiveChunks.length > 0) {
+                    allDirectiveChunks.push(directiveChunks);
+                }
+            });
+
+            if (allDirectiveChunks.length > 0) {
+                allDirectiveChunks.push(';');
+            }
+
+            return context.createStatementSourceNode(allDirectiveChunks, node);
+        },
+        'N_STRICT_TYPES_DIRECTIVE': function (node, interpret, context) {
+            if (node.value.name !== 'N_INTEGER') {
+                context.raiseError(STRICT_TYPES_VALUE_MUST_BE_LITERAL, node);
+            }
+
+            if (node.value.number !== '0' && node.value.number !== '1') {
+                context.raiseError(STRICT_TYPES_INVALID_LITERAL, node);
+            }
+
+            return node.value.number === '1' ?
+                [context.useCoreSymbol('enableStrictTypes'), '()'] :
+                [];
         },
         'N_DEFAULT_CASE': function (node, interpret, context) {
             var blockContexts = context.blockContexts,

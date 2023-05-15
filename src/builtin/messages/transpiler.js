@@ -24,7 +24,9 @@ module.exports = {
             'interface_method_body_not_allowed': 'Interface function ${className}::${methodName}() cannot contain body',
             'interface_property_not_allowed': 'Interfaces may not include member variables',
             'label_already_defined': 'Label \'${label}\' already defined',
-            'operator_requires_positive_integer': '\'${operator}\' operator accepts only positive integers'
+            'operator_requires_positive_integer': '\'${operator}\' operator accepts only positive integers',
+            'strict_types_invalid_literal': 'strict_types declaration must have 0 or 1 as its value',
+            'strict_types_value_must_be_literal': 'declare(strict_types) value must be a literal'
         }
     }
 };
