@@ -36,6 +36,7 @@ var _ = require('microdash'),
     OPERATOR_REQUIRES_POSITIVE_INTEGER = 'core.operator_requires_positive_integer',
     STRICT_TYPES_INVALID_LITERAL = 'core.strict_types_invalid_literal',
     STRICT_TYPES_VALUE_MUST_BE_LITERAL = 'core.strict_types_value_must_be_literal',
+    YIELD_OUTSIDE_FUNCTION = 'core.yield_outside_function',
 
     binaryOperatorToOpcode = {
         '+': 'add',
@@ -265,7 +266,7 @@ function hoistDeclarations(statements) {
     return declarations.concat(interfaceDeclarations, classDeclarations, nonDeclarations);
 }
 
-function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, interpret, context) {
+function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, statementNode, interpret, context) {
     var argumentAssignmentChunks = [],
         bindingAssignmentChunks = [],
         coreSymbolsUsed = {},
@@ -288,6 +289,7 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
             // so we need to override any value for the `assignment` option.
             assignment: undefined,
             blockContexts: [],
+            insideFunction: true,
             labelRepository: labelRepository,
             nextLoopIndex: function () {
                 return loopIndex++;
@@ -396,6 +398,9 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
 
     // Build function expression
     body = [
+        functionNode.generator ?
+            [context.useCoreSymbol('wrapGenerator'), '('] :
+            '',
         'function ',
         nameNode ? context.createInternalSourceNode(['_' + nameNode.string], nameNode, nameNode.name) : '',
         context.stackCleaning ? FUNCTION_STACK_MARKER : '',
@@ -408,7 +413,10 @@ function interpretFunction(nameNode, argNodes, bindingNodes, statementNode, inte
             [useCoreSymbol('instrument'), '(function () {return ', useCoreSymbol('line'), ';});'] :
             '',
         body,
-        '}'
+        '}',
+        functionNode.generator ?
+            [')'] :
+            '',
     ];
 
     return body;
@@ -919,7 +927,7 @@ module.exports = {
             );
         },
         'N_CLOSURE': function (node, interpret, context) {
-            var func = interpretFunction(null, node.args, node.bindings, node.body, interpret, context),
+            var func = interpretFunction(node, null, node.args, node.bindings, node.body, interpret, context),
                 extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                     {
                         value: interpretFunctionArgs(node.args, interpret),
@@ -1491,7 +1499,7 @@ module.exports = {
                 });
             }
 
-            func = interpretFunction(node.func, node.args, null, node.body, interpret, context);
+            func = interpretFunction(node, node.func, node.args, null, node.body, interpret, context);
             extraArgChunks = buildExtraFunctionDefinitionArgChunks([
                 // Function parameters.
                 {
@@ -1968,7 +1976,7 @@ module.exports = {
                 name: node.func.string,
                 body: context.createInternalSourceNode(
                     ['{isStatic: false, method: '].concat(
-                        interpretFunction(node.func, node.args, null, node.body, interpret, context),
+                        interpretFunction(node, node.func, node.args, null, node.body, interpret, context),
                         extraArgChunks,
                         '}'
                     ),
@@ -2535,7 +2543,7 @@ module.exports = {
                 name: node.method.string,
                 body: context.createInternalSourceNode(
                     ['{isStatic: true, method: '].concat(
-                        interpretFunction(node.method, node.args, null, node.body, interpret, context),
+                        interpretFunction(node, node.method, node.args, null, node.body, interpret, context),
                         extraArgChunks,
                         '}'
                     ),
@@ -3016,6 +3024,18 @@ module.exports = {
                     codeChunks,
                     '}'
                 ],
+                node
+            );
+        },
+        'N_YIELD_EXPRESSION': function (node, interpret, context) {
+            if (!context.insideFunction) {
+                context.raiseError(YIELD_OUTSIDE_FUNCTION, node);
+            }
+
+            return context.createExpressionSourceNode(
+                node.key ?
+                    [context.useCoreSymbol('yieldWithKey'), '(', interpret(node.key), ')(', interpret(node.value), ')'] :
+                    [context.useCoreSymbol('yield_'), '(', interpret(node.value), ')'] ,
                 node
             );
         }
