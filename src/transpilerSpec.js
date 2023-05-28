@@ -290,6 +290,7 @@ function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, state
             assignment: undefined,
             blockContexts: [],
             insideFunction: true,
+            insideTryBlock: false,
             labelRepository: labelRepository,
             nextLoopIndex: function () {
                 return loopIndex++;
@@ -2456,10 +2457,21 @@ module.exports = {
             );
         },
         'N_RETURN_STATEMENT': function (node, interpret, context) {
-            var expression = node.expression ? interpret(node.expression) : null;
+            var expression = node.expression ? interpret(node.expression) : null,
+                chunks = expression ? [expression] : [];
+
+            if (context.insideTryBlock) {
+                // Inside a try {...} block, a return value needs to be preserved
+                // if a finally {...} clause is present, for which we need a control flow opcode.
+                chunks = [context.useCoreSymbol('tryReturn'), '(', chunks, ')'];
+            }
+
+            if (chunks.length > 0) {
+                chunks.unshift(' ');
+            }
 
             return context.createStatementSourceNode(
-                ['return'].concat(expression ? [' ', expression] : '', ';'),
+                ['return', chunks, ';'],
                 node
             );
         },
@@ -2844,7 +2856,7 @@ module.exports = {
                 codeChunks.push(' else { throw e; }}');
             }
 
-            codeChunks.unshift('try {', interpret(node.body), '}');
+            codeChunks.unshift('try {', interpret(node.body, { insideTryBlock: true }), '}');
 
             if (node.finalizer) {
                 codeChunks.push(
