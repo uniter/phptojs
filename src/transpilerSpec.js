@@ -841,21 +841,32 @@ module.exports = {
             );
         },
         'N_CLASS_CONSTANT': function (node, interpret, context) {
-            return context.createExpressionSourceNode(
-                [
+            var chunks,
+                classNameChunks = interpret(node.className, {allowBareword: true});
+
+            if (node.constant === 'class') {
+                chunks = [
+                    context.useCoreSymbol('getClassNameConstant'),
+                    '(',
+                    classNameChunks,
+                    ')'
+                ];
+            } else {
+                chunks = [
                     context.useCoreSymbol(
                         node.className.name === 'N_SELF' ?
                             'getCurrentClassConstant' :
                             'getClassConstant'
                     ),
                     '(',
-                    interpret(node.className, {allowBareword: true}),
+                    classNameChunks,
                     ')(',
                     JSON.stringify(node.constant),
                     ')'
-                ],
-                node
-            );
+                ];
+            }
+
+            return context.createExpressionSourceNode(chunks, node);
         },
         'N_CLASS_STATEMENT': function (node, interpret, context) {
             var codeChunks,
