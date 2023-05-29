@@ -1996,6 +1996,9 @@ module.exports = {
                 )
             };
         },
+        'N_MIXED_TYPE': function () {
+            return '"type":"mixed"';
+        },
         'N_NAMESPACE_STATEMENT': function (node, interpret, context) {
             var bodyChunks = [];
 
@@ -2115,6 +2118,9 @@ module.exports = {
             }
 
             return context.createExpressionSourceNode(propertyCodeChunks, node);
+        },
+        'N_OBJECT_TYPE': function () {
+            return '"type":"object"';
         },
         'N_PARENT': function (node, interpret, context) {
             if (context.isConstantOrProperty) {
