@@ -1647,30 +1647,51 @@ module.exports = {
                 codeChunks,
                 conditionCodeChunks = [context.useCoreSymbol('if_'), '(', interpret(node.condition), ')'],
                 consequentCodeChunks,
-                gotosJumpingIn = {},
+                gotosJumpingIntoAlternate,
+                gotosJumpingIntoConsequent = {},
                 labelRepository = context.labelRepository;
 
-            function onFoundLabel(labelNode) {
+            function onFoundConsequentLabel(labelNode) {
                 var label = labelNode.label.string;
 
-                gotosJumpingIn[label] = true;
+                gotosJumpingIntoConsequent[label] = true;
             }
 
-            labelRepository.on('found label', onFoundLabel);
+            labelRepository.on('found label', onFoundConsequentLabel);
             consequentCodeChunks = interpret(node.consequentStatement);
-            labelRepository.off('found label', onFoundLabel);
+            labelRepository.off('found label', onFoundConsequentLabel);
 
-            _.each(Object.keys(gotosJumpingIn), function (label) {
-                conditionCodeChunks = ['goingToLabel_' + label + ' || ('].concat(conditionCodeChunks, ')');
+            // Ensure the if condition routes control flow into the consequent clause
+            // if we are going to a label defined inside the consequent.
+            _.each(Object.keys(gotosJumpingIntoConsequent), function (label) {
+                conditionCodeChunks = ['goingToLabel_' + label + ' || (', conditionCodeChunks, ')'];
             });
 
-            consequentCodeChunks = ['{'].concat(consequentCodeChunks, '}');
+            consequentCodeChunks = ['{', consequentCodeChunks, '}'];
 
-            alternateCodeChunks = node.alternateStatement ?
-                [' else {'].concat(interpret(node.alternateStatement), '}') :
-                [];
+            function onFoundAlternateLabel(labelNode) {
+                var label = labelNode.label.string;
 
-            codeChunks = ['if ('].concat(conditionCodeChunks, ') ', consequentCodeChunks, alternateCodeChunks);
+                gotosJumpingIntoAlternate[label] = true;
+            }
+
+            if (node.alternateStatement) {
+                gotosJumpingIntoAlternate = {};
+
+                labelRepository.on('found label', onFoundAlternateLabel);
+                alternateCodeChunks = [' else {', interpret(node.alternateStatement), '}'];
+                labelRepository.off('found label', onFoundAlternateLabel);
+
+                // Ensure the if condition routes control flow into the alternate clause
+                // if we are going to a label defined inside the alternate.
+                _.each(Object.keys(gotosJumpingIntoAlternate), function (label) {
+                    conditionCodeChunks = ['!goingToLabel_' + label + ' && (', conditionCodeChunks, ')'];
+                });
+            } else {
+                alternateCodeChunks = [];
+            }
+
+            codeChunks = ['if (', conditionCodeChunks, ') ', consequentCodeChunks, alternateCodeChunks];
 
             return context.createStatementSourceNode(codeChunks, node);
         },

@@ -769,8 +769,8 @@ describe('Transpiler "goto" statement test', function () {
                 '}' +
             '}' +
             // The if statement's condition must _not_ allow execution to pass if we need to jump to a label
-            // that is inside its alternate clause's body
-            'if (if_(getVariable("myCondition"))) {' +
+            // that is inside its alternate clause's body.
+            'if (!goingToLabel_my_label && (if_(getVariable("myCondition")))) {' +
                 'echo(createString("second"));' +
             '} else {' +
                 'if (!goingToLabel_my_label) {' +
