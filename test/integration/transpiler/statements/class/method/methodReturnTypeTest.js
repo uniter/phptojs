@@ -10,10 +10,10 @@
 'use strict';
 
 var expect = require('chai').expect,
-    phpToJS = require('../../../../..');
+    phpToJS = require('../../../../../..');
 
-describe('Transpiler class statement with method definitions test', function () {
-    it('should correctly transpile a class with instance and static method definitions', function () {
+describe('Transpiler class statement method definitions return type test', function () {
+    it('should correctly transpile methods with array return types', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -29,25 +29,19 @@ describe('Transpiler class statement with method definitions test', function () 
                     args: [{
                         name: 'N_ARGUMENT',
                         type: {
-                            name: 'N_ARRAY_TYPE'
+                            name: 'N_ITERABLE_TYPE'
                         },
                         variable: {
-                            name: 'N_REFERENCE',
-                            operand: {
-                                name: 'N_VARIABLE',
-                                variable: 'myByRefArrayArg'
-                            }
+                            name: 'N_VARIABLE',
+                            variable: 'myArg'
                         }
                     }],
                     body: {
                         name: 'N_COMPOUND_STATEMENT',
-                        statements: [{
-                            name: 'N_RETURN_STATEMENT',
-                            expression: {
-                                name: 'N_INTEGER',
-                                number: 21
-                            }
-                        }]
+                        statements: []
+                    },
+                    returnType: {
+                        name: 'N_ARRAY_TYPE'
                     }
                 }, {
                     name: 'N_STATIC_METHOD_DEFINITION',
@@ -60,30 +54,27 @@ describe('Transpiler class statement with method definitions test', function () 
                     args: [{
                         name: 'N_ARGUMENT',
                         type: {
-                            name: 'N_ARRAY_TYPE'
+                            name: 'N_ITERABLE_TYPE'
                         },
                         variable: {
                             name: 'N_VARIABLE',
-                            variable: 'myCallableArg'
+                            variable: 'myArg'
                         }
                     }],
                     body: {
                         name: 'N_COMPOUND_STATEMENT',
-                        statements: [{
-                            name: 'N_RETURN_STATEMENT',
-                            expression: {
-                                name: 'N_INTEGER',
-                                number: 101
-                            }
-                        }]
+                        statements: []
+                    },
+                    returnType: {
+                        name: 'N_ARRAY_TYPE'
                     }
                 }]
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass;' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var defineClass = core.defineClass;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
@@ -92,20 +83,22 @@ describe('Transpiler class statement with method definitions test', function () 
             'methods: {' +
             '"myInstanceMethod": {' +
             'isStatic: false, method: function _myInstanceMethod() {' +
-            'return createInteger(21);' +
             '}, args: [' +
-            '{"type":"array","name":"myByRefArrayArg","ref":true}' +
-            ']}, ' +
+            '{"type":"iterable","name":"myArg"}' +
+            '], ' +
+            'ret: {"type":"array"}' +
+            '}, ' +
             '"myStaticMethod": {' +
             'isStatic: true, method: function _myStaticMethod() {' +
-            'return createInteger(101);' +
             '}, args: [' +
-            '{"type":"array","name":"myCallableArg"}' +
-            ']}' +
+            '{"type":"iterable","name":"myArg"}' +
+            '], ' +
+            'ret: {"type":"array"}' +
+            '}' +
             '}, ' +
             'constants: {}' +
             '});' +
-            '});'
+            '}'
         );
     });
 });

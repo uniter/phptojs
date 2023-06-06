@@ -1991,11 +1991,19 @@ module.exports = {
         },
         'N_METHOD_DEFINITION': function (node, interpret, context) {
             var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                // Method parameters.
                 {
                     name: 'args',
                     value: interpretFunctionArgs(node.args, interpret),
                     emptyValue: '[]'
                 },
+                // Return type spec.
+                {
+                    name: 'ret',
+                    value: node.returnType ? ['{', interpret(node.returnType), '}'] : null,
+                    emptyValue: 'null'
+                },
+                // Line number.
                 {
                     name: 'line',
                     value: context.lineNumbers ?
@@ -2575,11 +2583,19 @@ module.exports = {
         },
         'N_STATIC_METHOD_DEFINITION': function (node, interpret, context) {
             var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                // Method parameters.
                 {
                     name: 'args',
                     value: interpretFunctionArgs(node.args, interpret),
                     emptyValue: '[]'
                 },
+                // Return type spec.
+                {
+                    name: 'ret',
+                    value: node.returnType ? ['{', interpret(node.returnType), '}'] : null,
+                    emptyValue: 'null'
+                },
+                // Line number.
                 {
                     name: 'line',
                     value: context.lineNumbers ?

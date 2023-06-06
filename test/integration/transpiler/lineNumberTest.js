@@ -508,7 +508,7 @@ describe('Transpiler line numbers test', function () {
             'var line;' +
             'instrument(function () {return line;});' +
             'line = 8;return (line = 10, getVariable("myMethodVar"));' +
-            '}, args: [], line: 11' +
+            '}, args: [], ret: null, line: 11' +
             '}}, constants: {}});' +
             'line = 8;return (line = 1, getVariable("myGlobalCodeVar"));' +
             'line = 8;return (line = 12, createClosure(function () {' +
