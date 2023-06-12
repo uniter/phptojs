@@ -518,7 +518,7 @@ describe('Transpiler line numbers test', function () {
             'line = 8;return (line = 11, getVariable("myClosureVar"));' +
             '}, [' +
             '{"name":"myArgVar"}' +
-            '], [{"name":"myBoundVar"}], false, 12));' +
+            '], [{"name":"myBoundVar"}], false, null, 12));' +
             '});'
         );
     });

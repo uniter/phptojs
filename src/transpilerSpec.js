@@ -941,18 +941,27 @@ module.exports = {
         'N_CLOSURE': function (node, interpret, context) {
             var func = interpretFunction(node, null, node.args, node.bindings, node.body, interpret, context),
                 extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                    // Closure parameters.
                     {
                         value: interpretFunctionArgs(node.args, interpret),
                         emptyValue: '[]'
                     },
+                    // Closure bindings.
                     {
                         value: interpretClosureBindings(node.bindings),
                         emptyValue: '[]'
                     },
+                    // Whether closure is static.
                     {
                         value: node.static ? 'true' : null,
                         emptyValue: 'false'
                     },
+                    // Return type spec.
+                    {
+                        value: node.returnType ? ['{', interpret(node.returnType), '}'] : null,
+                        emptyValue: 'null'
+                    },
+                    // Line number.
                     {
                         value: context.lineNumbers ?
                             ['' + node.bounds.start.line] :

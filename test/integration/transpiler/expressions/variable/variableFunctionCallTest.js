@@ -10,7 +10,7 @@
 'use strict';
 
 var expect = require('chai').expect,
-    phpToJS = require('../../../../../index');
+    phpToJS = require('../../../../..');
 
 describe('Transpiler variable function call expression test', function () {
     it('should correctly transpile a call with no arguments', function () {
