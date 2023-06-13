@@ -27,6 +27,8 @@ module.exports = {
             'operator_requires_positive_integer': '\'${operator}\' operator accepts only positive integers',
             'strict_types_invalid_literal': 'strict_types declaration must have 0 or 1 as its value',
             'strict_types_value_must_be_literal': 'declare(strict_types) value must be a literal',
+            'void_function_must_not_return_null': 'A void function must not return a value (did you mean "return;" instead of "return null;"?)',
+            'void_function_must_not_return_value': 'A void function must not return a value',
             'yield_outside_function': 'The "yield" expression can only be used inside a function'
         }
     }

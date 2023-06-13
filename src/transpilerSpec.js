@@ -36,6 +36,8 @@ var _ = require('microdash'),
     OPERATOR_REQUIRES_POSITIVE_INTEGER = 'core.operator_requires_positive_integer',
     STRICT_TYPES_INVALID_LITERAL = 'core.strict_types_invalid_literal',
     STRICT_TYPES_VALUE_MUST_BE_LITERAL = 'core.strict_types_value_must_be_literal',
+    VOID_FUNCTION_MUST_NOT_RETURN_NULL = 'core.void_function_must_not_return_null',
+    VOID_FUNCTION_MUST_NOT_RETURN_VALUE = 'core.void_function_must_not_return_value',
     YIELD_OUTSIDE_FUNCTION = 'core.yield_outside_function',
 
     binaryOperatorToOpcode = {
@@ -289,6 +291,7 @@ function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, state
             // so we need to override any value for the `assignment` option.
             assignment: undefined,
             blockContexts: [],
+            hasVoidReturnType: functionNode.returnType && functionNode.returnType.name === 'N_VOID_TYPE',
             insideFunction: true,
             insideTryBlock: false,
             labelRepository: labelRepository,
@@ -2512,8 +2515,20 @@ module.exports = {
             );
         },
         'N_RETURN_STATEMENT': function (node, interpret, context) {
-            var expression = node.expression ? interpret(node.expression) : null,
-                chunks = expression ? [expression] : [];
+            var chunks,
+                expression;
+
+            if (node.expression && context.hasVoidReturnType) {
+                context.raiseError(
+                    node.expression.name === 'N_NULL' ?
+                        VOID_FUNCTION_MUST_NOT_RETURN_NULL :
+                        VOID_FUNCTION_MUST_NOT_RETURN_VALUE,
+                    node
+                );
+            }
+
+            expression = node.expression ? interpret(node.expression) : null;
+            chunks = expression ? [expression] : [];
 
             if (context.insideTryBlock) {
                 // Inside a try {...} block, a return value needs to be preserved
