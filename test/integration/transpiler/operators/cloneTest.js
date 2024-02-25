@@ -28,11 +28,11 @@ describe('Transpiler clone operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var clone = core.clone, getVariable = core.getVariable;' +
             'return clone(getVariable("myObject"));' +
-            '});'
+            '}'
         );
     });
 });

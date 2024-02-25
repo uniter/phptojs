@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler global import statement test', function () {
-    it('should correctly transpile a global import of two variables in default (async) mode', function () {
+    it('should correctly transpile a global import of two variables', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -28,11 +28,11 @@ describe('Transpiler global import statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var importGlobal = core.importGlobal;' +
             'importGlobal("firstVar");importGlobal("secondVar");' +
-            '});'
+            '}'
         );
     });
 });

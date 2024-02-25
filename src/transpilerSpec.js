@@ -40,6 +40,16 @@ var _ = require('microdash'),
     VOID_FUNCTION_MUST_NOT_RETURN_VALUE = 'core.void_function_must_not_return_value',
     YIELD_OUTSIDE_FUNCTION = 'core.yield_outside_function',
 
+    LITERAL_NODE_TYPES = {
+        'N_ARRAY_LITERAL': true,
+        'N_BOOLEAN': true,
+        'N_FLOAT': true,
+        'N_INTEGER': true,
+        'N_NULL': true,
+        'N_STRING': true,
+        'N_STRING_LITERAL': true
+    },
+
     binaryOperatorToOpcode = {
         '+': 'add',
         '-': 'subtract',
@@ -103,6 +113,127 @@ var _ = require('microdash'),
     PHPFatalError = phpCommon.PHPFatalError,
     SourceNode = sourceMap.SourceNode,
     Translator = phpCommon.Translator;
+
+/**
+ * Determines whether the given expression AST node is a literal.
+ *
+ * @param {name: string} node
+ * @return {boolean}
+ */
+function isLiteral(node) {
+    return hasOwn.call(LITERAL_NODE_TYPES, node.name);
+}
+
+/**
+ * Determines whether the given expression AST node is benign.
+ * Benign nodes cannot cause writes, e.g. literals, identifiers or plain variables.
+ *
+ * @param {name: string} node
+ * @return {boolean}
+ */
+function isBenign(node) {
+    return node.name === 'N_VARIABLE' || isLiteral(node);
+}
+
+/**
+ * Creates a snapshot opcode of the given expression chunks.
+ *
+ * @param {(*|string)[]} chunks
+ * @param {Object} context
+ * @returns {(*|string)[]}
+ */
+function snapshotExpression(chunks, context) {
+    return [context.useCoreSymbol('snapshot'), '(', chunks, ')'];
+}
+
+/**
+ * Creates a snapshot opcode of the given left operand if needed,
+ * based on a simple heuristic of whether the right operand is simple enough not to warrant it.
+ *
+ * @param {Object} leftOperand
+ * @param {(*|string)[]} chunks
+ * @param {Object} rightOperand
+ * @param {Object} context
+ * @returns {(*|string)[]}
+ */
+function snapshotLeftOperand(leftOperand, chunks, rightOperand, context) {
+    var leftOperandIsLiteral = isLiteral(leftOperand),
+        rightOperandIsBenign = isBenign(rightOperand);
+
+    /*
+     * When left operand is a literal, there is no need to snapshot it as we already have a value
+     * by definition.
+     *
+     * When left operand is not but right operand is benign, there is no need to snapshot
+     * the left operand because the right one cannot influence it.
+     */
+    return leftOperandIsLiteral || rightOperandIsBenign ?
+        chunks :
+        snapshotExpression(chunks, context);
+}
+
+function decideOperandListSnapshots(operandSpecs) {
+    var index,
+        operandCount = operandSpecs.length,
+        operandSpec,
+        snapshotMap = [],
+        snapshotting = false;
+
+    for (index = operandCount - 1; index >= 0; index--) {
+        operandSpec = operandSpecs[index];
+
+        if (operandSpec.type === 'chunks') {
+            // Never any need to snapshot raw chunks.
+            snapshotMap[index] = false;
+            continue;
+        }
+
+        if (isLiteral(operandSpec.node)) {
+            // Never any need to snapshot literal expressions.
+            snapshotMap[index] = false;
+            continue;
+        }
+
+        if (snapshotting) {
+            snapshotMap[index] = true;
+            continue;
+        }
+
+        /*
+         * Last non-benign expression turns on snapshotting for previous operands,
+         * but isn't itself snapshotted (as no subsequent operands can affect it).
+         *
+         * No need to snapshot the final operand, which will reach here, either,
+         * as there can by definition never be a subsequent operand to affect it.
+         */
+        if (!isBenign(operandSpec.node)) {
+            snapshotting = true;
+        }
+
+        snapshotMap[index] = false;
+    }
+
+    return snapshotMap;
+}
+
+function snapshotOperandList(operandSpecs, context) {
+    var resultChunks = [],
+        snapshotMap = decideOperandListSnapshots(operandSpecs);
+
+    _.each(operandSpecs, function (operandSpec, index) {
+        if (index > 0) {
+            resultChunks.push(', ');
+        }
+
+        resultChunks.push(
+            snapshotMap[index] ?
+                snapshotExpression(operandSpec.chunks, context) :
+                operandSpec.chunks
+        );
+    });
+
+    return resultChunks;
+}
 
 /**
  * Builds chunks for the optional extra arguments that may need to be passed
@@ -287,9 +418,7 @@ function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, state
             return context.useCoreSymbol(name);
         },
         subContext = {
-            // This sub-context will be merged with the parent one,
-            // so we need to override any value for the `assignment` option.
-            assignment: undefined,
+            // This sub-context will be merged with the parent one.
             blockContexts: [],
             hasVoidReturnType: functionNode.returnType && functionNode.returnType.name === 'N_VOID_TYPE',
             insideFunction: true,
@@ -349,7 +478,7 @@ function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, state
             useCoreSymbol('getVariable'),
             '(',
             JSON.stringify(variableName),
-            '))(',
+            '), ',
             useCoreSymbol(bindingOpcode),
             '(',
             JSON.stringify(variableName),
@@ -457,7 +586,7 @@ function interpretClosureBindings(bindingNodes) {
 }
 
 /**
- * Produces an array or object literal containing all the information about
+ * Produces an array of object literals containing all the information about
  * the parameters to a function, closure or static/instance method.
  *
  * @param {Object[]} argNodes
@@ -701,8 +830,9 @@ module.exports = {
                         [
                             context.useCoreSymbol('getVariableElement'),
                             '(',
-                            interpret(node.array),
-                            ')(',
+                            // Must be snapshotted because index expression may modify array variable/reference.
+                            snapshotLeftOperand(node.array, interpret(node.array), node.index, context),
+                            ', ',
                             interpret(node.index),
                             ')'
                         ] :
@@ -718,35 +848,46 @@ module.exports = {
             );
         },
         'N_ARRAY_LITERAL': function (node, interpret, context) {
-            var allElementChunks = [];
+            var elementSpecs = [];
 
-            _.each(node.elements, function (element, index) {
+            _.each(node.elements, function (element) {
                 var elementChunks;
 
-                if (index > 0) {
-                    allElementChunks.push(')(');
+                if (element.name === 'N_REFERENCE') {
+                    elementSpecs.push({
+                        type: 'chunks',
+                        chunks: [
+                            context.useCoreSymbol('createReferenceElement'),
+                            '(',
+                            interpret(element.operand),
+                            ')'
+                        ]
+                    });
+                } else {
+                    elementChunks = interpret(element);
+
+                    elementSpecs.push(
+                        element.name === 'N_KEY_VALUE_PAIR' ?
+                            // Never any need to snapshot a pair.
+                            {
+                                type: 'chunks',
+                                chunks: elementChunks
+                            } :
+                            {
+                                type: 'node',
+                                chunks: elementChunks,
+                                node: element
+                            }
+                    );
                 }
-
-                elementChunks = (element.name === 'N_REFERENCE') ?
-                    [
-                        context.useCoreSymbol('createReferenceElement'),
-                        '(',
-                        interpret(element.operand),
-                        ')'
-                    ] :
-                    interpret(element);
-
-                allElementChunks.push(elementChunks);
             });
 
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol('createArray'),
-                    // Only append elements if non-empty.
-                    allElementChunks.length > 0 ?
-                        ['(', allElementChunks, ')'] :
-                        [],
-                    '()'
+                    '(',
+                    snapshotOperandList(elementSpecs, context),
+                    ')'
                 ],
                 node
             );
@@ -863,7 +1004,7 @@ module.exports = {
                     ),
                     '(',
                     classNameChunks,
-                    ')(',
+                    ', ',
                     JSON.stringify(node.constant),
                     ')'
                 ];
@@ -1263,9 +1404,9 @@ module.exports = {
         },
         'N_EXPRESSION': function (node, interpret, context) {
             var chunks = [],
-                isAssignment = /^(?:[-+*/.%&|^]|<<|>>)?=$/.test(node.right[0].operator),
+                isAssignment = node.right[0].operator === '=',
                 isReference,
-                leftChunks = interpret(node.left, {assignment: isAssignment}),
+                leftChunks = interpret(node.left),
                 opcode,
                 operation,
                 rightOperand,
@@ -1323,13 +1464,25 @@ module.exports = {
                     opcode = opcode[isReference];
                 }
 
-                chunks.push(context.useCoreSymbol(opcode), '(', leftChunks, ')(', transpiledRightOperand, ')');
+                chunks.push(
+                    context.useCoreSymbol(opcode),
+                    '(',
+                    isAssignment ?
+                        // Simple assignments do not need the original left operand value,
+                        // so do not need to be snapshotted.
+                        leftChunks :
+                        // Must be snapshotted because right operand may modify left operand variable/reference.
+                        snapshotLeftOperand(node.left, leftChunks, rightOperand, context),
+                    ', ',
+                    transpiledRightOperand,
+                    ')'
+                );
             }
 
             return context.createExpressionSourceNode(chunks, node);
         },
         'N_EXPRESSION_STATEMENT': function (node, interpret, context) {
-            return context.createStatementSourceNode(interpret(node.expression).concat(';'), node);
+            return context.createStatementSourceNode([interpret(node.expression), ';'], node);
         },
         'N_FLOAT': function (node, interpret, context) {
             return context.createExpressionSourceNode(
@@ -1555,50 +1708,41 @@ module.exports = {
             );
         },
         'N_FUNCTION_CALL': function (node, interpret, context) {
-            var argChunks = [],
-                callChunks;
+            var isStatic = node.func.name === 'N_STRING',
+                operandSpecs = [];
 
-            _.each(node.args, function (arg, index) {
-                if (index > 0) {
-                    argChunks.push(')(');
-                }
+            operandSpecs.push(
+                isStatic ?
+                    {
+                        type: 'chunks',
+                        chunks: [JSON.stringify(node.func.string)]
+                    } :
+                    {
+                        type: 'node',
+                        // Variable function name expression becomes one of the operands in this list of specs,
+                        // so that it will be snapshotted if needed - no need to handle snapshotting here.
+                        chunks: interpret(node.func, {allowBareword: true}),
+                        node: node.func
+                    }
+            );
 
-                argChunks.push(interpret(arg));
+            _.each(node.args, function (argNode) {
+                operandSpecs.push({
+                    type: 'node',
+                    chunks: interpret(argNode),
+                    node: argNode
+                });
             });
 
-            if (node.func.name === 'N_STRING') {
-                // Faster case: function call is to a statically-given function name
-
-                callChunks = [
-                    context.useCoreSymbol('callFunction'),
+            return context.createExpressionSourceNode(
+                [
+                    context.useCoreSymbol(isStatic ? 'callFunction' : 'callVariableFunction'),
                     '(',
-                    JSON.stringify(node.func.string),
-                    ')',
-
-                    // Only append arguments if non-empty.
-                    argChunks.length > 0 ?
-                        ['(', argChunks, ')'] :
-                        [],
-                    '()'
-                ];
-            } else {
-                // Slower case: function call is to a variable function name
-
-                callChunks = [
-                    context.useCoreSymbol('callVariableFunction'),
-                    '(',
-                    interpret(node.func, {allowBareword: true}),
-                    ')',
-
-                    // Only append arguments if non-empty.
-                    argChunks.length > 0 ?
-                        ['(', argChunks, ')'] :
-                        [],
-                    '()'
-                ];
-            }
-
-            return context.createExpressionSourceNode(callChunks, node);
+                    snapshotOperandList(operandSpecs, context),
+                    ')'
+                ],
+                node
+            );
         },
         'N_GLOBAL_STATEMENT': function (node, interpret, context) {
             var chunks = [];
@@ -1730,8 +1874,8 @@ module.exports = {
                 [
                     context.useCoreSymbol('instanceOf'),
                     '(',
-                    interpret(node.object),
-                    ')(',
+                    snapshotLeftOperand(node.object, interpret(node.object), node['class'], context),
+                    ', ',
                     interpret(node['class'], {allowBareword: true}),
                     ')'
                 ],
@@ -1841,21 +1985,23 @@ module.exports = {
             };
         },
         'N_ISSET': function (node, interpret, context) {
-            var issetChunks = [];
+            var operandSpecs = [];
 
-            _.each(node.variables, function (variable, index) {
-                if (index > 0) {
-                    issetChunks.push(', ');
-                }
-
-                issetChunks.push(interpret(variable));
+            _.each(node.variables, function (variable) {
+                operandSpecs.push({
+                    type: 'node',
+                    chunks: interpret(variable),
+                    node: variable
+                });
             });
 
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol('isSet'),
+                    // TODO: Use variadic arg instead of native array literal, as we do for PHP array literals,
+                    //       to save on compiled bundle size?
                     '()([',
-                    issetChunks,
+                    snapshotOperandList(operandSpecs, context),
                     '])'
                 ],
                 node
@@ -1865,16 +2011,18 @@ module.exports = {
             return '"type":"iterable"';
         },
         'N_KEY_VALUE_PAIR': function (node, interpret, context) {
-            var isReference = node.value.name === 'N_REFERENCE';
+            var isReference = node.value.name === 'N_REFERENCE',
+                valueOperand = isReference ? node.value.operand : node.value;
 
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol('createKey' + (isReference ? 'Reference' : 'Value') + 'Pair'),
                     '(',
-                    interpret(node.key),
-                    ')(',
-                    // No need to wrap references in getReference(), createKeyReferencePair() will handle that
-                    interpret(isReference ? node.value.operand : node.value),
+                    // Must be snapshotted because value expression may modify key variable/reference.
+                    snapshotLeftOperand(node.key, interpret(node.key), valueOperand, context),
+                    ', ',
+                    // No need to wrap references in getReference(), createKeyReferencePair() will handle that.
+                    interpret(valueOperand),
                     ')'
                 ],
                 node
@@ -1905,7 +2053,7 @@ module.exports = {
 
             _.each(node.elements, function (element, index) {
                 if (index > 0) {
-                    elementsCodeChunks.push(')(');
+                    elementsCodeChunks.push(', ');
                 }
 
                 elementsCodeChunks.push(interpret(element));
@@ -1914,11 +2062,9 @@ module.exports = {
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol('createList'),
-                    // Only append elements if non-empty.
-                    elementsCodeChunks.length > 0 ?
-                        ['(', elementsCodeChunks, ')'] :
-                        [],
-                    '()'
+                    '(',
+                    elementsCodeChunks,
+                    ')'
                 ],
                 node
             );
@@ -1970,33 +2116,42 @@ module.exports = {
             );
         },
         'N_METHOD_CALL': function (node, interpret, context) {
-            var argChunks = [],
-                isVariable = node.method.name !== 'N_STRING';
+            // Determine whether method name is a bareword.
+            var isStatic = node.method.name === 'N_STRING',
+                operandSpecs = [
+                    {
+                        type: 'node',
+                        chunks: interpret(node.object),
+                        node: node.object
+                    },
+                    isStatic ?
+                        {
+                            type: 'chunks',
+                            chunks: [JSON.stringify(node.method.string)]
+                        } :
+                        {
+                            type: 'node',
+                            // Variable method name expression becomes one of the operands in this list of specs,
+                            // so that it will be snapshotted if needed - no need to handle snapshotting here.
+                            chunks: interpret(node.method, {allowBareword: true}),
+                            node: node.method
+                        }
+                ];
 
-            _.each(node.args, function (argNode, index) {
-                if (index > 0) {
-                    argChunks.push(')(');
-                }
-
-                argChunks.push(interpret(argNode));
+            _.each(node.args, function (argNode) {
+                operandSpecs.push({
+                    type: 'node',
+                    chunks: interpret(argNode),
+                    node: argNode
+                });
             });
 
             return context.createExpressionSourceNode(
                 [
-                    context.useCoreSymbol(isVariable ? 'callVariableInstanceMethod' : 'callInstanceMethod'),
+                    context.useCoreSymbol(isStatic ? 'callInstanceMethod' : 'callVariableInstanceMethod'),
                     '(',
-                    interpret(node.object),
-                    ')(',
-
-                    // Add the method name, which for a variable method call will be an expression.
-                    isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
-                    ')',
-
-                    // Only append arguments if non-empty.
-                    argChunks.length > 0 ?
-                        ['(', argChunks, ')'] :
-                        [],
-                    '()'
+                    snapshotOperandList(operandSpecs, context),
+                    ')'
                 ],
                 node
             );
@@ -2067,27 +2222,28 @@ module.exports = {
             );
         },
         'N_NEW_EXPRESSION': function (node, interpret, context) {
-            var argChunks = [];
+            var operandSpecs = [{
+                type: 'node',
+                // Class name expression becomes one of the operands in this list of specs,
+                // so that it will be snapshotted if needed - no need to handle snapshotting here.
+                chunks: interpret(node.className, {allowBareword: true}),
+                node: node.className
+            }];
 
-            _.each(node.args, function (arg, index) {
-                if (index > 0) {
-                    argChunks.push(')(');
-                }
-
-                argChunks.push(interpret(arg));
+            _.each(node.args, function (argNode) {
+                operandSpecs.push({
+                    type: 'node',
+                    chunks: interpret(argNode),
+                    node: argNode
+                });
             });
 
             return context.createExpressionSourceNode(
                 [
                     context.useCoreSymbol('createInstance'),
                     '(',
-                    interpret(node.className, {allowBareword: true}),
-                    ')',
-                    // Only append arguments if non-empty.
-                    argChunks.length > 0 ?
-                        ['(', argChunks, ')'] :
-                        [],
-                    '()'
+                    snapshotOperandList(operandSpecs, context),
+                    ')'
                 ],
                 node
             );
@@ -2124,26 +2280,16 @@ module.exports = {
             );
         },
         'N_OBJECT_PROPERTY': function (node, interpret, context) {
-            var objectVariableCodeChunks,
-                property,
+            var objectVariableCodeChunks = interpret(node.object),
+                property = node.property,
                 propertyCodeChunks = [];
-
-            if (context.assignment) {
-                objectVariableCodeChunks = [
-                    interpret(node.object)
-                ];
-            } else {
-                objectVariableCodeChunks = interpret(node.object);
-            }
-
-            property = node.property;
 
             if (property.name === 'N_STRING') {
                 propertyCodeChunks.push(
                     context.useCoreSymbol('getInstanceProperty'),
                     '(',
                     objectVariableCodeChunks,
-                    ')(',
+                    ', ',
                     JSON.stringify(property.string),
                     ')'
                 );
@@ -2151,9 +2297,10 @@ module.exports = {
                 propertyCodeChunks.push(
                     context.useCoreSymbol('getVariableInstanceProperty'),
                     '(',
-                    objectVariableCodeChunks,
-                    ')(',
-                    interpret(property, {assignment: false, allowBareword: true}),
+                    // Must be snapshotted because property name expression may modify object variable/reference.
+                    snapshotLeftOperand(node.object, objectVariableCodeChunks, property, context),
+                    ', ',
+                    interpret(property, {allowBareword: true}),
                     ')'
                 );
             }
@@ -2565,42 +2712,50 @@ module.exports = {
             );
         },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
-            var argChunks = [],
-                isForwarding = node.className.name === 'N_SELF' ||
+            var isForwarding = node.className.name === 'N_SELF' ||
                     node.className.name === 'N_PARENT' ||
                     node.className.name === 'N_STATIC',
-                isVariable = node.method.name !== 'N_STRING';
+                // Determine whether method name is a bareword.
+                isStatic = node.method.name === 'N_STRING',
+                operandSpecs = [
+                    {
+                        type: 'node',
+                        chunks: interpret(node.className, {allowBareword: true}),
+                        node: node.className
+                    },
+                    isStatic ?
+                        {
+                            type: 'chunks',
+                            chunks: [JSON.stringify(node.method.string)]
+                        } :
+                        {
+                            type: 'node',
+                            // Variable method name expression becomes one of the operands in this list of specs,
+                            // so that it will be snapshotted if needed - no need to handle snapshotting here.
+                            chunks: interpret(node.method, {allowBareword: true}),
+                            node: node.method
+                        },
+                    // Add whether the call is forwarding or non-forwarding.
+                    {
+                        type: 'chunks',
+                        chunks: [isForwarding ? 'true' : 'false']
+                    }
+                ];
 
-            _.each(node.args, function (arg, index) {
-                if (index > 0) {
-                    argChunks.push(')(');
-                }
-
-                argChunks.push(interpret(arg));
+            _.each(node.args, function (argNode) {
+                operandSpecs.push({
+                    type: 'node',
+                    chunks: interpret(argNode),
+                    node: argNode
+                });
             });
 
             return context.createExpressionSourceNode(
                 [
-                    context.useCoreSymbol(isVariable ? 'callVariableStaticMethod' : 'callStaticMethod'),
+                    context.useCoreSymbol(isStatic ? 'callStaticMethod' : 'callVariableStaticMethod'),
                     '(',
-                    interpret(node.className, {allowBareword: true}),
-                    ')',
-
-                    // Add the method name, which for a variable method call will be an expression.
-                    '(',
-                    isVariable ? interpret(node.method, {allowBareword: true}) : JSON.stringify(node.method.string),
-                    ')',
-
-                    // Add whether the call is forwarding or non-forwarding.
-                    '(',
-                    isForwarding ? 'true' : 'false',
-                    ')',
-
-                    // Only append arguments if non-empty.
-                    argChunks.length > 0 ?
-                        ['(', argChunks, ')'] :
-                        [],
-                    '()'
+                    snapshotOperandList(operandSpecs, context),
+                    ')'
                 ],
                 node
             );
@@ -2650,7 +2805,7 @@ module.exports = {
                     context.useCoreSymbol('getStaticProperty'),
                     '(',
                     classVariableCodeChunks,
-                    ')(',
+                    ', ',
                     JSON.stringify(node.property.string),
                     ')'
                 );
@@ -2658,9 +2813,10 @@ module.exports = {
                 propertyCodeChunks.push(
                     context.useCoreSymbol('getVariableStaticProperty'),
                     '(',
-                    classVariableCodeChunks,
-                    ')(',
-                    interpret(node.property, {assignment: false, allowBareword: true}),
+                    // Must be snapshotted because property name expression may modify object variable/reference.
+                    snapshotLeftOperand(node.className, classVariableCodeChunks, node.property, context),
+                    ', ',
+                    interpret(node.property, {allowBareword: true}),
                     ')'
                 );
             }
@@ -2981,7 +3137,7 @@ module.exports = {
 
             _.each(node.variables, function (variableNode, index) {
                 if (index > 0) {
-                    statementChunks.push(')(');
+                    statementChunks.push(', ');
                 }
 
                 statementChunks.push(interpret(variableNode));
@@ -2993,11 +3149,9 @@ module.exports = {
                 [
                     context.useCoreSymbol('unset'),
 
-                    // Only append references if non-empty.
-                    statementChunks.length > 0 ?
-                        ['(', statementChunks, ')'] :
-                        [],
-                    '();'
+                    '(',
+                    statementChunks,
+                    ');'
                 ],
                 node
             );
@@ -3118,14 +3272,34 @@ module.exports = {
             );
         },
         'N_YIELD_EXPRESSION': function (node, interpret, context) {
+            var operandSpecs;
+
             if (!context.insideFunction) {
                 context.raiseError(YIELD_OUTSIDE_FUNCTION, node);
             }
 
-            return context.createExpressionSourceNode(
-                node.key ?
-                    [context.useCoreSymbol('yieldWithKey'), '(', interpret(node.key), ')(', interpret(node.value), ')'] :
+            if (!node.key) {
+                return context.createExpressionSourceNode(
                     [context.useCoreSymbol('yield_'), '(', interpret(node.value), ')'] ,
+                    node
+                );
+            }
+
+            operandSpecs = [
+                {
+                    type: 'node',
+                    chunks: interpret(node.key),
+                    node: node.key
+                },
+                {
+                    type: 'node',
+                    chunks: interpret(node.value),
+                    node: node.value
+                }
+            ];
+
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('yieldWithKey'), '(', snapshotOperandList(operandSpecs, context), ')'],
                 node
             );
         }

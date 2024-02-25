@@ -94,24 +94,24 @@ describe('Transpiler "switch" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, switchCase = core.switchCase, switchOn = core.switchOn;' +
-            'var switchExpression_1 = switchOn(add(createInteger(21))(createInteger(6))), ' +
+            'var switchExpression_1 = switchOn(add(createInteger(21), createInteger(6))), ' +
             'switchMatched_1 = false;' +
             'block_1: {' +
             'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(27))) {' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(7));' +
+            'setValue(getVariable("a"), createInteger(7));' +
             'break block_1;' +
             '}' +
             'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(101))) {' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(10));' +
+            'setValue(getVariable("a"), createInteger(10));' +
             'break block_1;' +
             '}' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -186,21 +186,21 @@ describe('Transpiler "switch" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, switchCase = core.switchCase, switchOn = core.switchOn;' +
-            'var switchExpression_1 = switchOn(add(createInteger(21))(createInteger(6))), ' +
+            'var switchExpression_1 = switchOn(add(createInteger(21), createInteger(6))), ' +
             'switchMatched_1 = false;' +
             'block_1: {' +
             'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(27))) {' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(7));' +
+            'setValue(getVariable("a"), createInteger(7));' +
             'break block_1;' +
             '}' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(8));' +
+            'setValue(getVariable("a"), createInteger(8));' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -304,29 +304,29 @@ describe('Transpiler "switch" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var add = core.add, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, switchCase = core.switchCase, switchDefault = core.switchDefault, switchOn = core.switchOn;' +
-            'var switchExpression_1 = switchOn(add(createInteger(21))(createInteger(6))), ' +
+            'var switchExpression_1 = switchOn(add(createInteger(21), createInteger(6))), ' +
             'switchMatched_1 = false;' +
             'block_1: while (true) {' +
             'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(101))) {' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(7));' +
+            'setValue(getVariable("a"), createInteger(7));' +
             'break block_1;' +
             '}' +
             'if (switchMatched_1 || switchDefault(switchExpression_1)) {' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(8));' +
+            'setValue(getVariable("a"), createInteger(8));' +
             '}' +
             'if (switchMatched_1 || switchCase(switchExpression_1, createInteger(27))) {' +
             'switchMatched_1 = true;' +
-            'setValue(getVariable("a"))(createInteger(1001));' +
+            'setValue(getVariable("a"), createInteger(1001));' +
             'break block_1;' +
             '}' +
             'if (switchMatched_1) {break;} else {switchExpression_1 = null;}' +
             '}' +
-            '});'
+            '}'
         );
     });
 });

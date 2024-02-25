@@ -41,7 +41,7 @@ describe('Transpiler integer cast operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var add = core.add, coerceToInteger = core.coerceToInteger, createInteger = core.createInteger, getVariable = core.getVariable;' +
-            'coerceToInteger(add(getVariable("myVar"))(createInteger(21)));' +
+            'coerceToInteger(add(getVariable("myVar"), createInteger(21)));' +
             '}'
         );
     });

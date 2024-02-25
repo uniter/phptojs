@@ -31,11 +31,11 @@ describe('Transpiler parent:: construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getStaticProperty = core.getStaticProperty, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
-            'return getStaticProperty(getSuperClassNameOrThrow())("myProp");' +
-            '});'
+            'return getStaticProperty(getSuperClassNameOrThrow(), "myProp");' +
+            '}'
         );
     });
 
@@ -61,8 +61,8 @@ describe('Transpiler parent:: construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineClass = core.defineClass, getClassConstant = core.getClassConstant, getSuperClassName = core.getSuperClassName;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
@@ -72,11 +72,11 @@ describe('Transpiler parent:: construct expression test', function () {
             'methods: {}, ' +
             'constants: {' +
             '"MY_CONST": function (currentClass) { ' +
-            'return getClassConstant(getSuperClassName(currentClass))("PARENT_CONST"); ' +
+            'return getClassConstant(getSuperClassName(currentClass), "PARENT_CONST"); ' +
             '}' +
             '}' +
             '});' +
-            '});'
+            '}'
         );
     });
 
@@ -101,13 +101,13 @@ describe('Transpiler parent:: construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var callStaticMethod = core.callStaticMethod, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
-            'callStaticMethod(getSuperClassNameOrThrow())("myMethod")' +
-            '(true)' + // Forwarding.
-            '();' +
-            '});'
+            'callStaticMethod(getSuperClassNameOrThrow(), "myMethod", ' +
+            'true' + // Forwarding.
+            ');' +
+            '}'
         );
     });
 });

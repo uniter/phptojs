@@ -78,8 +78,8 @@ describe('Transpiler closure expression test', function () {
             'var createClosure = core.createClosure, createInteger = core.createInteger, echo = core.echo, getReferenceBinding = core.getReferenceBinding, getValueBinding = core.getValueBinding, getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
             'return createClosure(' +
             'function () {' +
-            'setValue(getVariable("bound1"))(getValueBinding("bound1"));' +
-            'setReference(getVariable("bound2"))(getReferenceBinding("bound2"));' +
+            'setValue(getVariable("bound1"), getValueBinding("bound1"));' +
+            'setReference(getVariable("bound2"), getReferenceBinding("bound2"));' +
             'echo(createInteger(21));' +
             '}, [' +
             '{"name":"arg1"},' +

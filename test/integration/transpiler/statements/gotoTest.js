@@ -51,8 +51,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'break_my_goto_label: {' +
@@ -69,7 +69,7 @@ describe('Transpiler "goto" statement test', function () {
             '}' +
             'goingToLabel_my_goto_label = false;' +
             'echo(createString("... and let us finish"));' +
-            '});'
+            '}'
         );
     });
 
@@ -109,8 +109,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'continue_my_goto_label: do {' +
@@ -123,7 +123,7 @@ describe('Transpiler "goto" statement test', function () {
                 'continue continue_my_goto_label;' +
                 'echo(createString("... and let us finish"));' +
             '} while (goingToLabel_my_goto_label);' +
-            '});'
+            '}'
         );
     });
 
@@ -169,8 +169,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'break_my_goto_label: {' +
@@ -191,7 +191,7 @@ describe('Transpiler "goto" statement test', function () {
             '}' +
             'goingToLabel_my_goto_label = false;' +
             'echo(createString("... and we are done"));' +
-            '});'
+            '}'
         );
     });
 
@@ -237,8 +237,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_goto_label = false;' +
             'continue_my_goto_label: do {' +
@@ -251,7 +251,7 @@ describe('Transpiler "goto" statement test', function () {
                 'continue continue_my_goto_label;' +
                 'echo(createString("... and we are done"));' +
             '} while (goingToLabel_my_goto_label);' +
-            '});'
+            '}'
         );
     });
 
@@ -334,8 +334,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
                 'var createString = core.createString, echo = core.echo;' +
                 'var goingToLabel_first_label = false, goingToLabel_second_label = false;' +
                 'break_second_label: {' +
@@ -367,7 +367,7 @@ describe('Transpiler "goto" statement test', function () {
                 '}' +
                 'goingToLabel_second_label = false;' +
                 'echo(createString("fifth"));' +
-            '});'
+            '}'
         );
     });
 
@@ -457,8 +457,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
                 'var createString = core.createString, echo = core.echo, nullValue = core.nullValue;' +
                 'var goingToLabel_second_label = false, goingToLabel_first_label = false;' +
                 'continue_first_label: do {' +
@@ -489,7 +489,7 @@ describe('Transpiler "goto" statement test', function () {
                     'continue continue_first_label;' +
                     'echo(createString("fifth"));' +
                 '} while (goingToLabel_first_label);' +
-            '});'
+            '}'
         );
     });
 
@@ -527,8 +527,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, loop = core.loop;' +
             'var goingToLabel_my_label = false;' +
             'block_1: while (loop(0, getVariable("myCondition"))) {' +
@@ -543,7 +543,7 @@ describe('Transpiler "goto" statement test', function () {
                 '}' +
                 'goingToLabel_my_label = false;' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -581,8 +581,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, loop = core.loop;' +
             'var goingToLabel_my_label = false;' +
             'block_1: do {' +
@@ -597,7 +597,7 @@ describe('Transpiler "goto" statement test', function () {
                 '}' +
                 'goingToLabel_my_label = false;' +
             '} while (loop(0, getVariable("myCondition")));' +
-            '});'
+            '}'
         );
     });
 
@@ -627,8 +627,8 @@ describe('Transpiler "goto" statement test', function () {
 
         // TODO: Improve this - unused labels _could_ just be completely removed.
         //       Perhaps one to solve with a compiler pass once we have an IR stage?
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo;' +
             'var goingToLabel_my_unused_label = false;' +
             'if (!goingToLabel_my_unused_label) {' +
@@ -636,7 +636,7 @@ describe('Transpiler "goto" statement test', function () {
             '}' +
             'goingToLabel_my_unused_label = false;' +
             'echo(createString("second"));' +
-            '});'
+            '}'
         );
     });
 
@@ -680,8 +680,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, if_ = core.if_;' +
             'var goingToLabel_my_label = false;' +
             'break_my_label: {' +
@@ -701,7 +701,7 @@ describe('Transpiler "goto" statement test', function () {
                 '}' +
                 'goingToLabel_my_label = false;' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -755,8 +755,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, if_ = core.if_;' +
             'var goingToLabel_my_label = false;' +
             'break_my_label: {' +
@@ -778,7 +778,7 @@ describe('Transpiler "goto" statement test', function () {
                 '}' +
                 'goingToLabel_my_label = false;' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -828,8 +828,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, if_ = core.if_;' +
             'var goingToLabel_my_label = false;' +
             'break_my_label: {' +
@@ -851,7 +851,7 @@ describe('Transpiler "goto" statement test', function () {
                     'continue continue_my_label;' +
                 '} while (goingToLabel_my_label);' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -896,8 +896,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, defineFunction = core.defineFunction, echo = core.echo;' +
             'defineFunction("myFunc", function _myFunc() {' +
                 'var goingToLabel_my_label = false;' +
@@ -913,7 +913,7 @@ describe('Transpiler "goto" statement test', function () {
                 'goingToLabel_my_label = false;' +
                 'echo(createString("second"));' +
             '});' +
-            '});'
+            '}'
         );
     });
 
@@ -980,8 +980,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
                 'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, switchCase = core.switchCase, switchOn = core.switchOn;' +
                 'var goingToLabel_my_label = false;' +
                 'var switchExpression_1 = switchOn(getVariable("myVar")), ' +
@@ -1012,7 +1012,7 @@ describe('Transpiler "goto" statement test', function () {
                         '}' +
                     '} while (goingToLabel_my_label);' +
                 '}' +
-            '});'
+            '}'
         );
     });
 
@@ -1075,8 +1075,8 @@ describe('Transpiler "goto" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
                 'var createInteger = core.createInteger, echo = core.echo, getVariable = core.getVariable, switchCase = core.switchCase, switchDefault = core.switchDefault, switchOn = core.switchOn;' +
                 'var goingToLabel_my_label = false;' +
                 'var switchExpression_1 = switchOn(getVariable("myVar")), ' +
@@ -1108,7 +1108,7 @@ describe('Transpiler "goto" statement test', function () {
                     '} while (goingToLabel_my_label);' +
                     'if (switchMatched_1) {break;} else {switchExpression_1 = null;}' +
                 '}' +
-            '});'
+            '}'
         );
     });
 
@@ -1791,7 +1791,7 @@ describe('Transpiler "goto" statement test', function () {
             bounds: {start: {line: 1, column: 1}}
         };
 
-        // NB: The line number quoted should be that of the second label found, not the first
+        // NB: The line number quoted should be that of the second label found, not the first.
         expect(function () {
             phpToJS.transpile(ast, {path: '/path/to/their_module.php'});
         }).to.throw(PHPFatalError, 'Label \'my_label\' already defined in /path/to/their_module.php on line 9');

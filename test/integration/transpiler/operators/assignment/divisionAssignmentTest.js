@@ -35,11 +35,11 @@ describe('Transpiler division assignment operator "/=" test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, divideBy = core.divideBy, getVariable = core.getVariable;' +
-            'return divideBy(getVariable("myVar"))(createInteger(27));' +
-            '});'
+            'return divideBy(getVariable("myVar"), createInteger(27));' +
+            '}'
         );
     });
 });

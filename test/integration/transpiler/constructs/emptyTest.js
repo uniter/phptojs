@@ -28,11 +28,11 @@ describe('Transpiler empty(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, isEmpty = core.isEmpty;' +
             'return isEmpty()(getVariable("a_var"));' +
-            '});'
+            '}'
         );
     });
 
@@ -58,11 +58,11 @@ describe('Transpiler empty(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getElement = core.getElement, getVariable = core.getVariable, isEmpty = core.isEmpty;' +
             'return isEmpty()(getElement(getVariable("myArray"), 21));' +
-            '});'
+            '}'
         );
     });
 
@@ -88,11 +88,11 @@ describe('Transpiler empty(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, isEmpty = core.isEmpty;' +
-            'return isEmpty()(getInstanceProperty(getVariable("myObject"))("myProp"));' +
-            '});'
+            'return isEmpty()(getInstanceProperty(getVariable("myObject"), "myProp"));' +
+            '}'
         );
     });
 
@@ -117,11 +117,11 @@ describe('Transpiler empty(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getClassNameOrThrow = core.getClassNameOrThrow, getStaticProperty = core.getStaticProperty, isEmpty = core.isEmpty;' +
-            'return isEmpty()(getStaticProperty(getClassNameOrThrow())("myProp"));' +
-            '});'
+            'return isEmpty()(getStaticProperty(getClassNameOrThrow(), "myProp"));' +
+            '}'
         );
     });
 });

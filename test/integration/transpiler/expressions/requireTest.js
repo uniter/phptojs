@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler "require" expression test', function () {
-    it('should correctly transpile in default (async) mode', function () {
+    it('should correctly transpile', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -41,7 +41,7 @@ describe('Transpiler "require" expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createString = core.createString, getVariable = core.getVariable, require = core.require, setValue = core.setValue;' +
-            'setValue(getVariable("map"))(require(createString("abc.php")));' +
+            'setValue(getVariable("map"), require(createString("abc.php")));' +
             '}'
         );
     });

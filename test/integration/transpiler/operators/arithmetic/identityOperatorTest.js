@@ -30,11 +30,11 @@ describe('Transpiler identity arithmetic operator "+" test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, identity = core.identity;' +
             'return identity(getVariable("myVar"));' +
-            '});'
+            '}'
         );
     });
 });

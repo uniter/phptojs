@@ -36,8 +36,8 @@ describe('Transpiler "foreach" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var advance = core.advance, createInteger = core.createInteger, echo = core.echo, getCurrentElementValue = core.getCurrentElementValue, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setValue = core.setValue;' +
             'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
             'isNotFinished(0, iterator_1); ' +
@@ -45,7 +45,7 @@ describe('Transpiler "foreach" statement test', function () {
             'setValue(getVariable("item"), getCurrentElementValue(iterator_1));' +
             'echo(createInteger(1));' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -75,8 +75,8 @@ describe('Transpiler "foreach" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var advance = core.advance, createInteger = core.createInteger, echo = core.echo, getCurrentElementReference = core.getCurrentElementReference, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setReference = core.setReference;' +
             'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
             'isNotFinished(0, iterator_1); ' +
@@ -84,7 +84,7 @@ describe('Transpiler "foreach" statement test', function () {
             'setReference(getVariable("item"), getCurrentElementReference(iterator_1));' +
             'echo(createInteger(1));' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -115,8 +115,8 @@ describe('Transpiler "foreach" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var advance = core.advance, createInteger = core.createInteger, echo = core.echo, getCurrentElementValue = core.getCurrentElementValue, getCurrentKey = core.getCurrentKey, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setValue = core.setValue;' +
             'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
             'isNotFinished(0, iterator_1); ' +
@@ -125,7 +125,7 @@ describe('Transpiler "foreach" statement test', function () {
             'setValue(getVariable("theKey"), getCurrentKey(iterator_1));' +
             'echo(createInteger(1));' +
             '}' +
-            '});'
+            '}'
         );
     });
 });

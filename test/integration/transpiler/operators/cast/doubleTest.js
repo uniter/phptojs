@@ -41,7 +41,7 @@ describe('Transpiler double cast operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var add = core.add, coerceToFloat = core.coerceToFloat, createInteger = core.createInteger, getVariable = core.getVariable;' +
-            'coerceToFloat(add(getVariable("myVar"))(createInteger(21)));' +
+            'coerceToFloat(add(getVariable("myVar"), createInteger(21)));' +
             '}'
         );
     });

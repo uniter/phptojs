@@ -32,11 +32,11 @@ describe('Transpiler function statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineFunction = core.defineFunction;' +
             'defineFunction("gogo", function _gogo() {});' +
-            '});'
+            '}'
         );
     });
 
@@ -63,11 +63,11 @@ describe('Transpiler function statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineFunction = core.defineFunction;' +
             'defineFunction("gogo", function _gogo() {return createInteger(1234);});' +
-            '});'
+            '}'
         );
     });
 
@@ -137,8 +137,8 @@ describe('Transpiler function statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineFunction = core.defineFunction;' +
             'defineFunction("gogo", function _gogo() {' +
             '}, [' +
@@ -147,7 +147,7 @@ describe('Transpiler function statement test', function () {
             '{"type":"class","className":"My\\\\NS\\\\MyClass","name":"myByRefClassArg","ref":true},' +
             '{"type":"iterable","name":"myByRefIterableArg","ref":true}' +
             ']);' +
-            '});'
+            '}'
         );
     });
 
@@ -178,15 +178,15 @@ describe('Transpiler function statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineFunction = core.defineFunction, useDescendantNamespaceScope = core.useDescendantNamespaceScope;' +
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\Space");' +
             'defineFunction("__autoload", ' +
             'function ___autoload() {' +
             'return createInteger(1234);' +
             '});' +
-            '});'
+            '}'
         );
     });
 

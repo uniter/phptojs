@@ -41,7 +41,7 @@ describe('Transpiler boolean cast operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var add = core.add, coerceToBoolean = core.coerceToBoolean, createInteger = core.createInteger, getVariable = core.getVariable;' +
-            'coerceToBoolean(add(getVariable("myVar"))(createInteger(21)));' +
+            'coerceToBoolean(add(getVariable("myVar"), createInteger(21)));' +
             '}'
         );
     });

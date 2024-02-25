@@ -42,18 +42,18 @@ describe('Transpiler namespace statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, print = core.print, useDescendantNamespaceScope = core.useDescendantNamespaceScope;' +
 
-            // First namespace scope
+            // First namespace scope.
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\FirstSpace");' +
             'print(createInteger(1234));' +
 
-            // Second namespace scope
+            // Second namespace scope.
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\SecondSpace");' +
             'return createInteger(9876);' +
-            '});'
+            '}'
         );
     });
 
@@ -89,18 +89,18 @@ describe('Transpiler namespace statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, print = core.print, useDescendantNamespaceScope = core.useDescendantNamespaceScope, useGlobalNamespaceScope = core.useGlobalNamespaceScope;' +
 
-            // First namespace scope
+            // First namespace scope.
             'useGlobalNamespaceScope();' +
             'print(createInteger(1234));' +
 
-            // Second namespace scope
+            // Second namespace scope.
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\SubSpace");' +
             'print(createInteger(6543));' +
-            '});'
+            '}'
         );
     });
 
@@ -136,18 +136,18 @@ describe('Transpiler namespace statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, print = core.print, useDescendantNamespaceScope = core.useDescendantNamespaceScope, useGlobalNamespaceScope = core.useGlobalNamespaceScope;' +
 
-            // First namespace scope
+            // First namespace scope.
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\SubSpace");' +
             'print(createInteger(6543));' +
 
-            // Second namespace scope
+            // Second namespace scope.
             'useGlobalNamespaceScope();' +
             'print(createInteger(1234));' +
-            '});'
+            '}'
         );
     });
 
@@ -208,11 +208,11 @@ describe('Transpiler namespace statement test', function () {
             'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getNamespaceName = core.getNamespaceName, print = core.print, useDescendantNamespaceScope = core.useDescendantNamespaceScope;' +
 
-            // First namespace scope
+            // First namespace scope.
             'useDescendantNamespaceScope("Your\\\\Space");' +
             'print(createInteger(1234));' +
 
-            // Second namespace scope
+            // Second namespace scope.
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\Space");' +
             'defineClass("MyClass", {superClass: null, interfaces: [], staticProperties: {}, properties: {}, methods: {' +
             '"getClass": {' +

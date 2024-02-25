@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler "include" expression test', function () {
-    it('should correctly transpile in default (async) mode', function () {
+    it('should correctly transpile', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -41,7 +41,7 @@ describe('Transpiler "include" expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createString = core.createString, getVariable = core.getVariable, include = core.include, setValue = core.setValue;' +
-            'setValue(getVariable("map"))(include(createString("abc.php")));' +
+            'setValue(getVariable("map"), include(createString("abc.php")));' +
             '}'
         );
     });

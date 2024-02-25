@@ -25,13 +25,13 @@ describe('Transpiler "nowdoc" statement test', function () {
                 }]
             };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString;' +
             'return createString(' +
             '"my nowdoc with strings that $look like $interpolated variables"' +
             ');' +
-            '});'
+            '}'
         );
     });
 });

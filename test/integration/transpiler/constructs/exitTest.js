@@ -24,11 +24,11 @@ describe('Transpiler exit(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var exit = core.exit;' +
             'exit();' +
-            '});'
+            '}'
         );
     });
 
@@ -47,11 +47,11 @@ describe('Transpiler exit(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, exit = core.exit;' +
             'exit(createInteger(21));' +
-            '});'
+            '}'
         );
     });
 
@@ -70,11 +70,11 @@ describe('Transpiler exit(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, exit = core.exit, print = core.print;' +
             '(print(createString("My failure message")), exit());' +
-            '});'
+            '}'
         );
     });
 });

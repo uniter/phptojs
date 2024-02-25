@@ -38,11 +38,11 @@ describe('Transpiler reference assignment pseudo-operator "=&" test', function (
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, setReference = core.setReference;' +
-            'return setReference(getVariable("myVar"))(getVariable("anotherVar"));' +
-            '});'
+            'return setReference(getVariable("myVar"), getVariable("anotherVar"));' +
+            '}'
         );
     });
 
@@ -81,11 +81,11 @@ describe('Transpiler reference assignment pseudo-operator "=&" test', function (
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, setReference = core.setReference, setValue = core.setValue;' +
-            'return setValue(getVariable("firstVar"))(setReference(getVariable("secondVar"))(getVariable("thirdVar")));' +
-            '});'
+            'return setValue(getVariable("firstVar"), setReference(getVariable("secondVar"), getVariable("thirdVar")));' +
+            '}'
         );
     });
 });

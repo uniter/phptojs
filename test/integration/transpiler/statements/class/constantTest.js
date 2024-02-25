@@ -54,8 +54,8 @@ describe('Transpiler class statement with constants test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
@@ -68,14 +68,14 @@ describe('Transpiler class statement with constants test', function () {
             'return createInteger(1001); ' +
             '}, ' +
             '"ANOTHER_ONE": function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass)("MY_CONST"); ' +
+            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}, ' +
             '"YET_ANOTHER_ONE": function (currentClass) { ' +
             'return createInteger(1234); ' +
             '}' +
             '}' +
             '});' +
-            '});'
+            '}'
         );
     });
 });

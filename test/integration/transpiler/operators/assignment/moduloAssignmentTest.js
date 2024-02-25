@@ -35,11 +35,11 @@ describe('Transpiler modulo assignment operator "%=" test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, moduloWith = core.moduloWith;' +
-            'return moduloWith(getVariable("myVar"))(createInteger(21));' +
-            '});'
+            'return moduloWith(getVariable("myVar"), createInteger(21));' +
+            '}'
         );
     });
 });

@@ -32,7 +32,7 @@ describe('Transpiler function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callFunction = core.callFunction;' +
-            'callFunction("myFunc")();' +
+            'callFunction("myFunc");' +
             '}'
         );
     });
@@ -65,11 +65,11 @@ describe('Transpiler function call expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callFunction = core.callFunction, createFloat = core.createFloat, createInteger = core.createInteger, createString = core.createString;' +
-            'callFunction("myFunc")' +
-            '(createString("My string"))' +
-            '(createInteger(21))' +
-            '(createFloat(101.4))' +
-            '();' +
+            'callFunction("myFunc", ' +
+            'createString("My string"), ' +
+            'createInteger(21), ' +
+            'createFloat(101.4)' +
+            ');' +
             '}'
         );
     });
@@ -120,7 +120,7 @@ describe('Transpiler function call expression test', function () {
                         }]
                     }, {
                         name: 'N_VARIABLE',
-                        variable: 'myVarAsArg'
+                        variable: 'myVarAsArgBeforeComplex'
                     }, {
                         name: 'N_TERNARY',
                         condition: {
@@ -135,6 +135,9 @@ describe('Transpiler function call expression test', function () {
                             name: 'N_STRING',
                             string: 'show me if falsy'
                         }
+                    }, {
+                        name: 'N_VARIABLE',
+                        variable: 'myVarAsArgAfterComplex'
                     }]
                 }
             }]
@@ -142,26 +145,28 @@ describe('Transpiler function call expression test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var callFunction = core.callFunction, createArray = core.createArray, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getConstant = core.getConstant, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, ternary = core.ternary;' +
-            'callFunction("myFunc")' +
-            '(createArray' +
-            '(createKeyValuePair(' +
-            'createString("myVarElement"))' +
-            '(getVariable("myVarInNamedElement")' +
-            '))' +
-            '(createKeyValuePair(' +
-            'createString("myPropertyElement"))' +
-            '(getInstanceProperty(getVariable("myObject"))("myProp")' +
-            '))' +
-            '(getVariable("myVarInIndexedElement"))' +
-            '())(' +
-            'getVariable("myVarAsArg")' +
-            ')(' +
+            'var callFunction = core.callFunction, createArray = core.createArray, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getConstant = core.getConstant, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, snapshot = core.snapshot, ternary = core.ternary;' +
+            'callFunction("myFunc", ' +
+            'createArray(' +
+            'createKeyValuePair(' +
+            'createString("myVarElement"), ' +
+            'getVariable("myVarInNamedElement")' +
+            '), ' +
+            'createKeyValuePair(' +
+            'createString("myPropertyElement"), ' +
+            'getInstanceProperty(getVariable("myObject"), "myProp")' +
+            '), ' +
+            'getVariable("myVarInIndexedElement")' +
+            '), ' +
+            // Plain variable argument must be snapshotted due to complex subsequent argument (ternary).
+            'snapshot(getVariable("myVarAsArgBeforeComplex")), ' +
             '(ternary(getVariable("myVarAsCondition")) ? ' +
             'getConstant("show me if truthy") : ' +
             'getConstant("show me if falsy")' +
-            '))' +
-            '();' +
+            '), ' +
+            // Plain variable argument must be snapshotted as its parameter could be by-reference.
+            'getVariable("myVarAsArgAfterComplex")' +
+            ');' +
             '}'
         );
     });

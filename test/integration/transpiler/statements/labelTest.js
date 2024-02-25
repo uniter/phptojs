@@ -12,20 +12,25 @@
 var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
-describe('Transpiler inline HTML statement test', function () {
-    it('should correctly transpile', function () {
+describe('Transpiler label statement test', function () {
+    it('should correctly transpile a lone label', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
-                name: 'N_INLINE_HTML_STATEMENT',
-                html: '<p>My inline HTML</p>'
+                name: 'N_LABEL_STATEMENT',
+                label: {
+                    name: 'N_STRING',
+                    string: 'my_goto_label'
+                }
             }]
         };
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var printRaw = core.printRaw;' +
-            'printRaw("<p>My inline HTML</p>");' +
+            // TODO: No need to output anything at all in this scenario,
+            //       as there is no goto referencing the label.
+            'var goingToLabel_my_goto_label = false;' +
+            'goingToLabel_my_goto_label = false;' +
             '}'
         );
     });

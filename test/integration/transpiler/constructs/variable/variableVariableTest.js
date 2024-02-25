@@ -28,11 +28,11 @@ describe('Transpiler variable-variable construct test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, getVariableVariable = core.getVariableVariable;' +
             'return getVariableVariable(getVariable("myVariableNameVar"));' +
-            '});'
+            '}'
         );
     });
 });

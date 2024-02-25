@@ -35,11 +35,11 @@ describe('Transpiler string concatenation assignment operator ".=" test', functi
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var concatWith = core.concatWith, createString = core.createString, getVariable = core.getVariable;' +
-            'return concatWith(getVariable("myVar"))(createString("my string here"));' +
-            '});'
+            'return concatWith(getVariable("myVar"), createString("my string here"));' +
+            '}'
         );
     });
 });

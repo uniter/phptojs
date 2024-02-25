@@ -38,7 +38,54 @@ describe('Transpiler greater-than-or-equal comparison operator test', function (
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, isGreaterThanOrEqual = core.isGreaterThanOrEqual;' +
-            'return isGreaterThanOrEqual(createInteger(21))(createInteger(32));' +
+            'return isGreaterThanOrEqual(createInteger(21), createInteger(32));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return with a comparison between a variable and complex expression', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_VARIABLE',
+                        variable: 'myLeftVar'
+                    },
+                    right: [{
+                        operator: '>=',
+                        operand: {
+                            name: 'N_TERNARY',
+                            condition: {
+                                name: 'N_VARIABLE',
+                                variable: 'myCondition'
+                            },
+                            consequent: {
+                                name: 'N_STRING_LITERAL',
+                                string: 'myRightStringIfTruthy'
+                            },
+                            alternate: {
+                                name: 'N_STRING_LITERAL',
+                                string: 'myRightStringIfFalsy'
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createString = core.createString, getVariable = core.getVariable, isGreaterThanOrEqual = core.isGreaterThanOrEqual, snapshot = core.snapshot, ternary = core.ternary;' +
+            'return isGreaterThanOrEqual(' +
+            // Plain variable object operand must be snapshotted due to complex subsequent operand (ternary).
+            'snapshot(getVariable("myLeftVar")), ' +
+            '(ternary(getVariable("myCondition")) ? ' +
+            'createString("myRightStringIfTruthy") : ' +
+            'createString("myRightStringIfFalsy")' +
+            '));' +
             '}'
         );
     });

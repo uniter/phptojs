@@ -28,11 +28,11 @@ describe('Transpiler eval(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var eval = core.eval, getVariable = core.getVariable;' +
             'return eval(getVariable("myCode"));' +
-            '});'
+            '}'
         );
     });
 });

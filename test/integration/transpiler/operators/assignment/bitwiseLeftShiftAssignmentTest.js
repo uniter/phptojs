@@ -35,11 +35,11 @@ describe('Transpiler bitwise left-shift assignment operator "<<=" test', functio
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, shiftLeftBy = core.shiftLeftBy;' +
-            'return shiftLeftBy(getVariable("myVar"))(createInteger(12));' +
-            '});'
+            'return shiftLeftBy(getVariable("myVar"), createInteger(12));' +
+            '}'
         );
     });
 });

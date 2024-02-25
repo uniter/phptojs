@@ -56,8 +56,8 @@ describe('Transpiler static variable scope statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineFunction = core.defineFunction, importStatic = core.importStatic;' +
             'defineFunction("myFunc", function _myFunc() {' +
             'importStatic("firstVar");' +
@@ -65,7 +65,7 @@ describe('Transpiler static variable scope statement test', function () {
             '}, [' +
             '{"type":"callable","name":"myArg"}' +
             ']);' +
-            '});'
+            '}'
         );
     });
 });

@@ -326,6 +326,7 @@ describe('Transpiler source map test', function () {
                 }
             },
             options = {
+                bare: true,
                 path: 'my_module.php',
                 sourceMap: {
                     sourceContent: '<?php $this = "is my source PHP";'
@@ -333,7 +334,7 @@ describe('Transpiler source map test', function () {
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+            'function (core) {' +
             'var createClosure = core.createClosure, createDebugVar = core.createDebugVar, defineClass = core.defineClass, defineFunction = core.defineFunction, getValueBinding = core.getValueBinding, getVariable = core.getVariable, setValue = core.setValue;' +
             // Debug variable will be inserted for better debugging in Chrome dev tools
             'var $myGlobalCodeVar = createDebugVar("myGlobalCodeVar");' +
@@ -356,16 +357,16 @@ describe('Transpiler source map test', function () {
             'var $myArgVar = createDebugVar("myArgVar");' +
             'var $this = createDebugVar("this");' +
             'var $myClosureVar = createDebugVar("myClosureVar");' +
-            'setValue(getVariable("myBoundVar"))(getValueBinding("myBoundVar"));' +
+            'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
             'var $myBoundVar = createDebugVar("myBoundVar");' +
             'return getVariable("myClosureVar");' +
             '}, [' +
             '{"name":"myArgVar"}' +
             '], [{"name":"myBoundVar"}]);' +
-            '});' +
+            '}' +
             '\n\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm1' +
             '5X21vZHVsZS5waHAiXSwibmFtZXMiOlsiTl9TVFJJTkciLCIkbXlGdW5jdGlvblZhciIsIiRteU1ldGhvZFZhciIs' +
-            'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiI2VkFFS' +
+            'IiRteUdsb2JhbENvZGVWYXIiLCIkbXlCb3VuZFZhciIsIiRteUNsb3N1cmVWYXIiXSwibWFwcGluZ3MiOiIrVEFFS' +
             'yxrQ0FBQUEsT0FBQSw0RkFLSSxPQUFVQyw0QkFBVixDQUxKLEdBREksc0hBU0ksbUNBTE5ELFNBS00sd0ZBSE0sT0' +
             'FBQUUsMEJBQUEsQ0FHTixFQVRKLG1CQU1BLE9BQVVDLDhCQUFWLENBQVUsME9BQUFDLFdBQUEsdUNBQUFDLDJCQUF' +
             'BLG9EIiwic291cmNlc0NvbnRlbnQiOlsiPD9waHAgJHRoaXMgPSBcImlzIG15IHNvdXJjZSBQSFBcIjsiXX0=' +

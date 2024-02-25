@@ -30,11 +30,11 @@ describe('Transpiler decrement "--" operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, preDecrement = core.preDecrement;' +
             'preDecrement(getVariable("myVar"));' +
-            '});'
+            '}'
         );
     });
 
@@ -55,11 +55,11 @@ describe('Transpiler decrement "--" operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, postDecrement = core.postDecrement;' +
             'postDecrement(getVariable("myVar"));' +
-            '});'
+            '}'
         );
     });
 });

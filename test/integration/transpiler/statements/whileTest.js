@@ -45,13 +45,13 @@ describe('Transpiler "while" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, echo = core.echo, isGreaterThan = core.isGreaterThan, loop = core.loop;' +
-            'block_1: while (loop(0, isGreaterThan(createInteger(27))(createInteger(21)))) {' +
+            'block_1: while (loop(0, isGreaterThan(createInteger(27), createInteger(21)))) {' +
             'echo(createInteger(4));' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -109,8 +109,8 @@ describe('Transpiler "while" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, echo = core.echo, getVariable = core.getVariable, loop = core.loop;' +
             'block_1: while (loop(0, getVariable("firstVar"))) {' +
             'echo(createString("first"));' +
@@ -121,7 +121,7 @@ describe('Transpiler "while" statement test', function () {
             'block_1: while (loop(2, getVariable("thirdVar"))) {' +
             'echo(createString("third"));' +
             '}' +
-            '});'
+            '}'
         );
     });
 });

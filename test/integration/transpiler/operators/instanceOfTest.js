@@ -32,11 +32,11 @@ describe('Transpiler instanceof binary operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, instanceOf = core.instanceOf;' +
-            'return instanceOf(getVariable("myObject"))(getVariable("myClass"));' +
-            '});'
+            'return instanceOf(getVariable("myObject"), getVariable("myClass"));' +
+            '}'
         );
     });
 
@@ -59,11 +59,11 @@ describe('Transpiler instanceof binary operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createBareword = core.createBareword, getVariable = core.getVariable, instanceOf = core.instanceOf;' +
-            'return instanceOf(getVariable("myObject"))(createBareword("MyClass"));' +
-            '});'
+            'return instanceOf(getVariable("myObject"), createBareword("MyClass"));' +
+            '}'
         );
     });
 
@@ -93,11 +93,11 @@ describe('Transpiler instanceof binary operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var callFunction = core.callFunction, createBareword = core.createBareword, getVariable = core.getVariable, instanceOf = core.instanceOf;' +
-            'return callFunction("myFunc")(instanceOf(getVariable("myObject"))(createBareword("MyClass")))();' +
-            '});'
+            'return callFunction("myFunc", instanceOf(getVariable("myObject"), createBareword("MyClass")));' +
+            '}'
         );
     });
 });

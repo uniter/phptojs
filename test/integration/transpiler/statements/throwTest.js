@@ -25,11 +25,11 @@ describe('Transpiler throw statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, throw_ = core.throw_;' +
             'throw_(getVariable("myError"));' +
-            '});'
+            '}'
         );
     });
 });

@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../..');
 
 describe('Transpiler scope resolution operator test', function () {
-    it('should correctly transpile a return statement with static class constant read in default (async) mode', function () {
+    it('should correctly transpile a return statement with static class constant read', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -29,11 +29,11 @@ describe('Transpiler scope resolution operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createBareword = core.createBareword, getClassConstant = core.getClassConstant;' +
-            'return getClassConstant(createBareword("MyClass"))("MY_CONST");' +
-            '});'
+            'return getClassConstant(createBareword("MyClass"), "MY_CONST");' +
+            '}'
         );
     });
 });

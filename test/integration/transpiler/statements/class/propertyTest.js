@@ -41,8 +41,8 @@ describe('Transpiler class statement with properties test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
@@ -55,7 +55,7 @@ describe('Transpiler class statement with properties test', function () {
             'methods: {}, ' +
             'constants: {}' +
             '});' +
-            '});'
+            '}'
         );
     });
 
@@ -87,8 +87,8 @@ describe('Transpiler class statement with properties test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
@@ -107,7 +107,7 @@ describe('Transpiler class statement with properties test', function () {
             'methods: {}, ' +
             'constants: {}' +
             '});' +
-            '});'
+            '}'
         );
     });
 
@@ -147,8 +147,8 @@ describe('Transpiler class statement with properties test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
@@ -156,7 +156,7 @@ describe('Transpiler class statement with properties test', function () {
             'staticProperties: {}, ' +
             'properties: {' +
             '"myProp": {visibility: "protected", value: function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass)("MY_CONST"); ' +
+            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}}' +
             '}, ' +
             'methods: {}, ' +
@@ -166,7 +166,7 @@ describe('Transpiler class statement with properties test', function () {
             '}' +
             '}' +
             '});' +
-            '});'
+            '}'
         );
     });
 
@@ -206,8 +206,8 @@ describe('Transpiler class statement with properties test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
@@ -216,7 +216,7 @@ describe('Transpiler class statement with properties test', function () {
             '"myStaticProp": {' +
             'visibility: "private", ' +
             'value: function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass)("MY_CONST"); ' +
+            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
             '}' +
             '}}, ' +
             'properties: {}, ' +
@@ -227,7 +227,7 @@ describe('Transpiler class statement with properties test', function () {
             '}' +
             '}' +
             '});' +
-            '});'
+            '}'
         );
     });
 });

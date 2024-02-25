@@ -25,11 +25,11 @@ describe('Transpiler unset(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, unset = core.unset;' +
-            'unset(getVariable("a_var"))();' +
-            '});'
+            'unset(getVariable("a_var"));' +
+            '}'
         );
     });
 
@@ -48,11 +48,11 @@ describe('Transpiler unset(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, unset = core.unset;' +
-            'unset(getVariable("first_var"))(getVariable("second_var"))();' +
-            '});'
+            'unset(getVariable("first_var"), getVariable("second_var"));' +
+            '}'
         );
     });
 
@@ -75,11 +75,11 @@ describe('Transpiler unset(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getElement = core.getElement, getVariable = core.getVariable, unset = core.unset;' +
-            'unset(getElement(getVariable("myArray"), 21))();' +
-            '});'
+            'unset(getElement(getVariable("myArray"), 21));' +
+            '}'
         );
     });
 
@@ -102,11 +102,11 @@ describe('Transpiler unset(...) construct expression test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, unset = core.unset;' +
-            'unset(getInstanceProperty(getVariable("an_object"))("prop"))();' +
-            '});'
+            'unset(getInstanceProperty(getVariable("an_object"), "prop"));' +
+            '}'
         );
     });
 });

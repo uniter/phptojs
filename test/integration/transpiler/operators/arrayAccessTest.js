@@ -32,11 +32,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getElement = core.getElement, getVariable = core.getVariable;' +
             'return getElement(getVariable("myArray"), 21);' +
-            '});'
+            '}'
         );
     });
 
@@ -59,11 +59,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getElement = core.getElement, getVariable = core.getVariable;' +
             'return getElement(getVariable("myArray"), "myKey");' +
-            '});'
+            '}'
         );
     });
 
@@ -86,11 +86,55 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, getVariableElement = core.getVariableElement;' +
-            'return getVariableElement(getVariable("myArray"))(getVariable("myKeyVar"));' +
-            '});'
+            'return getVariableElement(getVariable("myArray"), getVariable("myKeyVar"));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return statement with a complex expression as array index', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ARRAY_INDEX',
+                    array: {
+                        name: 'N_VARIABLE',
+                        variable: 'myArray'
+                    },
+                    index: {
+                        name: 'N_TERNARY',
+                        condition: {
+                            name: 'N_VARIABLE',
+                            variable: 'myCondition'
+                        },
+                        consequent: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'myKeyIfTruthy'
+                        },
+                        alternate: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'myKeyIfFalsy'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createString = core.createString, getVariable = core.getVariable, getVariableElement = core.getVariableElement, snapshot = core.snapshot, ternary = core.ternary;' +
+            'return getVariableElement(' +
+            // Plain variable array/object operand must be snapshotted due to complex subsequent operand (ternary).
+            'snapshot(getVariable("myArray")), ' +
+            '(ternary(getVariable("myCondition")) ? ' +
+            'createString("myKeyIfTruthy") : ' +
+            'createString("myKeyIfFalsy")' +
+            '));' +
+            '}'
         );
     });
 
@@ -120,11 +164,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getElement = core.getElement, getVariable = core.getVariable;' +
             'return getElement(getElement(getVariable("myArray"), 21), 101);' +
-            '});'
+            '}'
         );
     });
 
@@ -157,11 +201,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, getElement = core.getElement, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getElement(getVariable("myArray"), 21))(createInteger(5));' +
-            '});'
+            'setValue(getElement(getVariable("myArray"), 21), createInteger(5));' +
+            '}'
         );
     });
 
@@ -201,11 +245,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, getElement = core.getElement, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getElement(getElement(getVariable("myArray"), 21), 24))(createInteger(5));' +
-            '});'
+            'setValue(getElement(getElement(getVariable("myArray"), 21), 24), createInteger(5));' +
+            '}'
         );
     });
 
@@ -222,7 +266,7 @@ describe('Transpiler array access operator test', function () {
                             name: 'N_VARIABLE',
                             variable: 'myArray'
                         },
-                        index: null // Indicates a push
+                        index: null // Indicates a push.
                     },
                     right: [{
                         operator: '=',
@@ -235,11 +279,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, pushElement = core.pushElement, setValue = core.setValue;' +
-            'setValue(pushElement(getVariable("myArray")))(createInteger(21));' +
-            '});'
+            'setValue(pushElement(getVariable("myArray")), createInteger(21));' +
+            '}'
         );
     });
 
@@ -256,7 +300,7 @@ describe('Transpiler array access operator test', function () {
                             name: 'N_VARIABLE',
                             variable: 'myArray'
                         },
-                        index: null // Indicates a push
+                        index: null // Indicates a push.
                     },
                     right: [{
                         operator: '=',
@@ -276,11 +320,11 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, pushElement = core.pushElement, setValue = core.setValue;' +
-            'setValue(pushElement(getVariable("myArray")))(getInstanceProperty(getVariable("myTarget"))("myProp"));' +
-            '});'
+            'setValue(pushElement(getVariable("myArray")), getInstanceProperty(getVariable("myTarget"), "myProp"));' +
+            '}'
         );
     });
 
@@ -297,7 +341,7 @@ describe('Transpiler array access operator test', function () {
                             name: 'N_VARIABLE',
                             variable: 'myArray'
                         },
-                        index: null // Indicates a push
+                        index: null // Indicates a push.
                     },
                     right: [{
                         operator: '=',
@@ -313,11 +357,62 @@ describe('Transpiler array access operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, pushElement = core.pushElement, setReference = core.setReference;' +
-            'setReference(pushElement(getVariable("myArray")))(getVariable("myTarget"));' +
-            '});'
+            'setReference(pushElement(getVariable("myArray")), getVariable("myTarget"));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a push of complex expression', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_ARRAY_INDEX',
+                        array: {
+                            name: 'N_VARIABLE',
+                            variable: 'myArray'
+                        },
+                        index: null // Indicates a push.
+                    },
+                    right: [{
+                        operator: '=',
+                        operand: {
+                            name: 'N_TERNARY',
+                            condition: {
+                                name: 'N_VARIABLE',
+                                variable: 'myCondition'
+                            },
+                            consequent: {
+                                name: 'N_STRING_LITERAL',
+                                string: 'myRightStringIfTruthy'
+                            },
+                            alternate: {
+                                name: 'N_STRING_LITERAL',
+                                string: 'myRightStringIfFalsy'
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createString = core.createString, getVariable = core.getVariable, pushElement = core.pushElement, setValue = core.setValue, ternary = core.ternary;' +
+            'setValue(' +
+            // No snapshotting is required as push element is resolved first.
+            'pushElement(getVariable("myArray")), ' +
+            '(ternary(getVariable("myCondition")) ? ' +
+            'createString("myRightStringIfTruthy") : ' +
+            'createString("myRightStringIfFalsy")' +
+            '));' +
+            '}'
         );
     });
 });

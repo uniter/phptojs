@@ -41,7 +41,7 @@ describe('Transpiler object cast operator test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var add = core.add, coerceToObject = core.coerceToObject, createInteger = core.createInteger, getVariable = core.getVariable;' +
-            'coerceToObject(add(getVariable("myVar"))(createInteger(21)));' +
+            'coerceToObject(add(getVariable("myVar"), createInteger(21)));' +
             '}'
         );
     });

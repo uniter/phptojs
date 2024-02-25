@@ -60,11 +60,90 @@ describe('Transpiler array literal expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createInteger = core.createInteger, createReferenceElement = core.createReferenceElement, getVariable = core.getVariable;' +
-            'return createArray' +
-            '(createInteger(21))' +
-            '(getVariable("myVarByVal"))' +
-            '(createReferenceElement(getVariable("myVarByRef")))' +
-            '();' +
+            'return createArray(' +
+            'createInteger(21), ' +
+            'getVariable("myVarByVal"), ' +
+            'createReferenceElement(getVariable("myVarByRef"))' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return of array with immediate integer between two variables', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ARRAY_LITERAL',
+                    elements: [{
+                        name: 'N_VARIABLE',
+                        variable: 'myFirstVar'
+                    }, {
+                        name: 'N_INTEGER',
+                        number: 21
+                    }, {
+                        name: 'N_VARIABLE',
+                        variable: 'mySecondVar'
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createArray = core.createArray, createInteger = core.createInteger, getVariable = core.getVariable;' +
+            'return createArray(' +
+            // All elements are benign despite containing variables, so no snapshotting is needed.
+            'getVariable("myFirstVar"), ' +
+            'createInteger(21), ' +
+            'getVariable("mySecondVar")' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a return of array with immediate integer between a variable and an assignment', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_ARRAY_LITERAL',
+                    elements: [{
+                        name: 'N_VARIABLE',
+                        variable: 'myFirstVar'
+                    }, {
+                        name: 'N_INTEGER',
+                        number: 21
+                    }, {
+                        name: 'N_EXPRESSION',
+                        left: {
+                            name: 'N_VARIABLE',
+                            variable: 'mySecondVar'
+                        },
+                        right: [{
+                            operator: '=',
+                            operand: {
+                                name: 'N_INTEGER',
+                                number: 101
+                            }
+                        }]
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createArray = core.createArray, createInteger = core.createInteger, getVariable = core.getVariable, setValue = core.setValue, snapshot = core.snapshot;' +
+            'return createArray(' +
+            // This non-literal element could be affected by the assignment below,
+            // so it must be snapshotted.
+            'snapshot(getVariable("myFirstVar")), ' +
+            'createInteger(21), ' +
+            'setValue(getVariable("mySecondVar"), createInteger(101))' +
+            ');' +
             '}'
         );
     });
@@ -132,14 +211,14 @@ describe('Transpiler array literal expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createInteger = core.createInteger, createReferenceElement = core.createReferenceElement, getElement = core.getElement, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(getVariable("myTarget"))(' +
-            'createArray' +
-            '(createInteger(21))' +
-            '(getVariable("myVarByVal"))' +
-            '(createReferenceElement(getVariable("myVarByRef")))' +
-            '(createReferenceElement(getElement(getVariable("myArray"), "myElementByRef")))' +
-            '(createReferenceElement(getInstanceProperty(getVariable("myObject"))("myPropertyByRef")))' +
-            '()' +
+            'setValue(getVariable("myTarget"), ' +
+            'createArray(' +
+            'createInteger(21), ' +
+            'getVariable("myVarByVal"), ' +
+            'createReferenceElement(getVariable("myVarByRef")), ' +
+            'createReferenceElement(getElement(getVariable("myArray"), "myElementByRef")), ' +
+            'createReferenceElement(getInstanceProperty(getVariable("myObject"), "myPropertyByRef"))' +
+            ')' +
             ');' +
             '}'
         );
@@ -183,10 +262,10 @@ describe('Transpiler array literal expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createKeyReferencePair = core.createKeyReferencePair, createKeyValuePair = core.createKeyValuePair, createString = core.createString, getVariable = core.getVariable;' +
-            'return createArray' +
-            '(createKeyValuePair(createString("myKeyForVal"))(getVariable("myVarByVal")))' +
-            '(createKeyReferencePair(createString("myKeyForRef"))(getVariable("myVarByRef")))' +
-            '();' +
+            'return createArray(' +
+            'createKeyValuePair(createString("myKeyForVal"), getVariable("myVarByVal")), ' +
+            'createKeyReferencePair(createString("myKeyForRef"), getVariable("myVarByRef"))' +
+            ');' +
             '}'
         );
     });

@@ -78,17 +78,17 @@ describe('Transpiler "continue" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, isLessThan = core.isLessThan, loop = core.loop, postIncrement = core.postIncrement, setValue = core.setValue;' +
             'block_1: for (' +
-            'setValue(getVariable("i"))(createInteger(0));' +
-            'loop(0, isLessThan(getVariable("i"))(createInteger(2)));' +
+            'setValue(getVariable("i"), createInteger(0));' +
+            'loop(0, isLessThan(getVariable("i"), createInteger(2)));' +
             'postIncrement(getVariable("i"))' +
             ') {' +
             'continue block_1;' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -115,8 +115,8 @@ describe('Transpiler "continue" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var advance = core.advance, getCurrentElementValue = core.getCurrentElementValue, getIterator = core.getIterator, getVariable = core.getVariable, isNotFinished = core.isNotFinished, setValue = core.setValue;' +
             '' +
             'block_1: for (var iterator_1 = getIterator(getVariable("myArray")); ' +
@@ -125,7 +125,7 @@ describe('Transpiler "continue" statement test', function () {
             'setValue(getVariable("item"), getCurrentElementValue(iterator_1));' +
             'continue block_1;' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -151,13 +151,13 @@ describe('Transpiler "continue" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, loop = core.loop;' +
             'block_1: while (loop(0, createInteger(21))) {' +
             'continue block_1;' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -183,13 +183,13 @@ describe('Transpiler "continue" statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, loop = core.loop;' +
             'block_1: do {' +
             'continue block_1;' +
             '} while (loop(0, createInteger(21)));' +
-            '});'
+            '}'
         );
     });
 
@@ -219,9 +219,9 @@ describe('Transpiler "continue" statement test', function () {
             }]
         };
 
-        // In PHP, `continue` inside a `switch` should behave the save as a `break`
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        // In PHP, `continue` inside a `switch` should behave the same as a `break`.
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, switchCase = core.switchCase, switchOn = core.switchOn;' +
             'var switchExpression_1 = switchOn(createInteger(21)), ' +
             'switchMatched_1 = false;' +
@@ -231,7 +231,7 @@ describe('Transpiler "continue" statement test', function () {
             'break block_1;' +
             '}' +
             '}' +
-            '});'
+            '}'
         );
     });
 

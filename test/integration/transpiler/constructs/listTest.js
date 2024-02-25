@@ -44,7 +44,7 @@ describe('Transpiler list(...) construct test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createArray = core.createArray, createInteger = core.createInteger, createList = core.createList, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(createList(getVariable("myVar"))())(createArray(createInteger(21))());' +
+            'setValue(createList(getVariable("myVar")), createArray(createInteger(21)));' +
             '}'
         );
     });
@@ -82,11 +82,17 @@ describe('Transpiler list(...) construct test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createArray = core.createArray, createInteger = core.createInteger, createList = core.createList, createVoid = core.createVoid, getVariable = core.getVariable, setValue = core.setValue;' +
-            'setValue(createList(createVoid())(getVariable("myVar"))())(createArray(createInteger(4))(createInteger(21))());' +
-            '});'
+            'setValue(' +
+            'createList(' +
+            'createVoid(), ' +
+            'getVariable("myVar")' +
+            '), ' +
+            'createArray(createInteger(4), createInteger(21))' +
+            ');' +
+            '}'
         );
     });
 });

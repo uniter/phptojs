@@ -39,7 +39,7 @@ describe('Transpiler if statement test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, if_ = core.if_;' +
-            'if (if_(getInstanceProperty(getVariable("myObject"))("myProp"))) {}' +
+            'if (if_(getInstanceProperty(getVariable("myObject"), "myProp"))) {}' +
             '}'
         );
     });
@@ -88,11 +88,11 @@ describe('Transpiler if statement test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var callFunction = core.callFunction, createClosure = core.createClosure, getInstanceProperty = core.getInstanceProperty, getVariable = core.getVariable, if_ = core.if_;' +
-            'callFunction("myFunc")(' +
+            'callFunction("myFunc", ' +
             'createClosure(function () {' +
-            'if (if_(getInstanceProperty(getVariable("myObject"))("myProp"))) {}' +
+            'if (if_(getInstanceProperty(getVariable("myObject"), "myProp"))) {}' +
             '})' +
-            ')();' +
+            ');' +
             '}'
         );
     });
@@ -137,15 +137,15 @@ describe('Transpiler if statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var callFunction = core.callFunction, if_ = core.if_, trueValue = core.trueValue;' +
             'if (if_(trueValue)) {' +
-            'callFunction("firstFunc")();' +
+            'callFunction("firstFunc");' +
             '} else {' +
-            'callFunction("secondFunc")();' +
+            'callFunction("secondFunc");' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -222,13 +222,13 @@ describe('Transpiler if statement test', function () {
                 'if_(' +
                     'createBoolean(' +
                         'logicalTerm(' +
-                            'isIdentical(createInteger(1))(createInteger(2))' +
+                            'isIdentical(createInteger(1), createInteger(2))' +
                         ') || logicalTerm(' +
                             'createBoolean(' +
                                 'logicalTerm(' +
-                                    'isIdentical(createInteger(3))(createInteger(4))' +
+                                    'isIdentical(createInteger(3), createInteger(4))' +
                                 ') || logicalTerm(' +
-                                    'isIdentical(createInteger(5))(createInteger(6))' +
+                                    'isIdentical(createInteger(5), createInteger(6))' +
                                 ')' +
                             ')' +
                         ')' +

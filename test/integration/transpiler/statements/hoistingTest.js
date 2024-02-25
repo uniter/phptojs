@@ -65,8 +65,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
             // "Use" import statement.
             'useClass("Your\\\\Class", "YourImportedClass");' +
@@ -83,8 +83,8 @@ describe('Transpiler statement hoisting test', function () {
             // TODO: Don't output these properties in this object literal when they are empty
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             // Expression statement ends up below all declarations.
-            'setValue(getVariable("myVar"))(createInteger(21));' +
-            '});'
+            'setValue(getVariable("myVar"), createInteger(21));' +
+            '}'
         );
     });
 
@@ -103,8 +103,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineClass = core.defineClass;' +
             // Parent class declaration statement. Note that it has been sorted
             // above the child class so that it is defined first.
@@ -115,7 +115,7 @@ describe('Transpiler statement hoisting test', function () {
             'defineClass("ChildClass", {' +
             'superClass: "ParentClass", ' +
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '});'
+            '}'
         );
     });
 
@@ -139,8 +139,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineClass = core.defineClass;' +
             // Grandparent class declaration statement. Note that it has been sorted
             // above both the parent and child classes so that it is defined first.
@@ -156,7 +156,7 @@ describe('Transpiler statement hoisting test', function () {
             'defineClass("ChildClass", {' +
             'superClass: "ParentClass", ' +
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '});'
+            '}'
         );
     });
 
@@ -176,8 +176,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineClass = core.defineClass;' +
 
             // Note that grandparent class declaration statement is missing.
@@ -191,7 +191,7 @@ describe('Transpiler statement hoisting test', function () {
             'defineClass("ChildClass", {' +
             'superClass: "ParentClass", ' +
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '});'
+            '}'
         );
     });
 
@@ -212,8 +212,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineClass = core.defineClass, useClass = core.useClass;' +
             // Class declaration statement.
             'defineClass("MyClass", {' +
@@ -221,7 +221,7 @@ describe('Transpiler statement hoisting test', function () {
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             // "Use" import statement.
             'useClass("Your\\\\Class", "YourImportedClass");' +
-            '});'
+            '}'
         );
     });
 
@@ -240,8 +240,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineInterface = core.defineInterface;' +
             // Parent interface declaration statement. Note that it has been sorted
             // above the child interface so that it is defined first.
@@ -253,7 +253,7 @@ describe('Transpiler statement hoisting test', function () {
             'superClass: null, ' +
             'interfaces: ["ParentInterface"], ' +
             'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '});'
+            '}'
         );
     });
 
@@ -277,8 +277,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineInterface = core.defineInterface;' +
             // Grandparent interface declaration statement. Note that it has been sorted
             // above both the parent and child interfaces so that it is defined first.
@@ -296,7 +296,7 @@ describe('Transpiler statement hoisting test', function () {
             'superClass: null, ' +
             'interfaces: ["ParentInterface"], ' +
             'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '});'
+            '}'
         );
     });
 
@@ -316,8 +316,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineInterface = core.defineInterface;' +
 
             // Note that grandparent interface declaration statement is missing.
@@ -333,7 +333,7 @@ describe('Transpiler statement hoisting test', function () {
             'superClass: null, ' +
             'interfaces: ["ParentInterface"], ' +
             'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
-            '});'
+            '}'
         );
     });
 
@@ -354,8 +354,8 @@ describe('Transpiler statement hoisting test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var defineInterface = core.defineInterface, useClass = core.useClass;' +
             // Interface declaration statement.
             'defineInterface("MyInterface", {' +
@@ -364,7 +364,7 @@ describe('Transpiler statement hoisting test', function () {
             'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             // "Use" import statement.
             'useClass("Your\\\\Interface", "YourImportedInterface");' +
-            '});'
+            '}'
         );
     });
 });

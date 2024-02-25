@@ -28,13 +28,13 @@ describe('Transpiler use statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var useClass = core.useClass, useDescendantNamespaceScope = core.useDescendantNamespaceScope;' +
 
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\Space");' +
             'useClass("My\\\\Imported\\\\MyClass");' +
-            '});'
+            '}'
         );
     });
 
@@ -54,13 +54,13 @@ describe('Transpiler use statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var useClass = core.useClass, useDescendantNamespaceScope = core.useDescendantNamespaceScope;' +
 
             'useDescendantNamespaceScope("This\\\\Is\\\\My\\\\Space");' +
             'useClass("My\\\\Imported\\\\MyClass", "MyAlias");' +
-            '});'
+            '}'
         );
     });
 });

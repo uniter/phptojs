@@ -38,7 +38,7 @@ describe('Transpiler bitwise right-shift assignment operator ">>=" test', functi
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, shiftRightBy = core.shiftRightBy;' +
-            'return shiftRightBy(getVariable("myVar"))(createInteger(12));' +
+            'return shiftRightBy(getVariable("myVar"), createInteger(12));' +
             '}'
         );
     });

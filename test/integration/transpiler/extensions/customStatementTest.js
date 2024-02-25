@@ -56,13 +56,13 @@ describe('Transpiler custom statement test', function () {
                 }
             };
 
-        expect(phpToJS.transpile(ast, {}, options)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true}, options)).to.equal(
+            'function (core) {' +
             'var callFunction = core.callFunction, createInteger = core.createInteger, getNative = core.getNative, printRaw = core.printRaw;' +
-            'callFunction("firstFunc")();' +
+            'callFunction("firstFunc");' +
             'printRaw("Trapped: " + getNative(createInteger(21)));' +
-            'callFunction("secondFunc")();' +
-            '});'
+            'callFunction("secondFunc");' +
+            '}'
         );
     });
 });

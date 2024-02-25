@@ -34,12 +34,12 @@ describe('Transpiler "const" declaration statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createInteger = core.createInteger, createString = core.createString, defineConstant = core.defineConstant;' +
             'defineConstant("FIRST_CONST", createInteger(101));' +
             'defineConstant("SECOND_CONST", createString("hello world!"));' +
-            '});'
+            '}'
         );
     });
 });

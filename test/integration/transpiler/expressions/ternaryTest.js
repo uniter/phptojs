@@ -49,7 +49,7 @@ describe('Transpiler ternary expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, isEqual = core.isEqual, ternary = core.ternary;' +
-            '(ternary(isEqual(getVariable("myVar"))(createInteger(21))) ? ' +
+            '(ternary(isEqual(getVariable("myVar"), createInteger(21))) ? ' +
             'createInteger(22) : ' +
             'createInteger(23));' +
             '}'
@@ -89,7 +89,7 @@ describe('Transpiler ternary expression test', function () {
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
             'var createInteger = core.createInteger, getVariable = core.getVariable, isEqual = core.isEqual, ternary = core.ternary, ternaryCondition;' +
-            '(ternary(ternaryCondition = isEqual(getVariable("myVar"))(createInteger(21))) ? ' +
+            '(ternary(ternaryCondition = isEqual(getVariable("myVar"), createInteger(21))) ? ' +
             'ternaryCondition : ' +
             'createInteger(23));' +
             '}'
@@ -142,7 +142,7 @@ describe('Transpiler ternary expression test', function () {
             'var createInteger = core.createInteger, defineFunction = core.defineFunction, getVariable = core.getVariable, isEqual = core.isEqual, ternary = core.ternary;' +
             'defineFunction("myFunc", function _myFunc() {' +
             'var ternaryCondition;' +
-            '(ternary(ternaryCondition = isEqual(getVariable("myVar"))(createInteger(21))) ? ' +
+            '(ternary(ternaryCondition = isEqual(getVariable("myVar"), createInteger(21))) ? ' +
             'ternaryCondition : ' +
             'createInteger(23));' +
             '});' +

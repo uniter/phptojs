@@ -15,7 +15,7 @@ var expect = require('chai').expect,
     PHPFatalError = phpCommon.PHPFatalError;
 
 describe('Transpiler interface statement test', function () {
-    it('should correctly transpile an interface in default (async) mode', function () {
+    it('should correctly transpile an interface', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -79,8 +79,8 @@ describe('Transpiler interface statement test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var createString = core.createString, defineInterface = core.defineInterface;' +
             'defineInterface("Thing", {' +
             'superClass: null, ' +
@@ -93,11 +93,12 @@ describe('Transpiler interface statement test', function () {
             '}, ' +
             'constants: {' +
             // TODO: Prevent unnecessary currentClass parameter from being output when not referenced
+            //       (not urgent as minifiers/optimisers should remove).
             '"SHAPE_ONE": function (currentClass) { return createString("sphere"); }, ' +
             '"SHAPE_TWO": function (currentClass) { return createString("circle"); }' +
             '}' +
             '});' +
-            '});'
+            '}'
         );
     });
 

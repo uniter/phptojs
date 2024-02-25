@@ -43,16 +43,17 @@ describe('Transpiler line numbers test', function () {
                 }
             },
             options = {
+                bare: true,
                 path: 'my_module.php',
                 lineNumbers: true
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+            'function (core) {' +
             'var createInteger = core.createInteger, instrument = core.instrument, line;' +
             'instrument(function () {return line;});' +
             'line = 6;return (line = 8, createInteger(4));' +
-            '});'
+            '}'
         );
     });
 
@@ -96,17 +97,18 @@ describe('Transpiler line numbers test', function () {
                 }
             },
             options = {
+                bare: true,
                 path: 'my_module.php',
                 lineNumbers: true
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+            'function (core) {' +
             'var createInteger = core.createInteger, instrument = core.instrument, line, useGlobalNamespaceScope = core.useGlobalNamespaceScope;' +
             'instrument(function () {return line;});' +
             'line = 4;useGlobalNamespaceScope();' +
             'line = 6;return (line = 8, createInteger(101));' +
-            '});'
+            '}'
         );
     });
 
@@ -168,18 +170,19 @@ describe('Transpiler line numbers test', function () {
                 }
             },
             options = {
+                bare: true,
                 path: 'my_module.php',
                 lineNumbers: true
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+            'function (core) {' +
             'var echo = core.echo, getVariable = core.getVariable, instrument = core.instrument, line, loop = core.loop;' +
             'instrument(function () {return line;});' +
             'line = 6;block_1: while (loop(0, (line = 8, getVariable("myCond")))) {' +
             'line = 9;echo((line = 9, getVariable("myVar")));' +
             '}' +
-            '});'
+            '}'
         );
     });
 
@@ -476,12 +479,13 @@ describe('Transpiler line numbers test', function () {
                 }
             },
             options = {
+                bare: true,
                 path: 'my_module.php',
                 lineNumbers: true
             };
 
         expect(phpToJS.transpile(ast, options)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+            'function (core) {' +
             'var createClosure = core.createClosure, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getConstant = core.getConstant, getValueBinding = core.getValueBinding, getVariable = core.getVariable, instrument = core.instrument, line, setValue = core.setValue;' +
             'instrument(function () {return line;});' +
             'line = 3;defineFunction("myFunc", function _myFunc() {' +
@@ -514,12 +518,12 @@ describe('Transpiler line numbers test', function () {
             'line = 8;return (line = 12, createClosure(function () {' +
             'var line;' +
             'instrument(function () {return line;});' +
-            'setValue(getVariable("myBoundVar"))(getValueBinding("myBoundVar"));' +
+            'setValue(getVariable("myBoundVar"), getValueBinding("myBoundVar"));' +
             'line = 8;return (line = 11, getVariable("myClosureVar"));' +
             '}, [' +
             '{"name":"myArgVar"}' +
             '], [{"name":"myBoundVar"}], false, null, 12));' +
-            '});'
+            '}'
         );
     });
 

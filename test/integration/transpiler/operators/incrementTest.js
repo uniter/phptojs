@@ -30,11 +30,11 @@ describe('Transpiler increment "++" operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, preIncrement = core.preIncrement;' +
             'preIncrement(getVariable("myVar"));' +
-            '});'
+            '}'
         );
     });
 
@@ -55,11 +55,11 @@ describe('Transpiler increment "++" operator test', function () {
             }]
         };
 
-        expect(phpToJS.transpile(ast)).to.equal(
-            'require(\'phpruntime\').compile(function (core) {' +
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
             'var getVariable = core.getVariable, postIncrement = core.postIncrement;' +
             'postIncrement(getVariable("myVar"));' +
-            '});'
+            '}'
         );
     });
 });
