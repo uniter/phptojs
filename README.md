@@ -1,7 +1,7 @@
 PHPToJS
 =======
 
-[![Build Status](https://github.com/uniter/phptojs/workflows/CI/badge.svg)](https://github.com/uniter/phptojs/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/uniter/phptojs/workflows/CI/badge.svg?branch=master)](https://github.com/uniter/phptojs/actions?query=workflow%3ACI)
 
 PHP-to-JavaScript transpiler.
 
