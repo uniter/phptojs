@@ -19,7 +19,7 @@
   "main": "index",
   "scripts": {
     "jshint": "jshint .",
-    "mocha": "mocha -r test/harness --recursive test/unit/ test/integration/",
+    "mocha": "mocha -r mocha-bootstrap --recursive test/unit/ test/integration/",
     "test": "npm run jshint && npm run mocha"
   },
   "dependencies": {
@@ -31,11 +31,12 @@
     "transpiler": "~1.2"
   },
   "devDependencies": {
-    "chai": "^4.3.7",
+    "chai": "^4.3.10",
     "jshint": "^2.13.6",
     "mocha": "^10.2.0",
+    "mocha-bootstrap": "^1.0.6",
     "nowdoc": "^1.0.1",
-    "sinon": "^15.0.4",
+    "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0"
   },
   "engines": {

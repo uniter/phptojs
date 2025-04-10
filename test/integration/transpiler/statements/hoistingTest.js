@@ -13,7 +13,7 @@ var expect = require('chai').expect,
     phpToJS = require('../../../..');
 
 describe('Transpiler statement hoisting test', function () {
-    it('should correctly transpile a use followed by assignment, class, interface and function statements', function () {
+    it('should correctly transpile a use followed by assignment, class, trait, interface and function statements', function () {
         var ast = {
             name: 'N_PROGRAM',
             statements: [{
@@ -44,6 +44,10 @@ describe('Transpiler statement hoisting test', function () {
                 extend: 'YourImportedClass',
                 members: []
             }, {
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'TheirTrait',
+                members: []
+            }, {
                 name: 'N_FUNCTION_STATEMENT',
                 func: {
                     name: 'N_STRING',
@@ -67,7 +71,7 @@ describe('Transpiler statement hoisting test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, defineFunction = core.defineFunction, defineInterface = core.defineInterface, defineTrait = core.defineTrait, getVariable = core.getVariable, setValue = core.setValue, useClass = core.useClass;' +
             // "Use" import statement.
             'useClass("Your\\\\Class", "YourImportedClass");' +
             // Function declaration statement.
@@ -77,10 +81,14 @@ describe('Transpiler statement hoisting test', function () {
             'superClass: null, ' +
             'interfaces: ["First\\\\SuperClass","Second\\\\SuperClass"], ' +
             'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            // Trait declaration statement.
+            'defineTrait("TheirTrait", {' +
+            // TODO: Don't output these properties in this object literal when they are empty.
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             // Class declaration statement.
             'defineClass("MyClass", {' +
             'superClass: "YourImportedClass", ' +
-            // TODO: Don't output these properties in this object literal when they are empty
+            // TODO: Don't output these properties in this object literal when they are empty.
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             // Expression statement ends up below all declarations.
             'setValue(getVariable("myVar"), createInteger(21));' +
@@ -115,6 +123,39 @@ describe('Transpiler statement hoisting test', function () {
             'defineClass("ChildClass", {' +
             'superClass: "ParentClass", ' +
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            '}'
+        );
+    });
+
+    it('should sort to allow a class using a trait defined after it', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_CLASS_STATEMENT',
+                className: 'MyClass',
+                members: [{
+                    name: 'N_USE_TRAIT_STATEMENT',
+                    traitNames: ['MyTrait']
+                }]
+            }, {
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'MyTrait',
+                members: []
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var defineClass = core.defineClass, defineTrait = core.defineTrait;' +
+            // Trait declaration statement. Note that it has been sorted
+            // above the class so that it is defined first.
+            'defineTrait("MyTrait", {' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            // Class declaration statement.
+            'defineClass("MyClass", {' +
+            'superClass: null, interfaces: [], ' +
+            'traits: {names: ["MyTrait"]}, ' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             '}'
         );
     });
@@ -191,6 +232,82 @@ describe('Transpiler statement hoisting test', function () {
             'defineClass("ChildClass", {' +
             'superClass: "ParentClass", ' +
             'interfaces: [], staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            '}'
+        );
+    });
+
+    it('should sort to allow a trait using one defined after it', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'MyTrait',
+                members: [{
+                    name: 'N_USE_TRAIT_STATEMENT',
+                    traitNames: ['UsedTrait']
+                }]
+            }, {
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'UsedTrait',
+                members: []
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var defineTrait = core.defineTrait;' +
+            // Used-trait declaration statement. Note that it has been sorted
+            // above the using-trait so that it is defined first.
+            'defineTrait("UsedTrait", {' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            // Using-trait declaration statement.
+            'defineTrait("MyTrait", {' +
+            'traits: {names: ["UsedTrait"]}, ' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            '}'
+        );
+    });
+
+    it('should sort parent->child->grandparent trait declarations as grandparent->parent->child', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'ParentTrait',
+                members: [{
+                    name: 'N_USE_TRAIT_STATEMENT',
+                    traitNames: ['GrandparentTrait']
+                }]
+            }, {
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'ChildTrait',
+                members: [{
+                    name: 'N_USE_TRAIT_STATEMENT',
+                    traitNames: ['ParentTrait']
+                }]
+            }, {
+                name: 'N_TRAIT_STATEMENT',
+                traitName: 'GrandparentTrait',
+                members: []
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var defineTrait = core.defineTrait;' +
+            // Grandparent trait declaration statement. Note that it has been sorted
+            // above both the parent and child traits so that it is defined first.
+            'defineTrait("GrandparentTrait", {' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            // Parent trait declaration statement. Note that it has been sorted
+            // above the child trait so that it is defined first.
+            'defineTrait("ParentTrait", {' +
+            'traits: {names: ["GrandparentTrait"]}, ' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
+            // Child trait declaration statement.
+            'defineTrait("ChildTrait", {' +
+            'traits: {names: ["ParentTrait"]}, ' +
+            'staticProperties: {}, properties: {}, methods: {}, constants: {}});' +
             '}'
         );
     });

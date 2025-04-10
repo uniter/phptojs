@@ -56,7 +56,7 @@ describe('Transpiler class statement with constants test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getClassConstant = core.getClassConstant, getClassNameOrThrow = core.getClassNameOrThrow;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
@@ -64,13 +64,13 @@ describe('Transpiler class statement with constants test', function () {
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function (currentClass) { ' +
+            '"MY_CONST": function () { ' +
             'return createInteger(1001); ' +
             '}, ' +
-            '"ANOTHER_ONE": function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
+            '"ANOTHER_ONE": function () { ' +
+            'return getClassConstant(getClassNameOrThrow(), "MY_CONST"); ' +
             '}, ' +
-            '"YET_ANOTHER_ONE": function (currentClass) { ' +
+            '"YET_ANOTHER_ONE": function () { ' +
             'return createInteger(1234); ' +
             '}' +
             '}' +

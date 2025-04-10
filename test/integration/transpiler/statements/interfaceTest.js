@@ -92,10 +92,8 @@ describe('Transpiler interface statement test', function () {
             '"doSomethingElse": {isStatic: false, abstract: true}' +
             '}, ' +
             'constants: {' +
-            // TODO: Prevent unnecessary currentClass parameter from being output when not referenced
-            //       (not urgent as minifiers/optimisers should remove).
-            '"SHAPE_ONE": function (currentClass) { return createString("sphere"); }, ' +
-            '"SHAPE_TWO": function (currentClass) { return createString("circle"); }' +
+            '"SHAPE_ONE": function () { return createString("sphere"); }, ' +
+            '"SHAPE_TWO": function () { return createString("circle"); }' +
             '}' +
             '});' +
             '}'

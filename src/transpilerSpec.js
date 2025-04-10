@@ -283,13 +283,16 @@ function hoistDeclarations(statements) {
         interfaceDeclarations = [],
         interfaceNameToReferencesMap = {},
         nonDeclarations = [],
-        skipHoisting = false;
+        skipHoisting = false,
+        traitDeclarations = [],
+        traitNameToReferencesMap = {};
 
     // FIXME: Note that class and interface references should be resolved relative
     //        to the current namespace scope, but resolution is currently done at runtime.
 
     _.each(statements, function (statement) {
-        var references;
+        var references,
+            usedTraitNames;
 
         if (statement.name === 'N_CLASS_STATEMENT') {
             classDeclarations.push(statement);
@@ -308,6 +311,18 @@ function hoistDeclarations(statements) {
             interfaceDeclarations.push(statement);
 
             interfaceNameToReferencesMap[statement.interfaceName] = statement.extend || [];
+        } else if (statement.name === 'N_TRAIT_STATEMENT') {
+            traitDeclarations.push(statement);
+
+            usedTraitNames = [];
+
+            _.each(statement.members, function (memberNode) {
+                if (memberNode.name === 'N_USE_TRAIT_STATEMENT') {
+                    usedTraitNames.push(...memberNode.traitNames);
+                }
+            });
+
+            traitNameToReferencesMap[statement.traitName] = usedTraitNames;
         } else if (statement.name === 'N_USE_STATEMENT') {
             if (classDeclarations.length > 0 || interfaceDeclarations.length > 0) {
                 /*
@@ -368,6 +383,39 @@ function hoistDeclarations(statements) {
         return false;
     }
 
+    /**
+     * Determines whether another trait is used by the given trait.
+     *
+     * @param {Object.<string, string[]>} nameToReferencesMap
+     * @param {string} traitName
+     * @param {string} ancestorName
+     * @returns {boolean}
+     */
+    function traitUsesOther(nameToReferencesMap, traitName, ancestorName) {
+        var i,
+            references = nameToReferencesMap[traitName] || [];
+
+        if (references.length === 0) {
+            // Trait does not use any other so cannot have the specified ancestor.
+            return false;
+        }
+
+        if (references.indexOf(ancestorName) !== -1) {
+            // Easy case: ancestor is directly used by the trait.
+            return true;
+        }
+
+        // Walk up the hierarchy of the trait (within this block), looking for the ancestor.
+        for (i = 0; i < references.length; i++) {
+            if (traitUsesOther(nameToReferencesMap, references[i], ancestorName)) {
+                return true;
+            }
+        }
+
+        // Given name is not an ancestor of the given trait.
+        return false;
+    }
+
     interfaceDeclarations.sort(function (statementA, statementB) {
         if (classHasAncestor(interfaceNameToReferencesMap, statementB.interfaceName, statementA.interfaceName)) {
             // B extends A (or a descendant of A), so A needs to be declared first.
@@ -380,6 +428,20 @@ function hoistDeclarations(statements) {
         }
 
         return 0; // Neither interface references the other, so there is no order to apply.
+    });
+
+    traitDeclarations.sort(function (statementA, statementB) {
+        if (traitUsesOther(traitNameToReferencesMap, statementB.traitName, statementA.traitName)) {
+            // B uses A (or a descendant of A), so A needs to be declared first.
+            return -1;
+        }
+
+        if (traitUsesOther(traitNameToReferencesMap, statementA.traitName, statementB.traitName)) {
+            // A uses B (or a descendant of B), so B needs to be declared first.
+            return 1;
+        }
+
+        return 0; // Neither trait references the other, so there is no order to apply.
     });
 
     classDeclarations.sort(function (statementA, statementB) {
@@ -396,7 +458,7 @@ function hoistDeclarations(statements) {
         return 0; // Neither class references the other, so there is no order to apply.
     });
 
-    return declarations.concat(interfaceDeclarations, classDeclarations, nonDeclarations);
+    return declarations.concat(interfaceDeclarations, traitDeclarations, classDeclarations, nonDeclarations);
 }
 
 function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, statementNode, interpret, context) {
@@ -997,11 +1059,7 @@ module.exports = {
                 ];
             } else {
                 chunks = [
-                    context.useCoreSymbol(
-                        node.className.name === 'N_SELF' ?
-                            'getCurrentClassConstant' :
-                            'getClassConstant'
-                    ),
+                    context.useCoreSymbol('getClassConstant'),
                     '(',
                     classNameChunks,
                     ', ',
@@ -1019,6 +1077,7 @@ module.exports = {
                 propertyCodeChunks = [],
                 staticPropertyCodeChunks = [],
                 superClass = node.extend ? JSON.stringify(node.extend) : 'null',
+                traitNames = [],
                 interfaces = JSON.stringify(node.implement || []);
 
             _.each(node.members, function (member) {
@@ -1050,13 +1109,18 @@ module.exports = {
 
                         constantCodeChunks.push('"' + constant.name + '": ', constant.value);
                     });
+                } else if (member.name === 'N_USE_TRAIT_STATEMENT') {
+                    traitNames.push(...data.traitNames);
                 }
             });
 
             codeChunks = [
                 '{superClass: ' + superClass +
-                ', interfaces: ' + interfaces +
-                ', staticProperties: {',
+                ', interfaces: ' + interfaces + ', ',
+                (traitNames.length > 0 ? [
+                    'traits: {names: ', JSON.stringify(traitNames), '}, '
+                ] : ''),
+                'staticProperties: {',
                 staticPropertyCodeChunks,
                 '}, properties: {', propertyCodeChunks,
                 '}, methods: {', methodCodeChunks,
@@ -1111,6 +1175,11 @@ module.exports = {
                             ['' + node.bounds.start.line] :
                             null,
                         emptyValue: 'null'
+                    },
+                    // Return by reference.
+                    {
+                        value: node.returnByReference ? 'true' : null,
+                        emptyValue: 'false'
                     }
                 ]);
 
@@ -1150,7 +1219,7 @@ module.exports = {
                     name: constant.constant,
                     value: context.createInternalSourceNode(
                         [
-                            'function (currentClass) { return ',
+                            'function () { return ',
                             interpret(constant.value, {isConstantOrProperty: true}),
                             '; }'
                         ],
@@ -1694,6 +1763,11 @@ module.exports = {
                         ['' + node.bounds.start.line] :
                         null,
                     emptyValue: 'null'
+                },
+                // Return by reference.
+                {
+                    value: node.returnByReference ? 'true' : null,
+                    emptyValue: 'false'
                 }
             ]);
 
@@ -1890,7 +1964,7 @@ module.exports = {
                     // Output a function that can be called to create the property's value,
                     // so that each instance gets a separate array object (if one is used as the value)
                     [
-                        'function (currentClass) { return ',
+                        'function () { return ',
                         node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'],
                         '; }'
                     ],
@@ -2115,6 +2189,12 @@ module.exports = {
                 node
             );
         },
+        'N_MAGIC_TRAIT_CONSTANT': function (node, interpret, context) {
+            return context.createExpressionSourceNode(
+                [context.useCoreSymbol('getTraitName'), '()'],
+                node
+            );
+        },
         'N_METHOD_CALL': function (node, interpret, context) {
             // Determine whether method name is a bareword.
             var isStatic = node.method.name === 'N_STRING',
@@ -2177,6 +2257,12 @@ module.exports = {
                         ['' + node.bounds.start.line] :
                         null,
                     emptyValue: 'null'
+                },
+                // Return by reference.
+                {
+                    name: 'ref',
+                    value: node.returnByReference ? 'true' : null,
+                    emptyValue: 'false'
                 }
             ]);
 
@@ -2314,7 +2400,7 @@ module.exports = {
             if (context.isConstantOrProperty) {
                 // Wrap in an opcode, so that a fatal error can be thrown if the class has no parent
                 return context.createExpressionSourceNode(
-                    [context.useCoreSymbol('getSuperClassName'), '(currentClass)'],
+                    [context.useCoreSymbol('getSuperClassName'), '()'],
                     node
                 );
             }
@@ -2696,13 +2782,6 @@ module.exports = {
             return '"type":"scalar","scalarType":"' + node.type + '"';
         },
         'N_SELF': function (node, interpret, context) {
-            if (context.isConstantOrProperty) {
-                return context.createExpressionSourceNode(
-                    ['currentClass'],
-                    node
-                );
-            }
-
             return context.createExpressionSourceNode([context.useCoreSymbol('getClassNameOrThrow'), '()'], node);
         },
         'N_STATIC': function (node, interpret, context) {
@@ -2781,6 +2860,12 @@ module.exports = {
                         ['' + node.bounds.start.line] :
                         null,
                     emptyValue: 'null'
+                },
+                // Return by reference.
+                {
+                    name: 'ref',
+                    value: node.returnByReference ? 'true' : null,
+                    emptyValue: 'false'
                 }
             ]);
 
@@ -2829,7 +2914,7 @@ module.exports = {
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
                     [
-                        'function (currentClass) { return ',
+                        'function () { return ',
                         node.value ? interpret(node.value, {isConstantOrProperty: true}) : ['null'],
                         '; }'
                     ],
@@ -3058,6 +3143,72 @@ module.exports = {
                 node
             );
         },
+        'N_TRAIT_STATEMENT': function (node, interpret, context) {
+            var codeChunks,
+                constantCodeChunks = [],
+                methodCodeChunks = [],
+                propertyCodeChunks = [],
+                staticPropertyCodeChunks = [],
+                traitNames = [];
+
+            _.each(node.members, function (member) {
+                var data = interpret(member);
+
+                if (member.name === 'N_INSTANCE_PROPERTY_DEFINITION') {
+                    if (propertyCodeChunks.length > 0) {
+                        propertyCodeChunks.push(', ');
+                    }
+
+                    propertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
+                } else if (member.name === 'N_STATIC_PROPERTY_DEFINITION') {
+                    if (staticPropertyCodeChunks.length > 0) {
+                        staticPropertyCodeChunks.push(', ');
+                    }
+
+                    staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
+                } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
+                    if (methodCodeChunks.length > 0) {
+                        methodCodeChunks.push(', ');
+                    }
+
+                    methodCodeChunks.push('"' + data.name + '": ', data.body);
+                } else if (member.name === 'N_CONSTANT_DEFINITION') {
+                    _.each(data, function (constant) {
+                        if (constantCodeChunks.length > 0) {
+                            constantCodeChunks.push(', ');
+                        }
+
+                        constantCodeChunks.push('"' + constant.name + '": ', constant.value);
+                    });
+                } else if (member.name === 'N_USE_TRAIT_STATEMENT') {
+                    traitNames.push(...data.traitNames);
+                } else {
+                    throw new Error('Unsupported trait member type "' + member.name + '"');
+                }
+            });
+
+            codeChunks = [
+                '{',
+                (traitNames.length > 0 ? [
+                    'traits: {names: ', JSON.stringify(traitNames), '}, '
+                ] : ''),
+                'staticProperties: {',
+                staticPropertyCodeChunks,
+                '}, properties: {', propertyCodeChunks,
+                '}, methods: {', methodCodeChunks,
+                '}, constants: {', constantCodeChunks, '}}'
+            ];
+
+            return context.createStatementSourceNode(
+                [
+                    context.useCoreSymbol('defineTrait'),
+                    '(' + JSON.stringify(node.traitName) + ', ',
+                    codeChunks,
+                    ');'
+                ],
+                node
+            );
+        },
         'N_TRY_STATEMENT': function (node, interpret, context) {
             var catchCodesChunks = [],
                 codeChunks = [];
@@ -3180,6 +3331,11 @@ module.exports = {
             });
 
             return context.createStatementSourceNode(codeChunks, node);
+        },
+        'N_USE_TRAIT_STATEMENT': function (node) {
+            return {
+                traitNames: node.traitNames
+            };
         },
         'N_VARIABLE': function (node, interpret, context) {
             context.variableMap[node.variable] = true;

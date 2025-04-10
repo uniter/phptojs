@@ -71,8 +71,8 @@ describe('Transpiler parent:: construct expression test', function () {
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function (currentClass) { ' +
-            'return getClassConstant(getSuperClassName(currentClass), "PARENT_CONST"); ' +
+            '"MY_CONST": function () { ' +
+            'return getClassConstant(getSuperClassName(), "PARENT_CONST"); ' +
             '}' +
             '}' +
             '});' +

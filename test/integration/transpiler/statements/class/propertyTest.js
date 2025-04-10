@@ -49,8 +49,8 @@ describe('Transpiler class statement with properties test', function () {
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"firstProp": {visibility: "private", value: function (currentClass) { return null; }}, ' +
-            '"secondProp": {visibility: "private", value: function (currentClass) { return createInteger(21); }}' +
+            '"firstProp": {visibility: "private", value: function () { return null; }}, ' +
+            '"secondProp": {visibility: "private", value: function () { return createInteger(21); }}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {}' +
@@ -96,11 +96,11 @@ describe('Transpiler class statement with properties test', function () {
             'staticProperties: {' +
             '"firstProp": {' +
             'visibility: "private", ' +
-            'value: function (currentClass) { return null; }' +
+            'value: function () { return null; }' +
             '}, ' +
             '"secondProp": {' +
             'visibility: "private", ' +
-            'value: function (currentClass) { return createInteger(21); }' +
+            'value: function () { return createInteger(21); }' +
             '}' +
             '}, ' +
             'properties: {}, ' +
@@ -149,19 +149,19 @@ describe('Transpiler class statement with properties test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getClassConstant = core.getClassConstant, getClassNameOrThrow = core.getClassNameOrThrow;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {}, ' +
             'properties: {' +
-            '"myProp": {visibility: "protected", value: function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
+            '"myProp": {visibility: "protected", value: function () { ' +
+            'return getClassConstant(getClassNameOrThrow(), "MY_CONST"); ' +
             '}}' +
             '}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function (currentClass) { ' +
+            '"MY_CONST": function () { ' +
             'return createInteger(1001); ' +
             '}' +
             '}' +
@@ -208,21 +208,21 @@ describe('Transpiler class statement with properties test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var createInteger = core.createInteger, defineClass = core.defineClass, getCurrentClassConstant = core.getCurrentClassConstant;' +
+            'var createInteger = core.createInteger, defineClass = core.defineClass, getClassConstant = core.getClassConstant, getClassNameOrThrow = core.getClassNameOrThrow;' +
             'defineClass("MyClass", {' +
             'superClass: null, ' +
             'interfaces: [], ' +
             'staticProperties: {' +
             '"myStaticProp": {' +
             'visibility: "private", ' +
-            'value: function (currentClass) { ' +
-            'return getCurrentClassConstant(currentClass, "MY_CONST"); ' +
+            'value: function () { ' +
+            'return getClassConstant(getClassNameOrThrow(), "MY_CONST"); ' +
             '}' +
             '}}, ' +
             'properties: {}, ' +
             'methods: {}, ' +
             'constants: {' +
-            '"MY_CONST": function (currentClass) { ' +
+            '"MY_CONST": function () { ' +
             'return createInteger(1001); ' +
             '}' +
             '}' +

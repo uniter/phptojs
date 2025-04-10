@@ -505,7 +505,7 @@ describe('Transpiler line numbers test', function () {
             '});' +
             'line = 2;defineClass("MyClass", {' +
             'superClass: null, interfaces: [], staticProperties: {' +
-            '"myStaticProp": {visibility: "private", value: function (currentClass) { return (line = 5, getConstant("MY_CONST")); }}' +
+            '"myStaticProp": {visibility: "private", value: function () { return (line = 5, getConstant("MY_CONST")); }}' +
             '}, properties: {}, methods: {' +
             '"myMethod": {' +
             'isStatic: false, method: function _myMethod() {' +
