@@ -33,7 +33,7 @@
   "devDependencies": {
     "chai": "^4.3.10",
     "jshint": "^2.13.6",
-    "mocha": "^10.2.0",
+    "mocha": "^11.1.0",
     "mocha-bootstrap": "^1.0.6",
     "nowdoc": "^1.0.1",
     "sinon": "^17.0.1",
