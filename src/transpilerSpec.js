@@ -236,37 +236,6 @@ function snapshotOperandList(operandSpecs, context) {
 }
 
 /**
- * Builds chunks for the optional extra arguments that may need to be passed
- * when defining a function, method or closure. These include the parameter
- * spec data, line number and whether the method or closure is static.
- *
- * @param {Object[]} argSpecs
- * @return {Array}
- */
-function buildExtraFunctionDefinitionArgChunks(argSpecs) {
-    var argChunks = [],
-        optionalChunks = [];
-
-    _.each(argSpecs, function (argSpec) {
-        var prefix = argSpec.name ? [argSpec.name + ': '] : [];
-
-        if (argSpec.value && argSpec.value.length) {
-            [].push.apply(argChunks, optionalChunks);
-            optionalChunks = [];
-            argChunks.push(prefix.concat(argSpec.value));
-        } else {
-            optionalChunks.push(prefix.concat(argSpec.emptyValue));
-        }
-    });
-
-    // NB: If there are some optional args left at the end, omit them
-
-    return argChunks.map(function (argChunk) {
-        return [', '].concat(argChunk);
-    });
-}
-
-/**
  * Hoists declaration statements to the top of a given code block,
  * sorting class and interface declarations to allow for forward-references.
  *
@@ -677,6 +646,10 @@ function interpretFunctionArgs(argNodes, interpret) {
             argCodeChunks.push(',"ref":true');
         }
 
+        if (argNode.variadic) {
+            argCodeChunks.push(',"variadic":true');
+        }
+
         if (argNode.value) {
             argCodeChunks.push(
                 ',"value":',
@@ -700,6 +673,77 @@ function interpretFunctionArgs(argNodes, interpret) {
     return allArgCodeChunks.length > 0 ?
         ['['].concat(allArgCodeChunks, ']') :
         [];
+}
+
+/**
+ * Builds chunks for the optional extra operand arguments that may need to be passed
+ * when defining a language construct, such as the line number.
+ *
+ * @param {Object[]} argSpecs
+ * @return {Array}
+ */
+function buildExtraDefinitionArgChunks(argSpecs) {
+    var argChunks = [],
+        optionalChunks = [];
+
+    _.each(argSpecs, function (argSpec) {
+        var prefix = argSpec.name ? [argSpec.name + ': '] : [];
+
+        if (argSpec.value && argSpec.value.length) {
+            [].push.apply(argChunks, optionalChunks);
+            optionalChunks = [];
+            argChunks.push(prefix.concat(argSpec.value));
+        } else {
+            optionalChunks.push(prefix.concat(argSpec.emptyValue));
+        }
+    });
+
+    // NB: If there are some optional args left at the end, omit them to minimise bundle size.
+
+    return argChunks.map(function (argChunk) {
+        return [', '].concat(argChunk);
+    });
+}
+
+/**
+ * Builds chunks for the optional extra arguments that may need to be passed
+ * when defining a function, method or closure. These include the parameter
+ * spec data, line number and whether the method or closure is static.
+ *
+ * @param {Object} node
+ * @param {Function} interpret
+ * @param {Object} context
+ * @return {Array}
+ */
+function buildExtraFunctionDefinitionArgChunks(node, interpret, context) {
+    return buildExtraDefinitionArgChunks([
+        // Method parameters.
+        {
+            name: 'args',
+            value: interpretFunctionArgs(node.args, interpret),
+            emptyValue: '[]'
+        },
+        // Return type spec.
+        {
+            name: 'ret',
+            value: node.returnType ? ['{', interpret(node.returnType), '}'] : null,
+            emptyValue: 'null'
+        },
+        // Line number.
+        {
+            name: 'line',
+            value: context.lineNumbers ?
+                ['' + node.bounds.start.line] :
+                null,
+            emptyValue: 'null'
+        },
+        // Return by reference.
+        {
+            name: 'ref',
+            value: node.returnByReference ? 'true' : null,
+            emptyValue: 'false'
+        }
+    ]);
 }
 
 /**
@@ -851,16 +895,26 @@ function processBlock(statements, interpret, context, labelRepository) {
 
 module.exports = {
     nodes: {
-        'N_ABSTRACT_METHOD_DEFINITION': function (node) {
+        'N_ABSTRACT_METHOD_DEFINITION': function (node, interpret, context) {
+            var extraArgChunks = buildExtraFunctionDefinitionArgChunks(node, interpret, context);
+
             return {
                 name: node.func.string,
-                body: '{isStatic: false, abstract: true}'
+                body: context.createInternalSourceNode(
+                    ['{isStatic: false, abstract: true', extraArgChunks, '}'],
+                    node
+                )
             };
         },
-        'N_ABSTRACT_STATIC_METHOD_DEFINITION': function (node) {
+        'N_ABSTRACT_STATIC_METHOD_DEFINITION': function (node, interpret, context) {
+            var extraArgChunks = buildExtraFunctionDefinitionArgChunks(node, interpret, context);
+
             return {
                 name: node.method.string,
-                body: '{isStatic: false, abstract: true}'
+                body: context.createInternalSourceNode(
+                    ['{isStatic: true, abstract: true', extraArgChunks, '}'],
+                    node
+                )
             };
         },
         'N_ARRAY_CAST': function (node, interpret, context) {
@@ -1148,7 +1202,7 @@ module.exports = {
         },
         'N_CLOSURE': function (node, interpret, context) {
             var func = interpretFunction(node, null, node.args, node.bindings, node.body, interpret, context),
-                extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+                extraArgChunks = buildExtraDefinitionArgChunks([
                     // Closure parameters.
                     {
                         value: interpretFunctionArgs(node.args, interpret),
@@ -1746,7 +1800,7 @@ module.exports = {
             }
 
             func = interpretFunction(node, node.func, node.args, null, node.body, interpret, context);
-            extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+            extraArgChunks = buildExtraDefinitionArgChunks([
                 // Function parameters.
                 {
                     value: interpretFunctionArgs(node.args, interpret),
@@ -1782,7 +1836,9 @@ module.exports = {
             );
         },
         'N_FUNCTION_CALL': function (node, interpret, context) {
-            var isStatic = node.func.name === 'N_STRING',
+            var hasNamedArguments = node.namedArgs && Object.keys(node.namedArgs).length > 0,
+                namedArgumentsChunks,
+                isStatic = node.func.name === 'N_STRING',
                 operandSpecs = [];
 
             operandSpecs.push(
@@ -1800,6 +1856,23 @@ module.exports = {
                     }
             );
 
+            if (hasNamedArguments) {
+                namedArgumentsChunks = [];
+
+                _.forOwn(node.namedArgs, function (argNode, parameterName) {
+                    if (namedArgumentsChunks.length > 0) {
+                        namedArgumentsChunks.push(', ');
+                    }
+
+                    namedArgumentsChunks.push(JSON.stringify(parameterName), ': ', interpret(argNode));
+                });
+
+                operandSpecs.push({
+                    type: 'chunks',
+                    chunks: ['{', namedArgumentsChunks, '}']
+                });
+            }
+
             _.each(node.args, function (argNode) {
                 operandSpecs.push({
                     type: 'node',
@@ -1810,7 +1883,11 @@ module.exports = {
 
             return context.createExpressionSourceNode(
                 [
-                    context.useCoreSymbol(isStatic ? 'callFunction' : 'callVariableFunction'),
+                    context.useCoreSymbol(
+                        isStatic ?
+                            (hasNamedArguments ? 'callFunctionNamed' : 'callFunction') :
+                            (hasNamedArguments ? 'callVariableFunctionNamed' : 'callVariableFunction')
+                    ),
                     '(',
                     snapshotOperandList(operandSpecs, context),
                     ')'
@@ -2171,9 +2248,9 @@ module.exports = {
             return context.createExpressionSourceNode(
                 node.bounds ?
                     [context.useCoreSymbol('createInteger'), '(', String(node.bounds.start.line), ')'] :
-                    // NB: In the reference implementation, __LINE__ should never be null. However,
-                    //     if we have no bounds information then we cannot give a valid line number.
-                    [context.useCoreSymbol('nullValue')],
+                    // NB: In the reference implementation, __LINE__ should always be a positive integer.
+                    //     However, if we have no bounds information then we cannot give a valid line number.
+                    [context.useCoreSymbol('createInteger'), '(0)'],
                 node
             );
         },
@@ -2196,8 +2273,10 @@ module.exports = {
             );
         },
         'N_METHOD_CALL': function (node, interpret, context) {
-            // Determine whether method name is a bareword.
-            var isStatic = node.method.name === 'N_STRING',
+            var hasNamedArguments = node.namedArgs && Object.keys(node.namedArgs).length > 0,
+                namedArgumentsChunks,
+                // Determine whether method name is a bareword.
+                isStatic = node.method.name === 'N_STRING',
                 operandSpecs = [
                     {
                         type: 'node',
@@ -2218,6 +2297,23 @@ module.exports = {
                         }
                 ];
 
+            if (hasNamedArguments) {
+                namedArgumentsChunks = [];
+
+                _.forOwn(node.namedArgs, function (argNode, parameterName) {
+                    if (namedArgumentsChunks.length > 0) {
+                        namedArgumentsChunks.push(', ');
+                    }
+
+                    namedArgumentsChunks.push(JSON.stringify(parameterName), ': ', interpret(argNode));
+                });
+
+                operandSpecs.push({
+                    type: 'chunks',
+                    chunks: ['{', namedArgumentsChunks, '}']
+                });
+            }
+
             _.each(node.args, function (argNode) {
                 operandSpecs.push({
                     type: 'node',
@@ -2228,7 +2324,11 @@ module.exports = {
 
             return context.createExpressionSourceNode(
                 [
-                    context.useCoreSymbol(isStatic ? 'callInstanceMethod' : 'callVariableInstanceMethod'),
+                    context.useCoreSymbol(
+                        isStatic ?
+                            (hasNamedArguments ? 'callInstanceMethodNamed' : 'callInstanceMethod') :
+                            (hasNamedArguments ? 'callVariableInstanceMethodNamed' : 'callVariableInstanceMethod')
+                    ),
                     '(',
                     snapshotOperandList(operandSpecs, context),
                     ')'
@@ -2237,7 +2337,7 @@ module.exports = {
             );
         },
         'N_METHOD_DEFINITION': function (node, interpret, context) {
-            var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+            var extraArgChunks = buildExtraDefinitionArgChunks([
                 // Method parameters.
                 {
                     name: 'args',
@@ -2308,13 +2408,32 @@ module.exports = {
             );
         },
         'N_NEW_EXPRESSION': function (node, interpret, context) {
-            var operandSpecs = [{
-                type: 'node',
-                // Class name expression becomes one of the operands in this list of specs,
-                // so that it will be snapshotted if needed - no need to handle snapshotting here.
-                chunks: interpret(node.className, {allowBareword: true}),
-                node: node.className
-            }];
+            var hasNamedArguments = node.namedArgs && Object.keys(node.namedArgs).length > 0,
+                namedArgumentsChunks,
+                operandSpecs = [{
+                    type: 'node',
+                    // Class name expression becomes one of the operands in this list of specs,
+                    // so that it will be snapshotted if needed - no need to handle snapshotting here.
+                    chunks: interpret(node.className, {allowBareword: true}),
+                    node: node.className
+                }];
+
+            if (hasNamedArguments) {
+                namedArgumentsChunks = [];
+
+                _.forOwn(node.namedArgs, function (argNode, parameterName) {
+                    if (namedArgumentsChunks.length > 0) {
+                        namedArgumentsChunks.push(', ');
+                    }
+
+                    namedArgumentsChunks.push(JSON.stringify(parameterName), ': ', interpret(argNode));
+                });
+
+                operandSpecs.push({
+                    type: 'chunks',
+                    chunks: ['{', namedArgumentsChunks, '}']
+                });
+            }
 
             _.each(node.args, function (argNode) {
                 operandSpecs.push({
@@ -2326,7 +2445,7 @@ module.exports = {
 
             return context.createExpressionSourceNode(
                 [
-                    context.useCoreSymbol('createInstance'),
+                    context.useCoreSymbol(hasNamedArguments ? 'createInstanceNamed' : 'createInstance'),
                     '(',
                     snapshotOperandList(operandSpecs, context),
                     ')'
@@ -2791,7 +2910,9 @@ module.exports = {
             );
         },
         'N_STATIC_METHOD_CALL': function (node, interpret, context) {
-            var isForwarding = node.className.name === 'N_SELF' ||
+            var hasNamedArguments = node.namedArgs && Object.keys(node.namedArgs).length > 0,
+                namedArgumentsChunks,
+                isForwarding = node.className.name === 'N_SELF' ||
                     node.className.name === 'N_PARENT' ||
                     node.className.name === 'N_STATIC',
                 // Determine whether method name is a bareword.
@@ -2821,6 +2942,23 @@ module.exports = {
                     }
                 ];
 
+            if (hasNamedArguments) {
+                namedArgumentsChunks = [];
+
+                _.forOwn(node.namedArgs, function (argNode, parameterName) {
+                    if (namedArgumentsChunks.length > 0) {
+                        namedArgumentsChunks.push(', ');
+                    }
+
+                    namedArgumentsChunks.push(JSON.stringify(parameterName), ': ', interpret(argNode));
+                });
+
+                operandSpecs.push({
+                    type: 'chunks',
+                    chunks: ['{', namedArgumentsChunks, '}']
+                });
+            }
+
             _.each(node.args, function (argNode) {
                 operandSpecs.push({
                     type: 'node',
@@ -2831,7 +2969,11 @@ module.exports = {
 
             return context.createExpressionSourceNode(
                 [
-                    context.useCoreSymbol(isStatic ? 'callStaticMethod' : 'callVariableStaticMethod'),
+                    context.useCoreSymbol(
+                        isStatic ?
+                            (hasNamedArguments ? 'callStaticMethodNamed' : 'callStaticMethod') :
+                            (hasNamedArguments ? 'callVariableStaticMethodNamed' : 'callVariableStaticMethod')
+                    ),
                     '(',
                     snapshotOperandList(operandSpecs, context),
                     ')'
@@ -2840,7 +2982,7 @@ module.exports = {
             );
         },
         'N_STATIC_METHOD_DEFINITION': function (node, interpret, context) {
-            var extraArgChunks = buildExtraFunctionDefinitionArgChunks([
+            var extraArgChunks = buildExtraDefinitionArgChunks([
                 // Method parameters.
                 {
                     name: 'args',
@@ -3166,7 +3308,12 @@ module.exports = {
                     }
 
                     staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
-                } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
+                } else if (
+                    member.name === 'N_METHOD_DEFINITION' ||
+                    member.name === 'N_STATIC_METHOD_DEFINITION' ||
+                    member.name === 'N_ABSTRACT_METHOD_DEFINITION' ||
+                    member.name === 'N_ABSTRACT_STATIC_METHOD_DEFINITION'
+                ) {
                     if (methodCodeChunks.length > 0) {
                         methodCodeChunks.push(', ');
                     }

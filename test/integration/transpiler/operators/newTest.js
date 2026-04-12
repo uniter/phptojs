@@ -170,4 +170,149 @@ describe('Transpiler "new" operator test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile an instantiation with named arguments only', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_VARIABLE',
+                        variable: 'object'
+                    },
+                    right: [{
+                        operator: '=',
+                        operand: {
+                            name: 'N_NEW_EXPRESSION',
+                            className: {
+                                name: 'N_STRING',
+                                string: 'MyClass'
+                            },
+                            args: [],
+                            namedArgs: {
+                                firstParam: {
+                                    name: 'N_STRING_LITERAL',
+                                    string: 'my first arg'
+                                },
+                                secondParam: {
+                                    name: 'N_STRING_LITERAL',
+                                    string: 'my second arg'
+                                }
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createBareword = core.createBareword, createInstanceNamed = core.createInstanceNamed, createString = core.createString, getVariable = core.getVariable, setValue = core.setValue;' +
+            'setValue(getVariable("object"), ' +
+            'createInstanceNamed(createBareword("MyClass"), ' +
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            '));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile an instantiation with one positional and two named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_VARIABLE',
+                        variable: 'object'
+                    },
+                    right: [{
+                        operator: '=',
+                        operand: {
+                            name: 'N_NEW_EXPRESSION',
+                            className: {
+                                name: 'N_STRING',
+                                string: 'MyClass'
+                            },
+                            args: [{
+                                name: 'N_STRING_LITERAL',
+                                string: 'my first arg'
+                            }],
+                            namedArgs: {
+                                secondParam: {
+                                    name: 'N_STRING_LITERAL',
+                                    string: 'my second arg'
+                                },
+                                thirdParam: {
+                                    name: 'N_STRING_LITERAL',
+                                    string: 'my third arg'
+                                }
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createBareword = core.createBareword, createInstanceNamed = core.createInstanceNamed, createString = core.createString, getVariable = core.getVariable, setValue = core.setValue;' +
+            'setValue(getVariable("object"), ' +
+            'createInstanceNamed(createBareword("MyClass"), ' +
+            '{"secondParam": createString("my second arg"), "thirdParam": createString("my third arg")}, ' +
+            'createString("my first arg")' +
+            '));' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile an instantiation with variable class name and named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_EXPRESSION',
+                    left: {
+                        name: 'N_VARIABLE',
+                        variable: 'object'
+                    },
+                    right: [{
+                        operator: '=',
+                        operand: {
+                            name: 'N_NEW_EXPRESSION',
+                            className: {
+                                name: 'N_VARIABLE',
+                                variable: 'myClassName'
+                            },
+                            args: [],
+                            namedArgs: {
+                                firstParam: {
+                                    name: 'N_STRING_LITERAL',
+                                    string: 'my first arg'
+                                },
+                                secondParam: {
+                                    name: 'N_STRING_LITERAL',
+                                    string: 'my second arg'
+                                }
+                            }
+                        }
+                    }]
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createInstanceNamed = core.createInstanceNamed, createString = core.createString, getVariable = core.getVariable, setValue = core.setValue;' +
+            'setValue(getVariable("object"), ' +
+            'createInstanceNamed(getVariable("myClassName"), ' +
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            '));' +
+            '}'
+        );
+    });
 });

@@ -169,4 +169,47 @@ describe('Transpiler closure expression test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a closure with a variadic parameter', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_RETURN_STATEMENT',
+                expression: {
+                    name: 'N_CLOSURE',
+                    args: [{
+                        name: 'N_ARGUMENT',
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'normalParam'
+                        }
+                    }, {
+                        name: 'N_ARGUMENT',
+                        variadic: true,
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'variadicParam'
+                        }
+                    }],
+                    bindings: [],
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: []
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var createClosure = core.createClosure;' +
+            'return createClosure(' +
+            'function () {' +
+            '}, [' +
+            '{"name":"normalParam"},' +
+            '{"name":"variadicParam","variadic":true}' +
+            ']);' +
+            '}'
+        );
+    });
 });

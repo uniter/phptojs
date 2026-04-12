@@ -183,4 +183,171 @@ describe('Transpiler static method call expression test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a call to static method with named arguments only (forwarding)', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_STATIC_METHOD_CALL',
+                    className: {
+                        name: 'N_PARENT'
+                    },
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callStaticMethodNamed = core.callStaticMethodNamed, createString = core.createString, getSuperClassNameOrThrow = core.getSuperClassNameOrThrow;' +
+            'callStaticMethodNamed(getSuperClassNameOrThrow(), "myMethod", ' +
+            'true, ' + // Forwarding.
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to static method with named arguments only (non-forwarding)', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_STATIC_METHOD_CALL',
+                    className: {
+                        name: 'N_STRING',
+                        string: '\\My\\Space\\MyClass'
+                    },
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callStaticMethodNamed = core.callStaticMethodNamed, createBareword = core.createBareword, createString = core.createString;' +
+            'callStaticMethodNamed(createBareword("\\\\My\\\\Space\\\\MyClass"), "myMethod", ' +
+            'false, ' + // Non-forwarding.
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to static method with one positional and two named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_STATIC_METHOD_CALL',
+                    className: {
+                        name: 'N_STRING',
+                        string: 'MyClass'
+                    },
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: [{
+                        name: 'N_STRING_LITERAL',
+                        string: 'my first arg'
+                    }],
+                    namedArgs: {
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        },
+                        thirdParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my third arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callStaticMethodNamed = core.callStaticMethodNamed, createBareword = core.createBareword, createString = core.createString;' +
+            'callStaticMethodNamed(createBareword("MyClass"), "myMethod", ' +
+            'false, ' + // Non-forwarding.
+            '{"secondParam": createString("my second arg"), "thirdParam": createString("my third arg")}, ' +
+            'createString("my first arg")' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to variable static method with named arguments only', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_STATIC_METHOD_CALL',
+                    className: {
+                        name: 'N_STRING',
+                        string: 'MyClass'
+                    },
+                    method: {
+                        name: 'N_VARIABLE',
+                        variable: 'methodName'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callVariableStaticMethodNamed = core.callVariableStaticMethodNamed, createBareword = core.createBareword, createString = core.createString, getVariable = core.getVariable;' +
+            'callVariableStaticMethodNamed(createBareword("MyClass"), getVariable("methodName"), ' +
+            'false, ' + // Non-forwarding.
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
 });

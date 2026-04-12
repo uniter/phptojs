@@ -315,4 +315,46 @@ describe('Transpiler function statement test', function () {
             'PHP Fatal error: __autoload() must take exactly 1 argument in my_module.php on line 9'
         );
     });
+
+    it('should correctly transpile a function with a variadic parameter', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_FUNCTION_STATEMENT',
+                func: {
+                    name: 'N_STRING',
+                    string: 'myVariadicFunc'
+                },
+                args: [{
+                    name: 'N_ARGUMENT',
+                    variable: {
+                        name: 'N_VARIABLE',
+                        variable: 'normalParam'
+                    }
+                }, {
+                    name: 'N_ARGUMENT',
+                    variadic: true,
+                    variable: {
+                        name: 'N_VARIABLE',
+                        variable: 'variadicParam'
+                    }
+                }],
+                body: {
+                    name: 'N_COMPOUND_STATEMENT',
+                    statements: []
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var defineFunction = core.defineFunction;' +
+            'defineFunction("myVariadicFunc", function _myVariadicFunc() {' +
+            '}, [' +
+            '{"name":"normalParam"},' +
+            '{"name":"variadicParam","variadic":true}' +
+            ']);' +
+            '}'
+        );
+    });
 });

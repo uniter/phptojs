@@ -145,4 +145,128 @@ describe('Transpiler instance method call expression test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a call to instance method with named arguments only', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_METHOD_CALL',
+                    object: {
+                        name: 'N_VARIABLE',
+                        variable: 'myObject'
+                    },
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callInstanceMethodNamed = core.callInstanceMethodNamed, createString = core.createString, getVariable = core.getVariable;' +
+            'callInstanceMethodNamed(getVariable("myObject"), "myMethod", ' +
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to instance method with one positional and two named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_METHOD_CALL',
+                    object: {
+                        name: 'N_VARIABLE',
+                        variable: 'myObject'
+                    },
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myMethod'
+                    },
+                    args: [{
+                        name: 'N_STRING_LITERAL',
+                        string: 'my first arg'
+                    }],
+                    namedArgs: {
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        },
+                        thirdParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my third arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callInstanceMethodNamed = core.callInstanceMethodNamed, createString = core.createString, getVariable = core.getVariable;' +
+            'callInstanceMethodNamed(getVariable("myObject"), "myMethod", ' +
+            '{"secondParam": createString("my second arg"), "thirdParam": createString("my third arg")}, ' +
+            'createString("my first arg")' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to variable instance method with named arguments only', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_METHOD_CALL',
+                    object: {
+                        name: 'N_VARIABLE',
+                        variable: 'myObject'
+                    },
+                    method: {
+                        name: 'N_VARIABLE',
+                        variable: 'methodName'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callVariableInstanceMethodNamed = core.callVariableInstanceMethodNamed, createString = core.createString, getVariable = core.getVariable;' +
+            'callVariableInstanceMethodNamed(getVariable("myObject"), getVariable("methodName"), ' +
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
 });

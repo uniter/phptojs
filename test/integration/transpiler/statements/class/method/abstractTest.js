@@ -10,7 +10,7 @@
 'use strict';
 
 var expect = require('chai').expect,
-    phpToJS = require('../../../../..');
+    phpToJS = require('../../../../../..');
 
 describe('Transpiler class statement with abstract methods test', function () {
     it('should correctly transpile a class with abstract instance and static methods', function () {

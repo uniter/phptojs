@@ -93,8 +93,8 @@ describe('Transpiler __LINE__ magic constant test', function () {
 
         expect(phpToJS.transpile(ast, {bare: true})).to.equal(
             'function (core) {' +
-            'var nullValue = core.nullValue;' +
-            'return nullValue;' +
+            'var createInteger = core.createInteger;' +
+            'return createInteger(0);' +
             '}'
         );
     });

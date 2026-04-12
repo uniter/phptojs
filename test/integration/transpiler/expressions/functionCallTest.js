@@ -170,4 +170,204 @@ describe('Transpiler function call expression test', function () {
             '}'
         );
     });
+
+    it('should correctly transpile a call to static function name with named arguments only', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myFunc'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callFunctionNamed = core.callFunctionNamed, createString = core.createString;' +
+            'callFunctionNamed("myFunc", ' +
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to variable function name with named arguments only', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_VARIABLE',
+                        variable: 'myFuncName'
+                    },
+                    args: [],
+                    namedArgs: {
+                        firstParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my first arg'
+                        },
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callVariableFunctionNamed = core.callVariableFunctionNamed, createString = core.createString, getVariable = core.getVariable;' +
+            'callVariableFunctionNamed(getVariable("myFuncName"), ' +
+            '{"firstParam": createString("my first arg"), "secondParam": createString("my second arg")}' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to static function name with one positional and two named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myFunc'
+                    },
+                    args: [{
+                        name: 'N_STRING_LITERAL',
+                        string: 'my first arg'
+                    }],
+                    namedArgs: {
+                        secondParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my second arg'
+                        },
+                        thirdParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my third arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callFunctionNamed = core.callFunctionNamed, createString = core.createString;' +
+            'callFunctionNamed("myFunc", ' +
+            '{"secondParam": createString("my second arg"), "thirdParam": createString("my third arg")}, ' +
+            'createString("my first arg")' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to static function name with two positional and two named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myFunc'
+                    },
+                    args: [{
+                        name: 'N_STRING_LITERAL',
+                        string: 'my first arg'
+                    }, {
+                        name: 'N_STRING_LITERAL',
+                        string: 'my second arg'
+                    }],
+                    namedArgs: {
+                        thirdParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my third arg'
+                        },
+                        fourthParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my fourth arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callFunctionNamed = core.callFunctionNamed, createString = core.createString;' +
+            'callFunctionNamed("myFunc", ' +
+            '{"thirdParam": createString("my third arg"), "fourthParam": createString("my fourth arg")}, ' +
+            'createString("my first arg"), ' +
+            'createString("my second arg")' +
+            ');' +
+            '}'
+        );
+    });
+
+    it('should correctly transpile a call to variable function name with two positional and two named arguments', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_EXPRESSION_STATEMENT',
+                expression: {
+                    name: 'N_FUNCTION_CALL',
+                    func: {
+                        name: 'N_VARIABLE',
+                        variable: 'myFuncName'
+                    },
+                    args: [{
+                        name: 'N_STRING_LITERAL',
+                        string: 'my first arg'
+                    }, {
+                        name: 'N_STRING_LITERAL',
+                        string: 'my second arg'
+                    }],
+                    namedArgs: {
+                        thirdParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my third arg'
+                        },
+                        fourthParam: {
+                            name: 'N_STRING_LITERAL',
+                            string: 'my fourth arg'
+                        }
+                    }
+                }
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var callVariableFunctionNamed = core.callVariableFunctionNamed, createString = core.createString, getVariable = core.getVariable;' +
+            'callVariableFunctionNamed(getVariable("myFuncName"), ' +
+            '{"thirdParam": createString("my third arg"), "fourthParam": createString("my fourth arg")}, ' +
+            'createString("my first arg"), ' +
+            'createString("my second arg")' +
+            ');' +
+            '}'
+        );
+    });
 });

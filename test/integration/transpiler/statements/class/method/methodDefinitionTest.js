@@ -108,4 +108,92 @@ describe('Transpiler class statement with method definitions test', function () 
             '}'
         );
     });
+
+    it('should correctly transpile a class with instance and static methods having variadic parameters', function () {
+        var ast = {
+            name: 'N_PROGRAM',
+            statements: [{
+                name: 'N_CLASS_STATEMENT',
+                className: 'MyClass',
+                members: [{
+                    name: 'N_METHOD_DEFINITION',
+                    visibility: 'public',
+                    func: {
+                        name: 'N_STRING',
+                        string: 'myInstanceMethod'
+                    },
+                    args: [{
+                        name: 'N_ARGUMENT',
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'normalParam'
+                        }
+                    }, {
+                        name: 'N_ARGUMENT',
+                        variadic: true,
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'variadicParam'
+                        }
+                    }],
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: []
+                    }
+                }, {
+                    name: 'N_STATIC_METHOD_DEFINITION',
+                    visibility: 'public',
+                    method: {
+                        name: 'N_STRING',
+                        string: 'myStaticMethod'
+                    },
+                    args: [{
+                        name: 'N_ARGUMENT',
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'normalParam'
+                        }
+                    }, {
+                        name: 'N_ARGUMENT',
+                        variadic: true,
+                        variable: {
+                            name: 'N_VARIABLE',
+                            variable: 'variadicParam'
+                        }
+                    }],
+                    body: {
+                        name: 'N_COMPOUND_STATEMENT',
+                        statements: []
+                    }
+                }]
+            }]
+        };
+
+        expect(phpToJS.transpile(ast, {bare: true})).to.equal(
+            'function (core) {' +
+            'var defineClass = core.defineClass;' +
+            'defineClass("MyClass", {' +
+            'superClass: null, ' +
+            'interfaces: [], ' +
+            'staticProperties: {}, ' +
+            'properties: {}, ' +
+            'methods: {' +
+            '"myInstanceMethod": {' +
+            'isStatic: false, method: function _myInstanceMethod() {' +
+            '}, args: [' +
+            '{"name":"normalParam"},' +
+            '{"name":"variadicParam","variadic":true}' +
+            ']}, ' +
+            '"myStaticMethod": {' +
+            'isStatic: true, method: function _myStaticMethod() {' +
+            '}, args: [' +
+            '{"name":"normalParam"},' +
+            '{"name":"variadicParam","variadic":true}' +
+            ']}' +
+            '}, ' +
+            'constants: {}' +
+            '});' +
+            '}'
+        );
+    });
 });
