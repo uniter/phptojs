@@ -439,6 +439,7 @@ function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, state
         labels,
         loopIndex = 0,
         pendingLabelGotoNode,
+        promotedAssignmentChunks = [],
         useCoreSymbol = function (name) {
             if (name === 'line' || name === 'ternaryCondition') {
                 coreSymbolsUsed[name] = true;
@@ -547,8 +548,34 @@ function interpretFunction(functionNode, nameNode, argNodes, bindingNodes, state
         });
     }
 
+    // Generate auto-assignments for constructor-promoted properties.
+    _.each(argNodes, function (argNode) {
+        var varName;
+
+        if (!argNode || !argNode.visibility) {
+            return;
+        }
+
+        varName = argNode.variable.variable;
+
+        promotedAssignmentChunks.push(
+            useCoreSymbol('setValue'),
+            '(',
+            useCoreSymbol('getInstanceProperty'),
+            '(',
+            useCoreSymbol('getVariable'),
+            '("this"), ',
+            JSON.stringify(varName),
+            '), ',
+            useCoreSymbol('getVariable'),
+            '(',
+            JSON.stringify(varName),
+            '));'
+        );
+    });
+
     // Prepend parts in correct order
-    body = [argumentAssignmentChunks, bindingAssignmentChunks].concat(body);
+    body = [argumentAssignmentChunks, bindingAssignmentChunks, promotedAssignmentChunks].concat(body);
 
     _.each(Object.keys(coreSymbolsUsed).sort(), function (name) {
         var declarator = name;
@@ -744,6 +771,28 @@ function buildExtraFunctionDefinitionArgChunks(node, interpret, context) {
             emptyValue: 'false'
         }
     ]);
+}
+
+/**
+ * Builds the code chunks for a property definition within a class or trait.
+ *
+ * @param {{name: string, visibility: string, readonly: string|null, type: string|Array|null, value: *}} data
+ * @returns {Array}
+ */
+function buildPropertyDefinitionChunks(data) {
+    var chunks = ['"' + data.name + '": {visibility: ' + data.visibility];
+
+    if (data.readonly) {
+        chunks.push(', readonly: true');
+    }
+
+    if (data.type) {
+        chunks.push(', type: {', data.type, '}');
+    }
+
+    chunks.push(', value: ', data.value, '}');
+
+    return chunks;
 }
 
 /**
@@ -1142,19 +1191,40 @@ module.exports = {
                         propertyCodeChunks.push(', ');
                     }
 
-                    propertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
+                    propertyCodeChunks.push(buildPropertyDefinitionChunks(data));
                 } else if (member.name === 'N_STATIC_PROPERTY_DEFINITION') {
                     if (staticPropertyCodeChunks.length > 0) {
                         staticPropertyCodeChunks.push(', ');
                     }
 
-                    staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
+                    staticPropertyCodeChunks.push(buildPropertyDefinitionChunks(data));
                 } else if (member.name === 'N_METHOD_DEFINITION' || member.name === 'N_STATIC_METHOD_DEFINITION') {
                     if (methodCodeChunks.length > 0) {
                         methodCodeChunks.push(', ');
                     }
 
                     methodCodeChunks.push('"' + data.name + '": ', data.body);
+
+                    // Constructor property promotion: each promoted arg also declares a class property.
+                    if (member.name === 'N_METHOD_DEFINITION' && member.func.string === '__construct') {
+                        _.each(member.args, function (arg) {
+                            if (!arg.visibility) {
+                                return;
+                            }
+
+                            if (propertyCodeChunks.length > 0) {
+                                propertyCodeChunks.push(', ');
+                            }
+
+                            propertyCodeChunks.push(buildPropertyDefinitionChunks({
+                                name: arg.variable.variable,
+                                visibility: JSON.stringify(arg.visibility),
+                                readonly: arg.readonly ? 'true' : null,
+                                type: arg.type ? interpret(arg.type) : null,
+                                value: 'function () { return null; }'
+                            }));
+                        });
+                    }
                 } else if (member.name === 'N_CONSTANT_DEFINITION') {
                     _.each(data, function (constant) {
                         if (constantCodeChunks.length > 0) {
@@ -2036,6 +2106,8 @@ module.exports = {
         'N_INSTANCE_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
+                readonly: node.readonly ? 'true' : null,
+                type: node.type ? interpret(node.type) : null,
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
                     // Output a function that can be called to create the property's value,
@@ -3053,6 +3125,7 @@ module.exports = {
         'N_STATIC_PROPERTY_DEFINITION': function (node, interpret, context) {
             return {
                 name: node.variable.variable,
+                type: node.type ? interpret(node.type) : null,
                 visibility: JSON.stringify(node.visibility),
                 value: context.createInternalSourceNode(
                     [
@@ -3301,13 +3374,13 @@ module.exports = {
                         propertyCodeChunks.push(', ');
                     }
 
-                    propertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
+                    propertyCodeChunks.push(buildPropertyDefinitionChunks(data));
                 } else if (member.name === 'N_STATIC_PROPERTY_DEFINITION') {
                     if (staticPropertyCodeChunks.length > 0) {
                         staticPropertyCodeChunks.push(', ');
                     }
 
-                    staticPropertyCodeChunks.push('"' + data.name + '": {visibility: ' + data.visibility + ', value: ', data.value, '}');
+                    staticPropertyCodeChunks.push(buildPropertyDefinitionChunks(data));
                 } else if (
                     member.name === 'N_METHOD_DEFINITION' ||
                     member.name === 'N_STATIC_METHOD_DEFINITION' ||
