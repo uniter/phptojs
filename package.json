@@ -28,12 +28,12 @@
     "phpcommon": "^2.0.2",
     "source-map": "^0.8.0-beta.0",
     "source-map-to-comment": "^2.0.0",
-    "transpiler": "~1.2"
+    "transpiler": "^1.2.1"
   },
   "devDependencies": {
     "chai": "^4.3.10",
     "jshint": "^2.13.6",
-    "mocha": "^11.1.0",
+    "mocha": "^11.7.5",
     "mocha-bootstrap": "^1.0.6",
     "nowdoc": "^1.0.1",
     "sinon": "^17.0.1",
