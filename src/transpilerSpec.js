@@ -112,7 +112,15 @@ var _ = require('microdash'),
     LabelRepository = require('./LabelRepository'),
     PHPFatalError = phpCommon.PHPFatalError,
     SourceNode = sourceMap.SourceNode,
-    Translator = phpCommon.Translator;
+    Translator = phpCommon.Translator,
+    // Cache a pre-populated default Translator to avoid re-running .addTranslations() on every transpile call.
+    defaultTranslator = (function () {
+        var translator = new Translator();
+
+        translator.addTranslations(transpilerMessages);
+
+        return translator;
+    }());
 
 /**
  * Determines whether the given expression AST node is a literal.
@@ -235,6 +243,33 @@ function snapshotOperandList(operandSpecs, context) {
     return resultChunks;
 }
 
+// Used by all three createXxxSourceNode() methods to simply return the chunks array unchanged.
+function returnChunks(chunks) {
+    return chunks;
+}
+
+/**
+ * Flattens a nested array of strings into a single concatenated string.
+ * Used as a faster alternative to SourceNode.toString() when no bounds or source map is needed.
+ *
+ * @param {(*|string)[]} chunks
+ * @param {string[]} parts
+ */
+function flattenChunks(chunks, parts) {
+    var chunk,
+        index;
+
+    for (index = 0; index < chunks.length; index++) {
+        chunk = chunks[index];
+
+        if (Array.isArray(chunk)) {
+            flattenChunks(chunk, parts);
+        } else if (chunk) {
+            parts.push(chunk);
+        }
+    }
+}
+
 /**
  * Hoists declaration statements to the top of a given code block,
  * sorting class and interface declarations to allow for forward-references.
@@ -253,8 +288,27 @@ function hoistDeclarations(statements) {
         interfaceNameToReferencesMap = {},
         nonDeclarations = [],
         skipHoisting = false,
+        statementIndex,
+        statementName,
         traitDeclarations = [],
         traitNameToReferencesMap = {};
+
+    // Fast path: if there are no declarations at all, hoisting is a no-op.
+    for (statementIndex = 0; statementIndex < statements.length; statementIndex++) {
+        statementName = statements[statementIndex].name;
+
+        if (
+            statementName === 'N_CLASS_STATEMENT' || statementName === 'N_INTERFACE_STATEMENT' ||
+            statementName === 'N_TRAIT_STATEMENT' || statementName === 'N_FUNCTION_STATEMENT' ||
+            statementName === 'N_USE_STATEMENT'
+        ) {
+            break;
+        }
+    }
+
+    if (statementIndex === statements.length) {
+        return statements;
+    }
 
     // FIXME: Note that class and interface references should be resolved relative
     //        to the current namespace scope, but resolution is currently done at runtime.
@@ -802,45 +856,45 @@ function buildPropertyDefinitionChunks(data) {
  * @param {Function} interpret
  * @param {object} context
  * @param {LabelRepository} labelRepository
- * @return {object[]}
+ * @return {{anyGotoOrLabel: boolean, statementDatas: object[]}}
  */
 function transpileWithLabelsAndGotos(statements, interpret, context, labelRepository) {
-    var gotos,
+    var anyGotoOrLabel = false,
+        gotos,
         labels,
-        statementDatas = [];
+        statementDatas = [],
+        statementIndex;
 
     function onGoto(gotoNode) {
         gotos[gotoNode.label.string] = true;
+        anyGotoOrLabel = true;
     }
 
     function onFoundLabel(labelNode) {
         labels[labelNode.label.string] = true;
+        anyGotoOrLabel = true;
     }
 
     labelRepository.on('goto label', onGoto);
     labelRepository.on('found label', onFoundLabel);
 
-    _.each(statements, function (statement) {
-        var statementCodeChunks;
-
+    for (statementIndex = 0; statementIndex < statements.length; statementIndex++) {
         labels = {};
         gotos = {};
 
-        statementCodeChunks = interpret(statement, context);
-
         statementDatas.push({
-            codeChunks: statementCodeChunks,
+            codeChunks: interpret(statements[statementIndex], context),
             gotos: gotos,
             labels: labels,
             prefix: '',
             suffix: ''
         });
-    });
+    }
 
     labelRepository.off('goto label', onGoto);
     labelRepository.off('found label', onFoundLabel);
 
-    return statementDatas;
+    return {anyGotoOrLabel: anyGotoOrLabel, statementDatas: statementDatas};
 }
 
 /**
@@ -857,7 +911,18 @@ function processBlock(statements, interpret, context, labelRepository) {
     var codeChunks = [],
         labelsWithBackwardJumpLoopAdded = {},
         labelsWithForwardJumpBlockAdded = {},
-        statementDatas = transpileWithLabelsAndGotos(statements, interpret, context, labelRepository);
+        result = transpileWithLabelsAndGotos(statements, interpret, context, labelRepository),
+        statementDatas = result.statementDatas,
+        statementDataIndex;
+
+    // Fast path: no goto or label in this block - skip label-handling.
+    if (!result.anyGotoOrLabel) {
+        for (statementDataIndex = 0; statementDataIndex < statementDatas.length; statementDataIndex++) {
+            codeChunks.push(statementDatas[statementDataIndex].codeChunks);
+        }
+
+        return codeChunks;
+    }
 
     _.each(statementDatas, function (statementData, index) {
         var subsequentIndex,
@@ -1653,7 +1718,7 @@ module.exports = {
                     throw new Error('Unsupported binary operator "' + operation.operator + '"');
                 }
 
-                if (_.isPlainObject(opcode)) {
+                if (typeof opcode === 'object') {
                     opcode = opcode[isReference];
                 }
 
@@ -2621,7 +2686,6 @@ module.exports = {
                 coreSymbolDeclarators = [],
                 coreSymbolsUsed = {},
                 createSourceNode,
-                createSpecificSourceNode,
                 filePath = options ? options[PATH] : null,
                 labelRepository = new LabelRepository(),
                 loopIndex = 0,
@@ -2665,6 +2729,7 @@ module.exports = {
                 },
                 labels,
                 name,
+                parts,
                 pendingLabelGotoNode,
                 sourceMap,
                 sourceMapOptions;
@@ -2679,10 +2744,14 @@ module.exports = {
                 (options[SOURCE_MAP] === true ? {} : options[SOURCE_MAP]) :
                 null;
 
-            translator = options[TRANSLATOR] || new Translator();
-            // Add our transpilation-related messages to the translator
-            // (note that these may be overridden later by an external library)
-            translator.addTranslations(transpilerMessages);
+            if (options[TRANSLATOR]) {
+                translator = options[TRANSLATOR];
+                // Add our transpilation-related messages to the custom translator
+                // (note that these may be overridden later by an external library).
+                translator.addTranslations(transpilerMessages);
+            } else {
+                translator = defaultTranslator;
+            }
 
             context.buildingSourceMap = !!sourceMapOptions;
             context.lineNumbers = !!options.lineNumbers;
@@ -2787,15 +2856,9 @@ module.exports = {
                     throw new Error('Ticking enabled, but AST contains no node bounds');
                 }
 
-                createSpecificSourceNode = function (chunks) {
-                    // Just return the chunks array: all chunks will be flattened
-                    // into the final concatenated string by one outer SourceNode object in this mode
-                    return chunks;
-                };
-
-                context.createExpressionSourceNode = createSpecificSourceNode;
-                context.createInternalSourceNode = createSpecificSourceNode;
-                context.createStatementSourceNode = createSpecificSourceNode;
+                context.createExpressionSourceNode = returnChunks;
+                context.createInternalSourceNode = returnChunks;
+                context.createStatementSourceNode = returnChunks;
             }
 
             if (options[MODE] && options[SYNC]) {
@@ -2884,33 +2947,43 @@ module.exports = {
                 body.push(';');
             }
 
-            // Don't provide a line or column number for the program node itself
-            sourceMap = new SourceNode(null, null, filePath, body);
+            if (node.bounds) {
+                // AST has bounds: body may contain SourceNode children (for line tracking etc.),
+                // so we must use SourceNode to flatten and optionally build a source map.
+                sourceMap = new SourceNode(null, null, filePath, body);
 
-            if (context.buildingSourceMap) {
-                if (sourceMapOptions[SOURCE_CONTENT]) {
-                    // The original source PHP for the module will be embedded inside the source map itself
-                    sourceMap.setSourceContent(filePath, sourceMapOptions[SOURCE_CONTENT]);
+                if (context.buildingSourceMap) {
+                    if (sourceMapOptions[SOURCE_CONTENT]) {
+                        // The original source PHP for the module will be embedded inside the source map itself.
+                        sourceMap.setSourceContent(filePath, sourceMapOptions[SOURCE_CONTENT]);
+                    }
+
+                    compiledSourceMap = sourceMap.toStringWithSourceMap();
+
+                    if (sourceMapOptions[RETURN_SOURCE_MAP]) {
+                        // Return the source map data object rather than embedding it in a comment,
+                        // much more efficient when we need to hand the source map data off
+                        // to the next processor in a chain, e.g. for Webpack when used with PHPify.
+                        return {
+                            code: compiledSourceMap.code,
+                            map: compiledSourceMap.map.toJSON() // Data object, not actually stringified to JSON
+                        };
+                    }
+
+                    // Append a source map comment containing the entire source map data as a data: URI,
+                    // in the form `//# sourceMappingURL=data:application/json;base64,...`.
+                    compiledBody = compiledSourceMap.code + '\n\n' +
+                        sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
+                } else {
+                    compiledBody = sourceMap.toString();
                 }
-
-                compiledSourceMap = sourceMap.toStringWithSourceMap();
-
-                if (sourceMapOptions[RETURN_SOURCE_MAP]) {
-                    // Return the source map data object rather than embedding it in a comment,
-                    // much more efficient when we need to hand the source map data off
-                    // to the next processor in a chain, eg. for Webpack when used with PHPify
-                    return {
-                        code: compiledSourceMap.code,
-                        map: compiledSourceMap.map.toJSON() // Data object, not actually stringified to JSON
-                    };
-                }
-
-                // Append a source map comment containing the entire source map data as a data: URI,
-                // in the form `//# sourceMappingURL=data:application/json;base64,...`
-                compiledBody = compiledSourceMap.code + '\n\n' +
-                    sourceMapToComment(compiledSourceMap.map.toJSON()) + '\n';
             } else {
-                compiledBody = sourceMap.toString();
+                // No bounds - body is a nested array of plain strings only.
+                // Simply flatten, avoiding SourceNode construction & walk overhead.
+                parts = [];
+
+                flattenChunks(body, parts);
+                compiledBody = parts.join('');
             }
 
             return compiledBody;
